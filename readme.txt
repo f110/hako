@@ -1,3 +1,10 @@
+## 動かし方
+
+  $ carton install
+  $ carton exec plackup app.psgi
+
+## 以下オリジナルのreadme
+
 ―――――――――――――――――――――――――――――――――――
  箱庭諸島 ver2.3
 
