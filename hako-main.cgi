@@ -1,5 +1,8 @@
 #!/usr/bin/env perl
 use Encode qw();
+use YAML ();
+use File::Spec;
+use File::Basename;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -15,9 +18,7 @@ use Encode qw();
 # (これ以降の部分の各設定値を、適切な値に変更してください)
 #----------------------------------------------------------------------
 
-#----------------------------------------------------------------------
-# 以下、必ず設定する部分
-#----------------------------------------------------------------------
+my $config = YAML::LoadFile(File::Spec->catfile(dirname(__FILE__), "config.yaml"));
 
 # このファイルを置くディレクトリ
 # my($baseDir) = 'http://サーバー/ディレクトリ';
@@ -28,33 +29,33 @@ use Encode qw();
 # my($baseDir) = 'http://cgi2.bekkoame.ne.jp/cgi-bin/user/u5534/hakoniwa';
 # とする。最後にスラッシュ(/)は付けない。
 
-my($baseDir) = 'http://localhost:5000/';
+my($baseDir) = $config->{base_dir};
 
 # 画像ファイルを置くディレクトリ
 # my($imageDir) = 'http://サーバー/ディレクトリ';
-my($imageDir) = 'http://localhost:5000/img';
+my($imageDir) = $config->{image_dir};
 
 # マスターパスワード
 # このパスワードは、すべての島のパスワードを代用できます。
 # 例えば、「他の島のパスワード変更」等もできます。
-my($masterPassword) = 'yourpassword';
+my($masterPassword) = $config->{master_password};
 
 # 特殊パスワード
 # このパスワードで「名前変更」を行うと、その島の資金、食料が最大値になります。
 # (実際に名前を変える必要はありません。)
-$HspecialPassword = 'yourspecialpassword';
+$HspecialPassword = $config->{special_password};
 
 # 管理者名
-my($adminName) = '管理者の名前';
+my($adminName) = Encode::encode("EUC-JP", $config->{admin_name});
 
 # 管理者のメールアドレス
-my($email) = '管理者@どこか.どこか.どこか';
+my($email) = $config->{admin_email};
 
 # 掲示板アドレス
-my($bbs) = 'http://サーバー/掲示板.cgi';
+my($bbs) = $config->{bbs_url};
 
 # ホームページのアドレス
-my($toppage) = 'http://localhost/index.html';
+my($toppage) = $config->{toppage_url};
 
 # ディレクトリのパーミッション
 # 通常は0755でよいが、0777、0705、0704等でないとできないサーバーもあるらしい
@@ -64,7 +65,7 @@ $HdirMode = 0755;
 # ここで設定した名前のディレクトリ以下にデータが格納されます。
 # デフォルトでは'data'となっていますが、セキュリティのため
 # なるべく違う名前に変更してください。
-$HdirName = 'data';
+$HdirName = $config->{data_dir};
 
 # データの書き込み方
 
@@ -73,7 +74,7 @@ $HdirName = 'data';
 # 2 システムコール(可能ならば最も望ましい)
 # 3 シンボリックリンク
 # 4 通常ファイル(あまりお勧めでない)
-my($lockMode) = 2;
+my($lockMode) = $config->{lock_mode};
 
 # (注)
 # 4を選択する場合には、'key-free'という、パーミション666の空のファイルを、
@@ -90,163 +91,153 @@ my($lockMode) = 2;
 # ゲームの進行やファイルなど
 #----------------------------------------
 # 1ターンが何秒か
-$HunitTime = 21600; # 6時間
+$HunitTime = $config->{unit_time}; # 6時間
 
 # 異常終了基準時間
 # (ロック後何秒で、強制解除するか)
-my($unlockTime) = 120;
+my($unlockTime) = $config->{unlock_time};
 
 # 島の最大数
-$HmaxIsland = 30;
+$HmaxIsland = $config->{max_island};
 
 # トップページに表示するログのターン数
-$HtopLogTurn = 1;
+$HtopLogTurn = $config->{top_log_turn};
 
 # ログファイル保持ターン数
-$HlogMax = 8; 
+$HlogMax = $config->{log_max};
 
 # バックアップを何ターンおきに取るか
-$HbackupTurn = 12;
+$HbackupTurn = $config->{backup_turn};
 
 # バックアップを何回分残すか
-$HbackupTimes = 4;
+$HbackupTimes = $config->{backup_times};
 
 # 発見ログ保持行数
-$HhistoryMax = 10;
+$HhistoryMax = $config->{history_max};
 
 # 放棄コマンド自動入力ターン数
-$HgiveupTurn = 28;
+$HgiveupTurn = $config->{giveup_turn};
 
 # コマンド入力限界数
 # (ゲームが始まってから変更すると、データファイルの互換性が無くなります。)
-$HcommandMax = 20;
+$HcommandMax = $config->{command_max};
 
 # ローカル掲示板行数を使用するかどうか(0:使用しない、1:使用する)
-$HuseLbbs = 0;
+$HuseLbbs = $config->{use_local_bbs};
 
 # ローカル掲示板行数
-$HlbbsMax = 10;
+$HlbbsMax = $config->{local_bbs_max};
 
 # 島の大きさ
 # (変更できないかも)
-$HislandSize = 12;
+$HislandSize = $config->{island_size};
 
 # 他人から資金を見えなくするか
 # 0 見えない
 # 1 見える
 # 2 100の位で四捨五入
-$HhideMoneyMode = 2;
+$HhideMoneyMode = $config->{hide_money_mode};
 
 # パスワードの暗号化(0だと暗号化しない、1だと暗号化する)
-my($cryptOn) = 1;
+my($cryptOn) = $config->{crypt};
 
 # デバッグモード(1だと、「ターンを進める」ボタンが使用できる)
-$Hdebug = 0;
+$Hdebug = $config->{debug};
 
 #----------------------------------------
 # 資金、食料などの設定値と単位
 #----------------------------------------
 # 初期資金
-$HinitialMoney = 100;
+$HinitialMoney = $config->{initial_money};
 
 # 初期食料
-$HinitialFood = 100;
+$HinitialFood = $config->{initial_food};
 
 # お金の単位
-$HunitMoney = '億円';
+$HunitMoney = Encode::encode("EUC-JP", $config->{unit_money});
 
 # 食料の単位
-$HunitFood = '00トン';
+$HunitFood = Encode::encode("EUC-JP", $config->{unit_food});
 
 # 人口の単位
-$HunitPop = '00人';
+$HunitPop = Encode::encode("EUC-JP", $config->{unit_population});
 
 # 広さの単位
-$HunitArea = '00万坪';
+$HunitArea = Encode::encode("EUC-JP", $config->{unit_area});
 
 # 木の数の単位
-$HunitTree = '00本';
+$HunitTree = Encode::encode("EUC-JP", $config->{unit_tree});
 
 # 木の単位当たりの売値
-$HtreeValue = 5;
+$HtreeValue = $config->{tree_value};
 
 # 名前変更のコスト
-$HcostChangeName = 500;
+$HcostChangeName = $config->{change_name_cost};
 
 # 人口1単位あたりの食料消費料
-$HeatenFood = 0.2;
+$HeatenFood = $config->{eaten_food};
 
 #----------------------------------------
 # 基地の経験値
 #----------------------------------------
 # 経験値の最大値
-$HmaxExpPoint = 200; # ただし、最大でも255まで
+$HmaxExpPoint = $config->{max_exp_point}; # ただし、最大でも255まで
 
 # レベルの最大値
-my($maxBaseLevel) = 5;  # ミサイル基地
-my($maxSBaseLevel) = 3; # 海底基地
+my($maxBaseLevel) = $config->{max_base_level};  # ミサイル基地
+my($maxSBaseLevel) = $config->{max_sea_base_level}; # 海底基地
 
 # 経験値がいくつでレベルアップか
 my(@baseLevelUp, @sBaseLevelUp);
-@baseLevelUp = (20, 60, 120, 200); # ミサイル基地
-@sBaseLevelUp = (50, 200);         # 海底基地
+@baseLevelUp = @{$config->{base_level_up}}; # ミサイル基地
+@sBaseLevelUp = @{$config->{sea_base_level_up}};         # 海底基地
 
 #----------------------------------------
 # 防衛施設の自爆
 #----------------------------------------
 # 怪獣に踏まれた時自爆するなら1、しないなら0
-$HdBaseAuto = 1;
+$HdBaseAuto = $config->{defence_base_auto};
 
 #----------------------------------------
 # 災害
 #----------------------------------------
 # 通常災害発生率(確率は0.1%単位)
-$HdisEarthquake = 5;  # 地震
-$HdisTsunami    = 15; # 津波
-$HdisTyphoon    = 20; # 台風
-$HdisMeteo      = 15; # 隕石
-$HdisHugeMeteo  = 5;  # 巨大隕石
-$HdisEruption   = 10; # 噴火
-$HdisFire       = 10; # 火災
-$HdisMaizo      = 10; # 埋蔵金
+$HdisEarthquake = $config->{disaster_earthquake};  # 地震
+$HdisTsunami    = $config->{disaster_tsunami}; # 津波
+$HdisTyphoon    = $config->{disaster_typhoon}; # 台風
+$HdisMeteo      = $config->{disaster_meteo}; # 隕石
+$HdisHugeMeteo  = $config->{disaster_huge_meteo};  # 巨大隕石
+$HdisEruption   = $config->{disaster_eruption}; # 噴火
+$HdisFire       = $config->{disaster_fire}; # 火災
+$HdisMaizo      = $config->{disaster_maizo}; # 埋蔵金
 
 # 地盤沈下
-$HdisFallBorder = 90; # 安全限界の広さ(Hex数)
-$HdisFalldown   = 30; # その広さを超えた場合の確率
+$HdisFallBorder = $config->{disaster_fall_border}; # 安全限界の広さ(Hex数)
+$HdisFalldown   = $config->{disaster_fall_down}; # その広さを超えた場合の確率
 
 # 怪獣
-$HdisMonsBorder1 = 1000; # 人口基準1(怪獣レベル1)
-$HdisMonsBorder2 = 2500; # 人口基準2(怪獣レベル2)
-$HdisMonsBorder3 = 4000; # 人口基準3(怪獣レベル3)
-$HdisMonster     = 3;    # 単位面積あたりの出現率(0.01%単位)
+$HdisMonsBorder1 = $config->{disaster_monster_border1}; # 人口基準1(怪獣レベル1)
+$HdisMonsBorder2 = $config->{disaster_monster_border2}; # 人口基準2(怪獣レベル2)
+$HdisMonsBorder3 = $config->{disaster_monster_border3}; # 人口基準3(怪獣レベル3)
+$HdisMonster     = $config->{disaster_monster};    # 単位面積あたりの出現率(0.01%単位)
 
 # 種類
-$HmonsterNumber  = 8; 
+$HmonsterNumber  = $config->{monster_number}; 
 
 # 各基準において出てくる怪獣の番号の最大値
-$HmonsterLevel1  = 2; # サンジラまで    
-$HmonsterLevel2  = 5; # いのらゴーストまで
-$HmonsterLevel3  = 7; # キングいのらまで(全部)
+$HmonsterLevel1  = $config->{monster_level1}; # サンジラまで    
+$HmonsterLevel2  = $config->{monster_level2}; # いのらゴーストまで
+$HmonsterLevel3  = $config->{monster_level3}; # キングいのらまで(全部)
 
 # 名前
-@HmonsterName = 
-    (
-     'メカいのら',     # 0(人造)
-     'いのら',         # 1
-     'サンジラ',       # 2
-     'レッドいのら',   # 3
-     'ダークいのら',   # 4
-     'いのらゴースト', # 5
-     'クジラ',         # 6
-     'キングいのら'    # 7
-);
+@HmonsterName = map { Encode::encode("EUC-JP", $_) } @{$config->{monster_name}};
 
 # 最低体力、体力の幅、特殊能力、経験値、死体の値段
-@HmonsterBHP     = ( 2, 1, 1, 3, 2, 1, 4, 5);
-@HmonsterDHP     = ( 0, 2, 2, 2, 2, 0, 2, 2);
-@HmonsterSpecial = ( 0, 0, 3, 0, 1, 2, 4, 0);
-@HmonsterExp     = ( 5, 5, 7,12,15,10,20,30);
-@HmonsterValue   = ( 0, 400, 500, 1000, 800, 300, 1500, 2000);
+@HmonsterBHP     = @{$config->{monster_bottom_hp}};
+@HmonsterDHP     = @{$config->{monster_dhp}};
+@HmonsterSpecial = @{$config->{monster_special}};
+@HmonsterExp     = @{$config->{monster_exp}};
+@HmonsterValue   = @{$config->{monster_value}};
 
 # 特殊能力の内容は、
 # 0 特になし
@@ -256,138 +247,108 @@ $HmonsterLevel3  = 7; # キングいのらまで(全部)
 # 4 偶数ターンは硬化
 
 # 画像ファイル
-@HmonsterImage =
-    (
-     'monster7.gif',
-     'monster0.gif',
-     'monster5.gif',
-     'monster1.gif',
-     'monster2.gif',
-     'monster8.gif',
-     'monster6.gif',
-     'monster3.gif'
-     );
+@HmonsterImage = @{$config->{monster_image}};
 
 # 画像ファイルその2(硬化中)
-@HmonsterImage2 =
-    ('', '', 'monster4.gif', '', '', '', 'monster4.gif', '');
+@HmonsterImage2 = @{$config->{monster_image2}};
 
 
 #----------------------------------------
 # 油田
 #----------------------------------------
 # 油田の収入
-$HoilMoney = 1000;
+$HoilMoney = $config->{oil_money};
 
 # 油田の枯渇確率
-$HoilRatio = 40;
+$HoilRatio = $config->{oil_raito};
 
 #----------------------------------------
 # 記念碑
 #----------------------------------------
 # 何種類あるか
-$HmonumentNumber = 3;
+$HmonumentNumber = $config->{monument_number};
 
 # 名前
-@HmonumentName = 
-    (
-     'モノリス', 
-     '平和記念碑', 
-     '戦いの碑'
-    );
+@HmonumentName = map { Encode::encode("EUC-JP", $_) } @{$config->{monumebt_name}};
 
 # 画像ファイル
-@HmonumentImage = 
-    (
-     'monument0.gif',
-     'monument0.gif',
-     'monument0.gif'
-     );
+@HmonumentImage = @{$config->{monument_image}};
 
 #----------------------------------------
 # 賞関係
 #----------------------------------------
 # ターン杯を何ターン毎に出すか
-$HturnPrizeUnit = 100;
+$HturnPrizeUnit = $config->{turn_prize_unit};
 
 # 賞の名前
-$Hprize[0] = 'ターン杯';
-$Hprize[1] = '繁栄賞';
-$Hprize[2] = '超繁栄賞';
-$Hprize[3] = '究極繁栄賞';
-$Hprize[4] = '平和賞';
-$Hprize[5] = '超平和賞';
-$Hprize[6] = '究極平和賞';
-$Hprize[7] = '災難賞';
-$Hprize[8] = '超災難賞';
-$Hprize[9] = '究極災難賞';
+@Hprize = map { Encode::encode("EUC-JP", $_ ) } @{$config->{prize}};
 
 #----------------------------------------
 # 外見関係
 #----------------------------------------
 # <BODY>タグのオプション
-my($htmlBody) = 'BGCOLOR="#EEFFFF"';
+my($htmlBody) = $config->{html_body};
 
 # ゲームのタイトル文字
-$Htitle = '箱庭諸島２';
+$Htitle = Encode::encode("EUC-JP", $config->{title});
 
 # タグ
 # タイトル文字
-$HtagTitle_ = '<FONT SIZE=7 COLOR="#8888ff">';
-$H_tagTitle = '</FONT>';
+$HtagTitle_ = $config->{tag_title_};
+$H_tagTitle = $config->{_tag_title};
 
 # H1タグ用
-$HtagHeader_ = '<FONT COLOR="#4444ff">';
-$H_tagHeader = '</FONT>';
+$HtagHeader_ = $config->{tag_header_};
+$H_tagHeader = $config->{_tag_hedaer};
 
 # 大きい文字
-$HtagBig_ = '<FONT SIZE=6>';
-$H_tagBig = '</FONT>';
+$HtagBig_ = $config->{tag_big_};
+$H_tagBig = $config->{_tag_big};
 
 # 島の名前など
-$HtagName_ = '<FONT COLOR="#a06040"><B>';
-$H_tagName = '</B></FONT>';
+$HtagName_ = $config->{tag_name_};
+$H_tagName = $config->{_tag_name};
 
 # 薄くなった島の名前
-$HtagName2_ = '<FONT COLOR="#808080"><B>';
-$H_tagName2 = '</B></FONT>';
+$HtagName2_ = $config->{tag_name2_};
+$H_tagName2 = $config->{_tag_name2};
 
 # 順位の番号など
-$HtagNumber_ = '<FONT COLOR="#800000"><B>';
-$H_tagNumber = '</B></FONT>';
+$HtagNumber_ = $config->{tag_number_};
+$H_tagNumber = $config->{_tag_number};
 
 # 順位表における見だし
-$HtagTH_ = '<FONT COLOR="#C00000"><B>';
-$H_tagTH = '</B></FONT>';
+$HtagTH_ = $config->{tag_th_};
+$H_tagTH = $config->{_tag_th};
 
 # 開発計画の名前
-$HtagComName_ = '<FONT COLOR="#d08000"><B>';
-$H_tagComName = '</B></FONT>';
+$HtagComName_ = $config->{tag_com_name_};
+$H_tagComName = $config->{_tag_com_name};
 
 # 災害
-$HtagDisaster_ = '<FONT COLOR="#ff0000"><B>';
-$H_tagDisaster = '</B></FONT>';
+$HtagDisaster_ = $config->{tag_disaster_};
+$H_tagDisaster = $config->{_tag_disaster};
 
 # ローカル掲示板、観光者の書いた文字
-$HtagLbbsSS_ = '<FONT COLOR="#0000ff"><B>';
-$H_tagLbbsSS = '</B></FONT>';
+$HtagLbbsSS_ = $config->{tag_local_bbs_ss_};
+$H_tagLbbsSS = $config->{_tag_local_bbs_ss};
 
 # ローカル掲示板、島主の書いた文字
-$HtagLbbsOW_ = '<FONT COLOR="#ff0000"><B>';
-$H_tagLbbsOW = '</B></FONT>';
+$HtagLbbsOW_ = $config->{tag_local_bbs_ow_};
+$H_tagLbbsOW = $config->{_tag_local_bbs_ow};
 
 # 通常の文字色(これだけでなく、BODYタグのオプションもちゃんと変更すべし
-$HnormalColor = '#000000';
+$HnormalColor = $config->{normal_color};
 
 # 順位表、セルの属性
-$HbgTitleCell   = 'BGCOLOR="#ccffcc"'; # 順位表見出し
-$HbgNumberCell  = 'BGCOLOR="#ccffcc"'; # 順位表順位
-$HbgNameCell    = 'BGCOLOR="#ccffff"'; # 順位表島の名前
-$HbgInfoCell    = 'BGCOLOR="#ccffff"'; # 順位表島の情報
-$HbgCommentCell = 'BGCOLOR="#ccffcc"'; # 順位表コメント欄
-$HbgInputCell   = 'BGCOLOR="#ccffcc"'; # 開発計画フォーム
-$HbgMapCell     = 'BGCOLOR="#ccffcc"'; # 開発計画地図
-$HbgCommandCell = 'BGCOLOR="#ccffcc"'; # 開発計画入力済み計画
+$HbgTitleCell   = $config->{bg_title_cell}; # 順位表見出し
+$HbgNumberCell  = $config->{bg_number_cell}; # 順位表順位
+$HbgNameCell    = $config->{bg_name_cell}; # 順位表島の名前
+$HbgInfoCell    = $config->{bg_info_cell}; # 順位表島の情報
+$HbgCommentCell = $config->{bg_comment_cell}; # 順位表コメント欄
+$HbgInputCell   = $config->{bg_input_cell}; # 開発計画フォーム
+$HbgMapCell     = $config->{bg_map_cell}; # 開発計画地図
+$HbgCommandCell = $config->{bg_command_cell}; # 開発計画入力済み計画
 
 #----------------------------------------------------------------------
 # 好みによって設定する部分は以上

@@ -1,3 +1,4 @@
+# vim: set ft=perl:
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
 # トップモジュール(ver1.00)
@@ -154,8 +155,6 @@ $name
 $prize
 </TD>
 <TD $HbgInfoCell align=right nowrap=nowrap>
-<NOBR>$island->{'pop'}$HunitPop</NOBR></TD>
-<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'area'}$HunitArea</NOBR></TD>
 $mStr1
 <TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'food'}$HunitFood</NOBR></TD>
 <TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$farm</NOBR></TD>
