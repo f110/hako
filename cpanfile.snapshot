@@ -81,6 +81,14 @@ DISTRIBUTIONS
       Encode::Alias 0
       ExtUtils::MakeMaker 0
       perl 5.008
+  Exporter-Tiny-0.042
+    pathname: T/TO/TOBYINK/Exporter-Tiny-0.042.tar.gz
+    provides:
+      Exporter::Shiny 0.042
+      Exporter::Tiny 0.042
+    requirements:
+      ExtUtils::MakeMaker 6.17
+      perl 5.006001
   ExtUtils-Config-0.008
     pathname: L/LE/LEONT/ExtUtils-Config-0.008.tar.gz
     provides:
@@ -274,6 +282,23 @@ DISTRIBUTIONS
     requirements:
       ExtUtils::MakeMaker 0
       perl 5.006002
+  List-MoreUtils-0.413
+    pathname: R/RE/REHSACK/List-MoreUtils-0.413.tar.gz
+    provides:
+      List::MoreUtils 0.413
+      List::MoreUtils::PP 0.413
+      List::MoreUtils::XS 0.413
+    requirements:
+      Carp 0
+      Exporter::Tiny 0.038
+      ExtUtils::MakeMaker 0
+      File::Basename 0
+      File::Copy 0
+      File::Path 0
+      File::Spec 0
+      IPC::Cmd 0
+      XSLoader 0
+      base 0
   Module-Build-Tiny-0.039
     pathname: L/LE/LEONT/Module-Build-Tiny-0.039.tar.gz
     provides:

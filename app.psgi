@@ -3,14 +3,15 @@ use Plack::Builder;
 use File::Spec;
 use File::Basename;
 
-my $app = Plack::App::CGIBin->new(
-    root => File::Spec->catdir(dirname(__FILE__)),
-    exec_cb => sub { 1 },
-)->to_app;
+require 'hako-main.cgi';
+
+my $app = to_psgi();
 builder {
     enable 'Plack::Middleware::Static',
         path => qr{^(?:/img/)},
         root => File::Spec->catdir(dirname(__FILE__));
+    enable 'Plack::Middleware::Static',
+        path => qr{^(?:/favicon.ico/)},
+        root => File::Spec->catdir(dirname(__FILE__));
     mount "/" => $app;
 };
-
