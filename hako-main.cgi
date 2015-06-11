@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
 # ↑はサーバーに合わせて変更して下さい。
 # perl5用です。
 
@@ -29,11 +29,11 @@
 # my($baseDir) = 'http://cgi2.bekkoame.ne.jp/cgi-bin/user/u5534/hakoniwa';
 # とする。最後にスラッシュ(/)は付けない。
 
-my($baseDir) = 'http://サーバー/ディレクトリ';
+my($baseDir) = 'http://localhost:5000/';
 
 # 画像ファイルを置くディレクトリ
 # my($imageDir) = 'http://サーバー/ディレクトリ';
-my($imageDir) = 'http://サーバー/ディレクトリ';
+my($imageDir) = 'http://localhost:5000/img';
 
 # jcode.plの位置
 
@@ -61,7 +61,7 @@ my($email) = '管理者@どこか.どこか.どこか';
 my($bbs) = 'http://サーバー/掲示板.cgi';
 
 # ホームページのアドレス
-my($toppage) = 'http://サーバー/ホームページ.html';
+my($toppage) = 'http://localhost/index.html';
 
 # ディレクトリのパーミッション
 # 通常は0755でよいが、0777、0705、0704等でないとできないサーバーもあるらしい
