@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
-# ↑はサーバーに合わせて変更して下さい。
-# perl5用です。
+use Encode qw();
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -34,12 +33,6 @@ my($baseDir) = 'http://localhost:5000/';
 # 画像ファイルを置くディレクトリ
 # my($imageDir) = 'http://サーバー/ディレクトリ';
 my($imageDir) = 'http://localhost:5000/img';
-
-# jcode.plの位置
-
-# my($jcode) = '/usr/libperl/jcode.pl';  # ベッコアメの場合
-# my($jcode) = './jcode.pl';             # 同じディレクトリに置く場合
-my($jcode) = './jcode.pl';
 
 # マスターパスワード
 # このパスワードは、すべての島のパスワードを代用できます。
@@ -555,9 +548,6 @@ $HpointNumber = $HislandSize * $HislandSize;
 # メイン
 #----------------------------------------------------------------------
 
-# jcode.plをrequire
-require($jcode);
-
 # 「戻る」リンク
 $HtempBack = "<A HREF=\"$HthisFile\">${HtagBig_}トップへ戻る${H_tagBig}</A>";
 
@@ -933,7 +923,7 @@ sub writeIsland {
 
 # 標準出力への出力
 sub out {
-    print STDOUT jcode::sjis($_[0]);
+    print STDOUT Encode::encode("Shift_JIS", Encode::decode("EUC-JP", $_[0]));
 }
 
 # デバッグログ
@@ -951,7 +941,7 @@ sub cgiInput {
     $line = <>;
     $line =~ tr/+/ /;
     $line =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
-    $line = jcode::euc($line);
+    $line = Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $line));
     $line =~ s/[\x00-\x1f\,]//g;
 
     # GETのやつも受け取る
@@ -1070,7 +1060,7 @@ sub cgiInput {
 sub cookieInput {
     my($cookie);
 
-    $cookie = jcode::euc($ENV{'HTTP_COOKIE'});
+    $cookie = Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $ENV{'HTTP_COOKIE'}));
 
     if($cookie =~ /${HthisFile}OWNISLANDID=\(([^\)]*)\)/) {
 	$defaultID = $1;
