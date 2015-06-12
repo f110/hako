@@ -1,4 +1,4 @@
-package Main;
+package MainApp;
 use Encode qw();
 use YAML ();
 use File::Spec;
@@ -805,14 +805,10 @@ sub to_app {
 
     # CGIの読みこみ
     sub cgiInput {
-        my($line, $getLine);
-
-        $line = "";
-
         my $params = $request->parameters;
         use Data::Dumper;warn Data::Dumper::Dumper($params);
         # 対象の島
-        if($line =~ /CommandButton([0-9]+)=/) {
+        if (List::MoreUtils::any {$_ eq /CommandButton([0-9]+)=/} $params->keys) {
             # コマンド送信ボタンの場合
             $HcurrentID = $1;
             $defaultID = $1;
@@ -823,7 +819,6 @@ sub to_app {
             $HcurrentName = cutColumn($params->get("ISLANDNAME"), 32);
         }
 
-        #if($line =~ /ISLANDID=([0-9]+)\&/){
         if (List::MoreUtils::any { $_ eq "ISLANDID" } $params->keys) {
             # その他の場合
             $HcurrentID = $params->get("ISLANDID");
@@ -831,9 +826,9 @@ sub to_app {
         }
 
         # パスワード
-        if($line =~ /OLDPASS=([^\&]*)\&/) {
-            $HoldPassword = $1;
-            $HdefaultPassword = $1;
+        if ($line =~ /OLDPASS=([^\&]*)\&/) {
+            $HoldPassword = $params->get("OLDPASS");
+            $HdefaultPassword = $params->get("OLDPASS");
         }
         if (List::MoreUtils::any {$_ eq "PASSWORD"} $params->keys) {
             $HinputPassword = $params->get("PASSWORD");
@@ -844,22 +839,22 @@ sub to_app {
         }
 
         # メッセージ
-        if($line =~ /MESSAGE=([^\&]*)\&/) {
-            $Hmessage = cutColumn($1, 80);
+        if (List::MoreUtils::any {$_ eq "MESSAGE"} $params->keys) {
+            $Hmessage = cutColumn($params->get("MESSAGE"), 80);
         }
 
         # ローカル掲示板
-        if($line =~ /LBBSNAME=([^\&]*)\&/) {
-            $HlbbsName = $1;
-            $HdefaultName = $1;
+        if (List::MoreUtils::any {$_ eq "LBBSNAME"} $params->keys) {
+            $HlbbsName = $params->get("LBBSNAME");
+            $HdefaultName = $params->get("LBBSNAME");
         }
-        if($line =~ /LBBSMESSAGE=([^\&]*)\&/) {
-            $HlbbsMessage = cutColumn($1, 80);
+        if (List::MoreUtils::any {$_ eq "LBBSMESSAGE"} $params->keys) {
+            $HlbbsMessage = cutColumn($params->get("LBBSMESSAGE"), 80);
         }
 
         # main modeの取得
         $HmainMode = "top";
-        if($line =~ /TurnButton/) {
+        if(List::MoreUtils::any {$_ eq "TurnButton"} $params->keys) {
             if($Hdebug == 1) {
                 $HmainMode = 'Hdebugturn';
             }
@@ -868,11 +863,11 @@ sub to_app {
         } elsif (List::MoreUtils::any {$_ eq "Sight"} $params->keys) {
             $HmainMode = 'print';
             $HcurrentID = $params->get("Sight");
-        } elsif(List::MoreUtils::any {$_ eq "NewIslandButton"} $params->keys) {
+        } elsif (List::MoreUtils::any {$_ eq "NewIslandButton"} $params->keys) {
             $HmainMode = 'new';
-        } elsif($line =~ /LbbsButton(..)([0-9]*)/) {
+        } elsif (List::MoreUtils::any {$_ =~ /LbbsButton(..)([0-9]*)/} $params->keys) {
             $HmainMode = 'lbbs';
-            if($1 eq 'SS') {
+            if ($1 eq 'SS') {
                 # 観光者
                 $HlbbsMode = 0;
             } elsif($1 eq 'OW') {
@@ -889,31 +884,24 @@ sub to_app {
 
         } elsif (List::MoreUtils::any {$_ eq "ChangeInfoButton"} $params->keys) {
             $HmainMode = 'change';
-        } elsif($line =~ /MessageButton([0-9]*)/) {
+        } elsif (List::MoreUtils::any {$_ =~ /MessageButton([0-9]*)/} $params->keys) {
             $HmainMode = 'comment';
             $HcurrentID = $1;
         } elsif (List::MoreUtils::any {$_ eq "CommandButton"} $params->keys) {
             $HmainMode = 'command';
 
             # コマンドモードの場合、コマンドの取得
-            $line =~ /NUMBER=([^\&]*)\&/;
-            $HcommandPlanNumber = $1;
-            $line =~ /COMMAND=([^\&]*)\&/;
-            $HcommandKind = $1;
-            $HdefaultKind = $1;
-            $line =~ /AMOUNT=([^\&]*)\&/;
-            $HcommandArg = $1;
-            $line =~ /TARGETID=([^\&]*)\&/;
-            $HcommandTarget = $1;
-            $defaultTarget = $1;
-            $line =~ /POINTX=([^\&]*)\&/;
-            $HcommandX = $1;
-            $HdefaultX = $1;
-            $line =~ /POINTY=([^\&]*)\&/;
-            $HcommandY = $1;
-            $HdefaultY = $1;
-            $line =~ /COMMANDMODE=(write|insert|delete)/;
-            $HcommandMode = $1;
+            $HcommandPlanNumber = $params->get("NUMBER");
+            $HcommandKind = $params->get("COMMAND");
+            $HdefaultKind = $params->get("COMMAND");
+            $HcommandArg = $params->get("AMOUNT");
+            $HcommandTarget = $params->get("TARGETID");
+            $defaultTarget = $params->get("TARGETID");
+            $HcommandX = $params->get("POINTX");
+            $HdefaultX = $params->get("POINTX");
+            $HcommandY = $params->get("POINTY");
+            $HdefaultY = $params->get("POINTY");
+            $HcommandMode = $params->get("COMMANDMODE");
         } else {
             $HmainMode = 'top';
         }
@@ -1448,6 +1436,8 @@ END
     return sub {
         my ($env) = @_;
 
+        $out_buffer = "";
+        $cookie_buffer = "";
         $request = Plack::Request->new($env);
         $response = Plack::Response->new(200);
         $response->content_type("text/html");

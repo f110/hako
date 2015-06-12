@@ -1,5 +1,5 @@
 {
-    package Mente;
+package MenteApp;
 use Plack::Request;
 use Plack::Response;
 use YAML;
@@ -221,10 +221,8 @@ END
 
     # CGIの読みこみ
     sub cgiInput {
-        my($line);
-
         my $params = $request->parameters;
-        if($line =~ /DELETE([0-9]*)/) {
+        if (List::MoreUtils::any {$_ =~ /DELETE([0-9]*)/} $params->keys) {
             $mainMode = 'delete';
             $deleteID = $1;
         } elsif($line =~ /CURRENT([0-9]*)/) {
@@ -232,37 +230,20 @@ END
             $currentID = $1;
         } elsif (List::MoreUtils::any {$_ eq "NEW"} $params->keys) {
             $mainMode = 'new';
-        } elsif($line =~ /NTIME/) {
+        } elsif (List::MoreUtils::any {$_ eq "NTIME"} $params->keys) {
             $mainMode = 'time';
-        if($line =~ /YEAR=([0-9]*)/) {
-            $ctYear = $1;
-        }
-        if($line =~ /MON=([0-9]*)/) {
-            $ctMon = $1;
-        }
-        if($line =~ /DATE=([0-9]*)/) {
-            $ctDate = $1;
-        }
-        if($line =~ /HOUR=([0-9]*)/) {
-            $ctHour = $1; 
-        }
-        if($line =~ /MIN=([0-9]*)/) {
-            $ctMin = $1; 
-        }
-        if($line =~ /NSEC=([0-9]*)/) {
-            $ctSec = $1; 
-        }
-        } elsif($line =~ /STIME/) {
-        $mainMode = 'stime';
-        if($line =~ /SSEC=([0-9]*)/) {
-            $ctSec = $1;
-        }
+        } elsif (List::MoreUtils::any {$_ eq "STIME"} $params->keys) {
+            $mainMode = 'stime';
+            $ctSec = $params->get("SSEC");
         }
 
-        #if($line =~ /PASSWORD=([^\&]*)\&/) {
-            #$inputPass = $1;
-        #}
         $inputPass = $params->get("PASSWORD");
+        $ctYear = $params->get("YEAR");
+        $ctMon = $params->get("MON");
+        $ctDate = $params->get("DATE");
+        $ctHour = $params->get("HOUR");
+        $ctMin = $params->get("MIN");
+        $ctSec = $params->get("NSEC");
     }
 
     # ファイルのコピー
@@ -346,6 +327,6 @@ END
         return $response->finalize;
     };
 }
-}
 
+}
 1;
