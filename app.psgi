@@ -4,8 +4,11 @@ use File::Spec;
 use File::Basename;
 
 require 'hako-main.cgi';
+require 'hako-mente.cgi';
 
-my $app = to_psgi();
+my $main_app = Main::to_app();
+my $mente_app = Mente::to_app();
+
 builder {
     enable 'Plack::Middleware::Static',
         path => qr{^(?:/img/)},
@@ -13,5 +16,6 @@ builder {
     enable 'Plack::Middleware::Static',
         path => qr{^(?:/favicon.ico/)},
         root => File::Spec->catdir(dirname(__FILE__));
-    mount "/" => $app;
+    mount "/mente" => $mente_app;
+    mount "/" => $main_app;
 };

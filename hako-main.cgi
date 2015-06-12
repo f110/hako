@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+package Main;
 use Encode qw();
 use YAML ();
 use File::Spec;
@@ -515,7 +515,7 @@ $HpointNumber = $HislandSize * $HislandSize;
 # 「戻る」リンク
 $HtempBack = "<A HREF=\"$HthisFile\">${HtagBig_}トップへ戻る${H_tagBig}</A>";
 
-sub to_psgi {
+sub to_app {
     my $out_buffer = "";
     my $cookie_buffer = "";
     my $response;
