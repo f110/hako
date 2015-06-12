@@ -1,4 +1,3 @@
-use Plack::App::CGIBin;
 use Plack::Builder;
 use File::Spec;
 use File::Basename;
