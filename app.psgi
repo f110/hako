@@ -2,12 +2,12 @@ use Plack::Builder;
 use File::Spec;
 use File::Basename;
 use Hako::Config;
+use Hako::MenteApp;
 
 require 'hako-main.cgi';
-require 'hako-mente.cgi';
 
 my $main_app = MainApp::to_app();
-my $mente_app = MenteApp::to_app();
+my $mente_app = Hako::MenteApp::to_app();
 
 builder {
     #enable 'Plack::Middleware::Static',

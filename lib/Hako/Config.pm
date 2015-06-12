@@ -16,4 +16,6 @@ sub import {
     }
 }
 
+sub DIR_MODE { return 0755; }
+
 1;

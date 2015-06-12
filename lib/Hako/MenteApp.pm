@@ -1,6 +1,6 @@
-# vim: set ft=perl:
-{
-package MenteApp;
+package Hako::MenteApp;
+use strict;
+use warnings;
 use Plack::Request;
 use Plack::Response;
 use Time::Local;
@@ -15,37 +15,11 @@ use Hako::Config;
 # 箱庭諸島のページ: http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html
 #----------------------------------------------------------------------
 
-
-# ――――――――――――――――――――――――――――――
-# 各種設定値
-# ――――――――――――――――――――――――――――――
-
-# マスターパスワード
-my($masterpassword) = Hako::Config::MASTER_PASSWORD;
-
-# 1ターンが何秒か
-my($unitTime) = Hako::Config::UNIT_TIME; # 6時間
-
-# ディレクトリのパーミッション
-my($dirMode) = 0755;
-
-# このファイル
-my($thisFile) = 'http://localhost:5000/mente';
-
-# データディレクトリの名前
-# hakojima.cgi中のものと合わせてください。
-my($dirName) = Hako::Config::DATA_DIR;
-
-
-# ――――――――――――――――――――――――――――――
-# 設定項目は以上
-# ――――――――――――――――――――――――――――――
-
-# 各種変数
 sub to_app {
+    my ($request, $response);
     my ($out_buffer, $cookie_buffer);
 
-    my($mainMode);
+    my $mainMode = "";
     my($inputPass);
     my($deleteID);
     my($currentID);
@@ -56,116 +30,21 @@ sub to_app {
     my($ctMin);
     my($ctSec);
 
-
-    sub myrmtree {
-        my($dn) = @_;
-        opendir(DIN, "$dn/");
-        my($fileName);
-        while($fileName = readdir(DIN)) {
-            unlink("$dn/$fileName");
-        }
-        closedir(DIN);
-        rmdir($dn);
-    }
-
-    sub currentMode {
-        myrmtree "${dirName}";
-        mkdir("${dirName}", $dirMode);
-        opendir(DIN, "${dirName}.bak$currentID/");
-        my($fileName);
-        while($fileName = readdir(DIN)) {
-            fileCopy("${dirName}.bak$currentID/$fileName", "${dirName}/$fileName");
-        }
-        closedir(DIN);
-    }
-
-    sub deleteMode {
-        if($deleteID eq '') {
-            myrmtree "${dirName}";
-        } else {
-            myrmtree "${dirName}.bak$deleteID";
-        }
-        unlink "hakojimalockflock";
-    }
-
-    sub newMode {
-        mkdir($dirName, $dirMode);
-
-        # 現在の時間を取得
-        my($now) = time;
-        $now = $now - ($now % ($unitTime));
-
-        open(OUT, ">$dirName/hakojima.dat"); # ファイルを開く
-        print OUT "1\n";         # ターン数1
-        print OUT "$now\n";      # 開始時間
-        print OUT "0\n";         # 島の数
-        print OUT "1\n";         # 次に割り当てるID
-
-        # ファイルを閉じる
-        close(OUT);
-    }
-
-    sub timeMode {
-        $ctMon--;
-        $ctYear -= 1900;
-        $ctSec = timelocal($ctSec, $ctMin, $ctHour, $ctDate, $ctMon, $ctYear);
-        stimeMode();
-    }
-
-    sub stimeMode {
-        my($t) = $ctSec;
-        open(IN, "${dirName}/hakojima.dat");
-        my(@lines);
-        @lines = <IN>;
-        close(IN);
-
-        $lines[1] = "$t\n";
-
-        open(OUT, ">${dirName}/hakojima.dat");
-        print OUT @lines;
-        close(OUT);
-    }
-
-    sub mainMode {
-        opendir(DIN, "./");
-
-        out(<<END);
-    <FORM action="$thisFile" method="POST">
-    <H1>箱島２ メンテナンスツール</H1>
-    <B>パスワード:</B><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD></TD>
-END
-
-        # 現役データ
-        if(-d "${dirName}") {
-        dataPrint("");
-        } else {
-        out(<<END);
-        <HR>
-        <INPUT TYPE="submit" VALUE="新しいデータを作る" NAME="NEW">
-END
-        }
-
-        # バックアップデータ
-        my($dn);
-        while($dn = readdir(DIN)) {
-            if($dn =~ /^${dirName}.bak(.*)/) {
-                dataPrint($1);
-            }
-        }
-        closedir(DIN);
-    }
+    my $out = sub {
+        $out_buffer .= shift;
+    };
 
     # 表示モード
-    sub dataPrint {
+    my $dataPrint = sub {
         my($suf) = @_;
 
-        out("<HR>");
+        $out->("<HR>");
         if($suf eq "") {
-            open(IN, "${dirName}/hakojima.dat");
-            out("<H1>現役データ</H1>");
+            open(IN, "@{[Hako::Config::DATA_DIR]}/hakojima.dat");
+            $out->("<H1>現役データ</H1>");
         } else {
-            open(IN, "${dirName}.bak$suf/hakojima.dat");
-            out("<H1>バックアップ$suf</H1>");
+            open(IN, "@{[Hako::Config::DATA_DIR]}.bak$suf/hakojima.dat");
+            $out->("<H1>バックアップ$suf</H1>");
         }
 
         my($lastTurn);
@@ -175,7 +54,7 @@ END
 
         my($timeString) = timeToString($lastTime);
 
-        out(<<END);
+        $out->(<<END);
         <B>ターン$lastTurn</B><BR>
         <B>最終更新時間</B>:$timeString<BR>
         <B>最終更新時間(秒数表示)</B>:1970年1月1日から$lastTime 秒<BR>
@@ -188,7 +67,7 @@ END
             $mon++;
             $year += 1900;
 
-            out(<<END);
+            $out->(<<END);
             <H2>最終更新時間の変更</H2>
             <INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="$year">年
             <INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="$mon">月
@@ -202,11 +81,110 @@ END
 
 END
         } else {
-            out(<<END);
+            $out->(<<END);
             <INPUT TYPE="submit" VALUE="このデータを現役に" NAME="CURRENT$suf">
 END
         }
+    };
+
+
+    sub myrmtree {
+        my($dn) = @_;
+        opendir(DIN, "$dn/");
+        my($fileName);
+        while($fileName = readdir(DIN)) {
+            unlink("$dn/$fileName");
+        }
+        closedir(DIN);
+        rmdir($dn);
     }
+
+    my $currentMode = sub {
+        myrmtree(Hako::Config::DATA_DIR);
+        mkdir("@{[Hako::Config::DATA_DIR]}", Hako::Config::DIR_MODE);
+        opendir(DIN, "@{[Hako::Config::DATA_DIR]}.bak$currentID/");
+        my($fileName);
+        while($fileName = readdir(DIN)) {
+            fileCopy("@{[Hako::Config::DATA_DIR]}.bak$currentID/$fileName", "@{[Hako::Config::DATA_DIR]}/$fileName");
+        }
+        closedir(DIN);
+    };
+
+    my $deleteMode = sub {
+        if($deleteID eq '') {
+            myrmtree(Hako::Config::DATA_DIR);
+        } else {
+            myrmtree "@{[Hako::Config::DATA_DIR]}.bak$deleteID";
+        }
+        unlink "hakojimalockflock";
+    };
+
+    sub newMode {
+        mkdir(Hako::Config::DATA_DIR, Hako::Config::DIR_MODE);
+
+        # 現在の時間を取得
+        my($now) = time;
+        $now = $now - ($now % (Hako::Config::UNIT_TIME));
+
+        open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat"); # ファイルを開く
+        print OUT "1\n";         # ターン数1
+        print OUT "$now\n";      # 開始時間
+        print OUT "0\n";         # 島の数
+        print OUT "1\n";         # 次に割り当てるID
+
+        # ファイルを閉じる
+        close(OUT);
+    }
+
+    my $timeMode = sub {
+        $ctMon--;
+        $ctYear -= 1900;
+        $ctSec = timelocal($ctSec, $ctMin, $ctHour, $ctDate, $ctMon, $ctYear);
+        stimeMode();
+    };
+
+    my $stimeMode = sub {
+        my($t) = $ctSec;
+        open(IN, "@{[Hako::Config::DATA_DIR]}/hakojima.dat");
+        my(@lines);
+        @lines = <IN>;
+        close(IN);
+
+        $lines[1] = "$t\n";
+
+        open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat");
+        print OUT @lines;
+        close(OUT);
+    };
+
+    my $mainModeSub = sub {
+        opendir(DIN, "./");
+
+        $out->(<<END);
+    <FORM action="/mente" method="POST">
+    <H1>箱島２ メンテナンスツール</H1>
+    <B>パスワード:</B><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD></TD>
+END
+
+        # 現役データ
+        if(-d Hako::Config::DATA_DIR) {
+        $dataPrint->("");
+        } else {
+        $out->(<<END);
+        <HR>
+        <INPUT TYPE="submit" VALUE="新しいデータを作る" NAME="NEW">
+END
+        }
+
+        # バックアップデータ
+        my($dn);
+        while($dn = readdir(DIN)) {
+            if($dn =~ /^@{[Hako::Config::DATA_DIR]}.bak(.*)/) {
+                $dataPrint->($1);
+            }
+        }
+        closedir(DIN);
+    };
 
     sub timeToString {
         my($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) =
@@ -218,12 +196,12 @@ END
     }
 
     # CGIの読みこみ
-    sub cgiInput {
+    my $cgiInput = sub {
         my $params = $request->parameters;
         if (List::MoreUtils::any {$_ =~ /DELETE([0-9]*)/} $params->keys) {
             $mainMode = 'delete';
             $deleteID = $1;
-        } elsif($line =~ /CURRENT([0-9]*)/) {
+        } elsif(List::MoreUtils::any {$_ =~ /CURRENT([0-9]*)/} $params->keys) {
             $mainMode = 'current';
             $currentID = $1;
         } elsif (List::MoreUtils::any {$_ eq "NEW"} $params->keys) {
@@ -242,7 +220,7 @@ END
         $ctHour = $params->get("HOUR");
         $ctMin = $params->get("MIN");
         $ctSec = $params->get("NSEC");
-    }
+    };
 
     # ファイルのコピー
     sub fileCopy {
@@ -257,20 +235,16 @@ END
     }
 
     # パスチェック
-    sub passCheck {
-        if($inputPass eq $masterpassword) {
+    my $passCheck = sub {
+        if($inputPass eq Hako::Config::MASTER_PASSWORD) {
             return 1;
         } else {
-        out(<<END);
+        $out->(<<END);
        <FONT SIZE=7>パスワードが違います。</FONT>
 END
             return 0;
         }
-    }
-
-    sub out {
-        $out_buffer .= shift;
-    }
+    };
 
     return sub {
         my ($env) = @_;
@@ -281,7 +255,7 @@ END
         $response = Plack::Response->new(200);
         $response->content_type("text/html");
 
-        out(<<END);
+        $out->(<<END);
         <HTML>
         <HEAD>
         <TITLE>箱島２ メンテナンスツール</TITLE>
@@ -289,32 +263,32 @@ END
         <BODY>
 END
 
-        cgiInput();
+        $cgiInput->();
 
         if($mainMode eq 'delete') {
-            if(passCheck()) {
-                deleteMode();
+            if($passCheck->()) {
+                $deleteMode->();
             }
         } elsif($mainMode eq 'current') {
-            if(passCheck()) {
-                currentMode();
+            if($passCheck->()) {
+                $currentMode->();
             }
         } elsif($mainMode eq 'time') {
-            if(passCheck()) {
-                timeMode();
+            if($passCheck->()) {
+                $timeMode->();
             }
         } elsif($mainMode eq 'stime') {
-            if(passCheck()) {
-                stimeMode();
+            if($passCheck->()) {
+                $stimeMode->();
             }
         } elsif($mainMode eq 'new') {
-            if(passCheck()) {
+            if($passCheck->()) {
                 newMode();
             }
         }
-        mainMode();
+        $mainModeSub->();
 
-        out(<<END);
+        $out->(<<END);
         </FORM>
         </BODY>
         </HTML>
