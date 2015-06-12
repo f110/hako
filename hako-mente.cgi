@@ -1,12 +1,11 @@
+# vim: set ft=perl:
 {
 package MenteApp;
 use Plack::Request;
 use Plack::Response;
-use YAML;
-use File::Spec;
-use File::Basename;
 use Time::Local;
 use List::MoreUtils qw();
+use Hako::Config;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -21,12 +20,11 @@ use List::MoreUtils qw();
 # 各種設定値
 # ――――――――――――――――――――――――――――――
 
-my $config = YAML::LoadFile(File::Spec->catfile(dirname(__FILE__), "config.yaml"));
 # マスターパスワード
-my($masterpassword) = $config->{master_password};
+my($masterpassword) = Hako::Config::MASTER_PASSWORD;
 
 # 1ターンが何秒か
-my($unitTime) = $config->{unit_time}; # 6時間
+my($unitTime) = Hako::Config::UNIT_TIME; # 6時間
 
 # ディレクトリのパーミッション
 my($dirMode) = 0755;
@@ -36,7 +34,7 @@ my($thisFile) = 'http://localhost:5000/mente';
 
 # データディレクトリの名前
 # hakojima.cgi中のものと合わせてください。
-my($dirName) = $config->{data_dir};
+my($dirName) = Hako::Config::DATA_DIR;
 
 
 # ――――――――――――――――――――――――――――――

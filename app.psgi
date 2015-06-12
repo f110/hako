@@ -1,6 +1,7 @@
 use Plack::Builder;
 use File::Spec;
 use File::Basename;
+use Hako::Config;
 
 require 'hako-main.cgi';
 require 'hako-mente.cgi';
