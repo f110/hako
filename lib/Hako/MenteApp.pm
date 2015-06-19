@@ -51,29 +51,26 @@ sub to_app {
         <B>ターン$lastTurn</B><BR>
         <B>最終更新時間</B>:$timeString<BR>
         <B>最終更新時間(秒数表示)</B>:1970年1月1日から$lastTime 秒<BR>
-        <INPUT TYPE="submit" VALUE="このデータを削除" NAME="DELETE$suf">
+        <INPUT TYPE="submit" VALUE="このデータを削除" NAME="DELETE">
 END
 
-        if($suf eq "") {
-            my($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) =
-                localtime($lastTime);
-            $mon++;
-            $year += 1900;
+        my($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) =
+            localtime($lastTime);
+        $mon++;
+        $year += 1900;
 
-            $out->(<<END);
-            <H2>最終更新時間の変更</H2>
-            <INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="$year">年
-            <INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="$mon">月
-            <INPUT TYPE="text" SIZE=2 NAME="DATE" VALUE="$date">日
-            <INPUT TYPE="text" SIZE=2 NAME="HOUR" VALUE="$hour">時
-            <INPUT TYPE="text" SIZE=2 NAME="MIN" VALUE="$min">分
-            <INPUT TYPE="text" SIZE=2 NAME="NSEC" VALUE="$sec">秒
-            <INPUT TYPE="submit" VALUE="変更" NAME="NTIME"><BR>
-            1970年1月1日から<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="$lastTime">秒
-            <INPUT TYPE="submit" VALUE="秒指定で変更" NAME="STIME">
-
+        $out->(<<END);
+        <H2>最終更新時間の変更</H2>
+        <INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="$year">年
+        <INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="$mon">月
+        <INPUT TYPE="text" SIZE=2 NAME="DATE" VALUE="$date">日
+        <INPUT TYPE="text" SIZE=2 NAME="HOUR" VALUE="$hour">時
+        <INPUT TYPE="text" SIZE=2 NAME="MIN" VALUE="$min">分
+        <INPUT TYPE="text" SIZE=2 NAME="NSEC" VALUE="$sec">秒
+        <INPUT TYPE="submit" VALUE="変更" NAME="NTIME"><BR>
+        1970年1月1日から<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="$lastTime">秒
+        <INPUT TYPE="submit" VALUE="秒指定で変更" NAME="STIME">
 END
-        }
     };
 
 
