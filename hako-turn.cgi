@@ -2180,6 +2180,7 @@ sub logHistory {
     open(HOUT, ">>${HdirName}/hakojima.his");
     print HOUT "$HislandTurn,$_[0]\n";
     close(HOUT);
+    Hako::DB->insert_history($HislandTurn, $_[0]);
 }
 
 # µ­Ï¿¥í¥°Ä´À°

@@ -8,6 +8,7 @@ use Plack::Response;
 use Plack::Request;
 use List::MoreUtils qw();
 use Hako::Config;
+use Hako::DB;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -715,6 +716,11 @@ sub to_app {
         print OUT "$HislandLastTime\n";
         print OUT "$HislandNumber\n";
         print OUT "$HislandNextID\n";
+
+        Hako::DB->set_global_value("turn", $HislandTurn);
+        Hako::DB->set_global_value("last_time", $HislandLastTime);
+        Hako::DB->set_global_value("number", $HislandNumber);
+        Hako::DB->set_global_value("next_id", $HislandNextID);
 
         # 島の書きこみ
         my($i);

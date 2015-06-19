@@ -6,6 +6,7 @@ use Plack::Response;
 use Time::Local;
 use List::MoreUtils qw();
 use Hako::Config;
+use Hako::DB;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -36,21 +37,13 @@ sub to_app {
 
     # 表示モード
     my $dataPrint = sub {
-        my($suf) = @_;
-
         $out->("<HR>");
-        if($suf eq "") {
-            open(IN, "@{[Hako::Config::DATA_DIR]}/hakojima.dat");
-            $out->("<H1>現役データ</H1>");
-        } else {
-            open(IN, "@{[Hako::Config::DATA_DIR]}.bak$suf/hakojima.dat");
-            $out->("<H1>バックアップ$suf</H1>");
-        }
+        $out->("<H1>現役データ</H1>");
 
         my($lastTurn);
-        $lastTurn = <IN>;
+        $lastTurn = Hako::DB->get_global_value("turn");
         my($lastTime);
-        $lastTime = <IN>;
+        $lastTime = Hako::DB->get_global_value("last_time");
 
         my($timeString) = timeToString($lastTime);
 
@@ -79,10 +72,6 @@ END
             1970年1月1日から<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="$lastTime">秒
             <INPUT TYPE="submit" VALUE="秒指定で変更" NAME="STIME">
 
-END
-        } else {
-            $out->(<<END);
-            <INPUT TYPE="submit" VALUE="このデータを現役に" NAME="CURRENT$suf">
 END
         }
     };
@@ -132,6 +121,11 @@ END
         print OUT "0\n";         # 島の数
         print OUT "1\n";         # 次に割り当てるID
 
+        Hako::DB->set_global_value("turn", 1);
+        Hako::DB->set_global_value("last_time", $now);
+        Hako::DB->set_global_value("number", 0);
+        Hako::DB->set_global_value("next_id", 1);
+
         # ファイルを閉じる
         close(OUT);
     }
@@ -155,6 +149,8 @@ END
         open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat");
         print OUT @lines;
         close(OUT);
+
+        Hako::DB->set_global_value("last_time", $t);
     };
 
     my $mainModeSub = sub {
@@ -300,5 +296,4 @@ END
     };
 }
 
-}
 1;
