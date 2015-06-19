@@ -762,13 +762,18 @@ sub to_app {
         my($land, $landValue);
         $land = $island->{'land'};
         $landValue = $island->{'landValue'};
+        my $land_str = "";
         my($x, $y);
         for($y = 0; $y < $HislandSize; $y++) {
             for($x = 0; $x < $HislandSize; $x++) {
-            printf IOUT ("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
+                printf IOUT ("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
+                $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
             }
+            $land_str .= "\n";
             print IOUT "\n";
         }
+        $island->{map} = $land_str;
+        Hako::DB->save_island($island);
 
         # コマンド
         my($command, $cur, $i);
@@ -782,6 +787,7 @@ sub to_app {
                  $command->[$i]->{'arg'}
                  );
         }
+        Hako::DB->save_command($island->{id}, $island->{command});
 
         # ローカル掲示板
         my($lbbs);
