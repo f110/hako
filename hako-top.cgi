@@ -146,15 +146,9 @@ END
 	out(<<END);
 <TR>
 <TD $HbgNumberCell ROWSPAN=2 align=center nowrap=nowrap><NOBR>${HtagNumber_}$j${H_tagNumber}</NOBR></TD>
-<TD $HbgNameCell ROWSPAN=2 align=left nowrap=nowrap>
-<NOBR>
-<A STYlE=\"text-decoration:none\" HREF="${HthisFile}?Sight=${id}">
-$name
-</A>
-</NOBR><BR>
-$prize
-</TD>
-<TD $HbgInfoCell align=right nowrap=nowrap>
+<TD $HbgNameCell ROWSPAN=2 align=left nowrap=nowrap><NOBR><A STYlE=\"text-decoration:none\" HREF="${HthisFile}?Sight=${id}">$name</A></NOBR><BR>$prize</TD>
+<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'pop'}$HunitPop</NOBR></TD>
+<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'area'}$HunitArea</NOBR></TD>
 $mStr1
 <TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'food'}$HunitFood</NOBR></TD>
 <TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$farm</NOBR></TD>
