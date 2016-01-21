@@ -7,6 +7,15 @@ sub connect {
     return DBI->connect("DBI:mysql:database=hako;host=127.0.0.1;port=3306", "root", "");
 }
 
+sub force_reset {
+    my ($class) = @_;
+
+    my $db = $class->connect;
+    for my $table (qw(hakojima islands island_commands island_bbs histories)) {
+        $db->do("TRUNCATE @{[$table]}");
+    }
+}
+
 sub set_global_value {
     my ($class, $key, $value) = @_;
 

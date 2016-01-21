@@ -99,6 +99,7 @@ END
     my $deleteMode = sub {
         if($deleteID eq '') {
             myrmtree(Hako::Config::DATA_DIR);
+            Hako::DB->force_reset;
         } else {
             myrmtree "@{[Hako::Config::DATA_DIR]}.bak$deleteID";
         }
