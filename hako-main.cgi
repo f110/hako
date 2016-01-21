@@ -39,7 +39,7 @@ my($baseDir) = Hako::Config::BASE_DIR;
 
 # 画像ファイルを置くディレクトリ
 # my($imageDir) = 'http://サーバー/ディレクトリ';
-my($imageDir) = Hako::Config::image_dir;
+my($imageDir) = Hako::Config::IMAGE_DIR;
 
 # マスターパスワード
 # このパスワードは、すべての島のパスワードを代用できます。
