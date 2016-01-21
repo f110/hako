@@ -7,6 +7,7 @@ use File::Basename;
 use Plack::Response;
 use Plack::Request;
 use List::MoreUtils qw();
+use Text::Xslate qw(mark_raw);
 use Hako::Config;
 use Hako::DB;
 
@@ -23,8 +24,6 @@ use Hako::DB;
 # 各種設定値
 # (これ以降の部分の各設定値を、適切な値に変更してください)
 #----------------------------------------------------------------------
-
-my $config = YAML::LoadFile(File::Spec->catfile(dirname(__FILE__), "config.yaml"));
 
 # このファイルを置くディレクトリ
 # my($baseDir) = 'http://サーバー/ディレクトリ';
@@ -1383,32 +1382,25 @@ sub to_app {
 
 # ヘッダ
     sub tempHeader {
-        out(<<END);
-    <HTML>
-    <HEAD>
-    <TITLE>
-    $Htitle
-    </TITLE>
-    <BASE HREF="$imageDir/">
-    </HEAD>
-    <BODY $htmlBody>
-    <A HREF="http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html">箱庭諸島スクリプト配布元</A><HR>
-END
+        my $xslate = Text::Xslate->new(syntax => 'TTerse');
+        my %vars = (
+            title => Encode::decode("EUC-JP", $Htitle),
+            image_dir => mark_raw($imageDir),
+            html_body => mark_raw($htmlBody),
+        );
+        out(Encode::encode("EUC-JP", $xslate->render("tmpl/header.tt", \%vars)));
     }
 
 # フッタ
     sub tempFooter {
-        out(<<END);
-    <HR>
-    <P align=center>
-    管理者:$adminName(<A HREF="mailto:$email">$email</A>)<BR>
-    掲示板(<A HREF="$bbs">$bbs</A>)<BR>
-    トップページ(<A HREF="$toppage">$toppage</A>)<BR>
-    箱庭諸島のページ(<A HREF="http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html">http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html</A>)<BR>
-    </P>
-    </BODY>
-    </HTML>
-END
+        my $xslate = Text::Xslate->new(syntax => 'TTerse');
+        my %vars = (
+            admin_name => Encode::decode("EUC-JP", $adminName),
+            email => $email,
+            bbs => $bbs,
+            toppage => $toppage,
+        );
+        out(Encode::encode("EUC-JP", $xslate->render("tmpl/footer.tt", \%vars)));
     }
 
 # ロック失敗

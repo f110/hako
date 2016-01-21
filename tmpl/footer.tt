@@ -1,0 +1,9 @@
+<HR>
+<P align=center>
+管理者:[% admin_name %](<A HREF="mailto:[% email %]">[% email %]</A>)<BR>
+掲示板(<A HREF="[% bbs %]">[% bbs %]</A>)<BR>
+トップページ(<A HREF="[% toppage %]">[% toppage %]</A>)<BR>
+箱庭諸島のページ(<A HREF="http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html">http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html</A>)<BR>
+</P>
+</BODY>
+</HTML>

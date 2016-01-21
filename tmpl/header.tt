@@ -1,0 +1,9 @@
+<HTML>
+<HEAD>
+<TITLE>
+[% title %]
+</TITLE>
+<BASE HREF="[% image_dir %]/">
+</HEAD>
+<BODY [% html_body %]>
+<A HREF="http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html">箱庭諸島スクリプト配布元</A><HR>
