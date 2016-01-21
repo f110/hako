@@ -7,7 +7,7 @@ use Hako::MenteApp;
 require 'hako-main.cgi';
 
 my $main_app = MainApp::to_app();
-my $mente_app = Hako::MenteApp::to_app();
+my $mente_app = Hako::MenteApp->new;
 
 builder {
     #enable 'Plack::Middleware::Static',
@@ -19,6 +19,6 @@ builder {
     enable 'Plack::Middleware::Static',
         path => qr{(?:favicon.ico)},
         root => File::Spec->catdir(dirname(__FILE__));
-    mount "/mente" => $mente_app;
+    mount "/mente" => $mente_app->psgi;
     mount "/" => $main_app;
 };

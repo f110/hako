@@ -16,240 +16,275 @@ use Hako::DB;
 # 箱庭諸島のページ: http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html
 #----------------------------------------------------------------------
 
-sub to_app {
-    my ($request, $response);
-    my ($out_buffer, $cookie_buffer);
+sub new {
+    my ($class) = @_;
 
-    my $mainMode = "";
-    my($inputPass);
-    my($deleteID);
-    my($currentID);
-    my($ctYear);
-    my($ctMon);
-    my($ctDate);
-    my($ctHour);
-    my($ctMin);
-    my($ctSec);
+    return bless {
+        main_mode => "",
+        input_pass => undef,
+        delete_id => undef,
+        current_id => undef,
+        ct_year => undef,
+        ct_mon => undef,
+        ct_date => undef,
+        ct_hour => undef,
+        ct_min => undef,
+        ct_sec => undef,
+        out_buffer => "",
+        cookie_buffer => "",
+    }, $class;
+}
 
-    my $out = sub {
-        $out_buffer .= shift;
-    };
+sub initialize {
+    my ($self) = @_;
 
-    # 表示モード
-    my $dataPrint = sub {
-        $out->("<HR>");
-        $out->("<H1>現役データ</H1>");
+    $self->{main_mode} = "";
+    $self->{input_pass} = undef;
+    $self->{delete_id} = undef;
+    $self->{current_id} = undef;
+    $self->{ct_year} = undef;
+    $self->{ct_mon} = undef;
+    $self->{ct_date} = undef;
+    $self->{ct_hour} = undef;
+    $self->{ct_min} = undef;
+    $self->{ct_sec} = undef;
+    $self->{out_buffer} = "";
+    $self->{cookie_buffer} = "";
+    $self->{out_buffer} = "";
+    $self->{cookie_buffer} = "";
+}
 
-        my($lastTurn);
-        $lastTurn = Hako::DB->get_global_value("turn");
-        my($lastTime);
-        $lastTime = Hako::DB->get_global_value("last_time");
+sub out {
+    my ($self, $buf) = @_;
 
-        my($timeString) = timeToString($lastTime);
+    $self->{out_buffer} .= $buf;
+}
 
-        $out->(<<END);
-        <B>ターン$lastTurn</B><BR>
-        <B>最終更新時間</B>:$timeString<BR>
-        <B>最終更新時間(秒数表示)</B>:1970年1月1日から$lastTime 秒<BR>
-        <INPUT TYPE="submit" VALUE="このデータを削除" NAME="DELETE">
-END
+sub cgi_input {
+    my ($self, $request) = @_;
 
-        my($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) =
-            localtime($lastTime);
-        $mon++;
-        $year += 1900;
-
-        $out->(<<END);
-        <H2>最終更新時間の変更</H2>
-        <INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="$year">年
-        <INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="$mon">月
-        <INPUT TYPE="text" SIZE=2 NAME="DATE" VALUE="$date">日
-        <INPUT TYPE="text" SIZE=2 NAME="HOUR" VALUE="$hour">時
-        <INPUT TYPE="text" SIZE=2 NAME="MIN" VALUE="$min">分
-        <INPUT TYPE="text" SIZE=2 NAME="NSEC" VALUE="$sec">秒
-        <INPUT TYPE="submit" VALUE="変更" NAME="NTIME"><BR>
-        1970年1月1日から<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="$lastTime">秒
-        <INPUT TYPE="submit" VALUE="秒指定で変更" NAME="STIME">
-END
-    };
-
-
-    sub myrmtree {
-        my($dn) = @_;
-        opendir(DIN, "$dn/");
-        my($fileName);
-        while($fileName = readdir(DIN)) {
-            unlink("$dn/$fileName");
-        }
-        closedir(DIN);
-        rmdir($dn);
+    my $params = $request->parameters;
+    if (List::MoreUtils::any {$_ =~ /DELETE([0-9]*)/} $params->keys) {
+        $self->{main_mode} = 'delete';
+        $self->{delete_id} = $1;
+    } elsif(List::MoreUtils::any {$_ =~ /CURRENT([0-9]*)/} $params->keys) {
+        $self->{main_mode} = 'current';
+        $self->{current_id} = $1;
+    } elsif (List::MoreUtils::any {$_ eq "NEW"} $params->keys) {
+        $self->{main_mode} = 'new';
+    } elsif (List::MoreUtils::any {$_ eq "NTIME"} $params->keys) {
+        $self->{main_mode} = 'time';
+    } elsif (List::MoreUtils::any {$_ eq "STIME"} $params->keys) {
+        $self->{main_mode} = 'stime';
+        $self->{ct_sec} = $params->get("SSEC");
     }
 
-    my $currentMode = sub {
-        myrmtree(Hako::Config::DATA_DIR);
-        mkdir("@{[Hako::Config::DATA_DIR]}", Hako::Config::DIR_MODE);
-        opendir(DIN, "@{[Hako::Config::DATA_DIR]}.bak$currentID/");
-        my($fileName);
-        while($fileName = readdir(DIN)) {
-            fileCopy("@{[Hako::Config::DATA_DIR]}.bak$currentID/$fileName", "@{[Hako::Config::DATA_DIR]}/$fileName");
-        }
-        closedir(DIN);
-    };
+    $self->{input_pass} = $params->get("PASSWORD");
+    $self->{ct_year} = $params->get("YEAR");
+    $self->{ct_mon} = $params->get("MON");
+    $self->{ct_date} = $params->get("DATE");
+    $self->{ct_hour} = $params->get("HOUR");
+    $self->{ct_min} = $params->get("MIN");
+    $self->{ct_sec} = $params->get("NSEC");
+}
 
-    my $deleteMode = sub {
-        if($deleteID eq '') {
-            myrmtree(Hako::Config::DATA_DIR);
-            Hako::DB->force_reset;
-        } else {
-            myrmtree "@{[Hako::Config::DATA_DIR]}.bak$deleteID";
-        }
-        unlink "hakojimalockflock";
-    };
+sub pass_check {
+    my ($self) = @_;
 
-    sub newMode {
-        mkdir(Hako::Config::DATA_DIR, Hako::Config::DIR_MODE);
-
-        # 現在の時間を取得
-        my($now) = time;
-        $now = $now - ($now % (Hako::Config::UNIT_TIME));
-
-        open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat"); # ファイルを開く
-        print OUT "1\n";         # ターン数1
-        print OUT "$now\n";      # 開始時間
-        print OUT "0\n";         # 島の数
-        print OUT "1\n";         # 次に割り当てるID
-
-        Hako::DB->set_global_value("turn", 1);
-        Hako::DB->set_global_value("last_time", $now);
-        Hako::DB->set_global_value("number", 0);
-        Hako::DB->set_global_value("next_id", 1);
-
-        # ファイルを閉じる
-        close(OUT);
+    if($self->{input_pass} eq Hako::Config::MASTER_PASSWORD) {
+        return 1;
+    } else {
+    $self->out(<<END);
+   <FONT SIZE=7>パスワードが違います。</FONT>
+END
+        return 0;
     }
+}
 
-    my $timeMode = sub {
-        $ctMon--;
-        $ctYear -= 1900;
-        $ctSec = timelocal($ctSec, $ctMin, $ctHour, $ctDate, $ctMon, $ctYear);
-        stimeMode();
-    };
+sub rm_tree {
+    my ($dn) = @_;
+    opendir(DIN, "$dn/");
+    my($fileName);
+    while ($fileName = readdir(DIN)) {
+        unlink("$dn/$fileName");
+    }
+    closedir(DIN);
+    rmdir($dn);
+}
 
-    my $stimeMode = sub {
-        my($t) = $ctSec;
-        open(IN, "@{[Hako::Config::DATA_DIR]}/hakojima.dat");
-        my(@lines);
-        @lines = <IN>;
-        close(IN);
+sub file_copy {
+    my ($src, $dist) = @_;
+    open(IN, $src);
+    open(OUT, ">$dist");
+    while (<IN>) {
+        print OUT;
+    }
+    close(IN);
+    close(OUT);
+}
 
-        $lines[1] = "$t\n";
+sub delete_mode {
+    my ($self) = @_;
 
-        open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat");
-        print OUT @lines;
-        close(OUT);
+    if ($self->{delete_id} eq '') {
+        rm_tree(Hako::Config::DATA_DIR);
+        Hako::DB->force_reset;
+    } else {
+        rm_tree("@{[Hako::Config::DATA_DIR]}.bak@{[$self->{delete_id}]}");
+    }
+    unlink "hakojimalockflock";
+}
 
-        Hako::DB->set_global_value("last_time", $t);
-    };
+sub current_mode {
+    my ($self) = @_;
 
-    my $mainModeSub = sub {
-        opendir(DIN, "./");
+    rm_tree(Hako::Config::DATA_DIR);
+    mkdir("@{[Hako::Config::DATA_DIR]}", Hako::Config::DIR_MODE);
+    opendir(DIN, "@{[Hako::Config::DATA_DIR]}.bak@{[$self->{current_id}]}/");
+    my($fileName);
+    while($fileName = readdir(DIN)) {
+        file_copy("@{[Hako::Config::DATA_DIR]}.bak@{[$self->{current_id}]}/$fileName", "@{[Hako::Config::DATA_DIR]}/$fileName");
+    }
+    closedir(DIN);
+}
 
-        $out->(<<END);
-    <FORM action="/mente" method="POST">
-    <H1>箱島２ メンテナンスツール</H1>
-    <B>パスワード:</B><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD></TD>
+sub time_mode {
+    my ($self) = @_;
+
+    $self->{ct_mon}--;
+    $self->{ct_year} -= 1900;
+    $self->{ct_sec} = timelocal($self->{ct_sec}, $self->{ct_min}, $self->{ct_hour}, $self->{ct_date}, $self->{ct_mon}, $self->{ct_year});
+    $self->stime_mode;
+};
+
+sub stime_mode {
+    my ($self) = @_;
+
+    my ($t) = $self->{ct_sec};
+    open(IN, "@{[Hako::Config::DATA_DIR]}/hakojima.dat");
+    my (@lines);
+    @lines = <IN>;
+    close(IN);
+
+    $lines[1] = "$t\n";
+
+    open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat");
+    print OUT @lines;
+    close(OUT);
+
+    Hako::DB->set_global_value("last_time", $t);
+};
+
+sub new_mode {
+    my ($self) = @_;
+    mkdir(Hako::Config::DATA_DIR, Hako::Config::DIR_MODE);
+
+    # 現在の時間を取得
+    my ($now) = time;
+    $now = $now - ($now % (Hako::Config::UNIT_TIME));
+
+    open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat"); # ファイルを開く
+    print OUT "1\n";         # ターン数1
+    print OUT "$now\n";      # 開始時間
+    print OUT "0\n";         # 島の数
+    print OUT "1\n";         # 次に割り当てるID
+
+    Hako::DB->set_global_value("turn", 1);
+    Hako::DB->set_global_value("last_time", $now);
+    Hako::DB->set_global_value("number", 0);
+    Hako::DB->set_global_value("next_id", 1);
+
+    # ファイルを閉じる
+    close(OUT);
+}
+
+sub time_to_string {
+    my ($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) = localtime($_[0]);
+    $mon++;
+    $year += 1900;
+
+    return "${year}年 ${mon}月 ${date}日 ${hour}時 ${min}分 ${sec}秒";
+}
+
+sub data_print {
+    my ($self) = @_;
+
+    $self->out("<HR>");
+    $self->out("<H1>現役データ</H1>");
+
+    my $lastTurn = Hako::DB->get_global_value("turn");
+    my $lastTime = Hako::DB->get_global_value("last_time");
+
+    my $timeString = time_to_string($lastTime);
+
+    $self->out(<<END);
+    <B>ターン$lastTurn</B><BR>
+    <B>最終更新時間</B>:$timeString<BR>
+    <B>最終更新時間(秒数表示)</B>:1970年1月1日から$lastTime 秒<BR>
+    <INPUT TYPE="submit" VALUE="このデータを削除" NAME="DELETE">
 END
 
-        # 現役データ
-        if(-d Hako::Config::DATA_DIR) {
-        $dataPrint->("");
-        } else {
-        $out->(<<END);
-        <HR>
-        <INPUT TYPE="submit" VALUE="新しいデータを作る" NAME="NEW">
+    my ($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) = localtime($lastTime);
+    $mon++;
+    $year += 1900;
+
+    $self->out(<<END);
+    <H2>最終更新時間の変更</H2>
+    <INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="$year">年
+    <INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="$mon">月
+    <INPUT TYPE="text" SIZE=2 NAME="DATE" VALUE="$date">日
+    <INPUT TYPE="text" SIZE=2 NAME="HOUR" VALUE="$hour">時
+    <INPUT TYPE="text" SIZE=2 NAME="MIN" VALUE="$min">分
+    <INPUT TYPE="text" SIZE=2 NAME="NSEC" VALUE="$sec">秒
+    <INPUT TYPE="submit" VALUE="変更" NAME="NTIME"><BR>
+    1970年1月1日から<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="$lastTime">秒
+    <INPUT TYPE="submit" VALUE="秒指定で変更" NAME="STIME">
 END
-        }
+};
 
-        # バックアップデータ
-        my($dn);
-        while($dn = readdir(DIN)) {
-            if($dn =~ /^@{[Hako::Config::DATA_DIR]}.bak(.*)/) {
-                $dataPrint->($1);
-            }
-        }
-        closedir(DIN);
-    };
+sub main_mode_sub {
+    my ($self) = @_;
 
-    sub timeToString {
-        my($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) =
-        localtime($_[0]);
-        $mon++;
-        $year += 1900;
+    opendir(DIN, "./");
 
-        return "${year}年 ${mon}月 ${date}日 ${hour}時 ${min}分 ${sec}秒";
+    $self->out(<<END);
+<FORM action="/mente" method="POST">
+<H1>箱島２ メンテナンスツール</H1>
+<B>パスワード:</B><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD></TD>
+END
+
+    # 現役データ
+    if (-d Hako::Config::DATA_DIR) {
+        $self->data_print("");
+    } else {
+    $self->out(<<END);
+    <HR>
+    <INPUT TYPE="submit" VALUE="新しいデータを作る" NAME="NEW">
+END
     }
 
-    # CGIの読みこみ
-    my $cgiInput = sub {
-        my $params = $request->parameters;
-        if (List::MoreUtils::any {$_ =~ /DELETE([0-9]*)/} $params->keys) {
-            $mainMode = 'delete';
-            $deleteID = $1;
-        } elsif(List::MoreUtils::any {$_ =~ /CURRENT([0-9]*)/} $params->keys) {
-            $mainMode = 'current';
-            $currentID = $1;
-        } elsif (List::MoreUtils::any {$_ eq "NEW"} $params->keys) {
-            $mainMode = 'new';
-        } elsif (List::MoreUtils::any {$_ eq "NTIME"} $params->keys) {
-            $mainMode = 'time';
-        } elsif (List::MoreUtils::any {$_ eq "STIME"} $params->keys) {
-            $mainMode = 'stime';
-            $ctSec = $params->get("SSEC");
+    # バックアップデータ
+    my($dn);
+    while($dn = readdir(DIN)) {
+        if($dn =~ /^@{[Hako::Config::DATA_DIR]}.bak(.*)/) {
+            $self->data_print($1);
         }
-
-        $inputPass = $params->get("PASSWORD");
-        $ctYear = $params->get("YEAR");
-        $ctMon = $params->get("MON");
-        $ctDate = $params->get("DATE");
-        $ctHour = $params->get("HOUR");
-        $ctMin = $params->get("MIN");
-        $ctSec = $params->get("NSEC");
-    };
-
-    # ファイルのコピー
-    sub fileCopy {
-        my($src, $dist) = @_;
-        open(IN, $src);
-        open(OUT, ">$dist");
-        while(<IN>) {
-            print OUT;
-        }
-        close(IN);
-        close(OUT);
     }
+    closedir(DIN);
+};
 
-    # パスチェック
-    my $passCheck = sub {
-        if($inputPass eq Hako::Config::MASTER_PASSWORD) {
-            return 1;
-        } else {
-        $out->(<<END);
-       <FONT SIZE=7>パスワードが違います。</FONT>
-END
-            return 0;
-        }
-    };
+sub psgi {
+    my ($self) = @_;
 
     return sub {
         my ($env) = @_;
 
-        $out_buffer = "";
-        $cookie_buffer = "";
-        $request = Plack::Request->new($env);
-        $response = Plack::Response->new(200);
+        $self->initialize;
+        my $request = Plack::Request->new($env);
+        my $response = Plack::Response->new(200);
         $response->content_type("text/html");
 
-        $out->(<<END);
+        $self->out(<<END);
         <HTML>
         <HEAD>
         <TITLE>箱島２ メンテナンスツール</TITLE>
@@ -257,39 +292,39 @@ END
         <BODY>
 END
 
-        $cgiInput->();
+        $self->cgi_input($request);
 
-        if($mainMode eq 'delete') {
-            if($passCheck->()) {
-                $deleteMode->();
+        if ($self->{main_mode} eq 'delete') {
+            if ($self->pass_check) {
+                $self->delete_mode;
             }
-        } elsif($mainMode eq 'current') {
-            if($passCheck->()) {
-                $currentMode->();
+        } elsif ($self->{main_mode} eq 'current') {
+            if ($self->pass_check) {
+                $self->current_mode;
             }
-        } elsif($mainMode eq 'time') {
-            if($passCheck->()) {
-                $timeMode->();
+        } elsif ($self->{main_mode} eq 'time') {
+            if ($self->pass_check) {
+                $self->time_mode;
             }
-        } elsif($mainMode eq 'stime') {
-            if($passCheck->()) {
-                $stimeMode->();
+        } elsif ($self->{main_mode} eq 'stime') {
+            if ($self->pass_check) {
+                $self->stime_mode;
             }
-        } elsif($mainMode eq 'new') {
-            if($passCheck->()) {
-                newMode();
+        } elsif ($self->{main_mode} eq 'new') {
+            if ($self->pass_check) {
+                $self->new_mode;
             }
         }
-        $mainModeSub->();
+        $self->main_mode_sub;
 
-        $out->(<<END);
+        $self->out(<<END);
         </FORM>
         </BODY>
         </HTML>
 END
 
-        $response->body($out_buffer);
-        $response->headers({"Set-Cookie" => $cookie_buffer});
+        $response->body($self->{out_buffer});
+        $response->headers({"Set-Cookie" => $self->{cookie_buffer}});
         return $response->finalize;
     };
 }
