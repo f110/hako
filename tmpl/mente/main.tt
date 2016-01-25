@@ -1,0 +1,3 @@
+<FORM action="/mente" method="POST">
+<H1>箱島２ メンテナンスツール</H1>
+<B>パスワード:</B><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD></TD>

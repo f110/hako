@@ -5,34 +5,27 @@ use Plack::Request;
 use Plack::Response;
 use Time::Local;
 use List::MoreUtils qw();
+use Text::Xslate qw(mark_raw);
+use Encode qw();
 use Hako::Config;
 use Hako::DB;
 
 #----------------------------------------------------------------------
-# È¢Äí½ôÅç ver2.30
-# ¥á¥ó¥Æ¥Ê¥ó¥¹¥Ä¡¼¥ë(ver1.01)
-# »ÈÍÑ¾ò·ï¡¢»ÈÍÑÊıË¡Åù¤Ï¡¢hako-readme.txt¥Õ¥¡¥¤¥ë¤ò»²¾È
+# ç®±åº­è«¸å³¶ ver2.30
+# ãƒ¡ãƒ³ãƒ†ãƒŠãƒ³ã‚¹ãƒ„ãƒ¼ãƒ«(ver1.01)
+# ä½¿ç”¨æ¡ä»¶ã€ä½¿ç”¨æ–¹æ³•ç­‰ã¯ã€hako-readme.txtãƒ•ã‚¡ã‚¤ãƒ«ã‚’å‚ç…§
 #
-# È¢Äí½ôÅç¤Î¥Ú¡¼¥¸: http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html
+# ç®±åº­è«¸å³¶ã®ãƒšãƒ¼ã‚¸: http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html
 #----------------------------------------------------------------------
 
 sub new {
     my ($class) = @_;
 
-    return bless {
-        main_mode => "",
-        input_pass => undef,
-        delete_id => undef,
-        current_id => undef,
-        ct_year => undef,
-        ct_mon => undef,
-        ct_date => undef,
-        ct_hour => undef,
-        ct_min => undef,
-        ct_sec => undef,
-        out_buffer => "",
-        cookie_buffer => "",
+    my $self = bless {
+        xslate => Text::Xslate->new(syntax => 'TTerse')
     }, $class;
+    $self->initialize;
+    return $self;
 }
 
 sub initialize {
@@ -95,7 +88,7 @@ sub pass_check {
         return 1;
     } else {
     $self->out(<<END);
-   <FONT SIZE=7>¥Ñ¥¹¥ï¡¼¥É¤¬°ã¤¤¤Ş¤¹¡£</FONT>
+   <FONT SIZE=7>ãƒ‘ã‚¹ãƒ¯ãƒ¼ãƒ‰ãŒé•ã„ã¾ã™ã€‚</FONT>
 END
         return 0;
     }
@@ -179,22 +172,22 @@ sub new_mode {
     my ($self) = @_;
     mkdir(Hako::Config::DATA_DIR, Hako::Config::DIR_MODE);
 
-    # ¸½ºß¤Î»ş´Ö¤ò¼èÆÀ
+    # ç¾åœ¨ã®æ™‚é–“ã‚’å–å¾—
     my ($now) = time;
     $now = $now - ($now % (Hako::Config::UNIT_TIME));
 
-    open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat"); # ¥Õ¥¡¥¤¥ë¤ò³«¤¯
-    print OUT "1\n";         # ¥¿¡¼¥ó¿ô1
-    print OUT "$now\n";      # ³«»Ï»ş´Ö
-    print OUT "0\n";         # Åç¤Î¿ô
-    print OUT "1\n";         # ¼¡¤Ë³ä¤êÅö¤Æ¤ëID
+    open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat"); # ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‹ã
+    print OUT "1\n";         # ã‚¿ãƒ¼ãƒ³æ•°1
+    print OUT "$now\n";      # é–‹å§‹æ™‚é–“
+    print OUT "0\n";         # å³¶ã®æ•°
+    print OUT "1\n";         # æ¬¡ã«å‰²ã‚Šå½“ã¦ã‚‹ID
 
     Hako::DB->set_global_value("turn", 1);
     Hako::DB->set_global_value("last_time", $now);
     Hako::DB->set_global_value("number", 0);
     Hako::DB->set_global_value("next_id", 1);
 
-    # ¥Õ¥¡¥¤¥ë¤òÊÄ¤¸¤ë
+    # ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‰ã˜ã‚‹
     close(OUT);
 }
 
@@ -203,67 +196,55 @@ sub time_to_string {
     $mon++;
     $year += 1900;
 
-    return "${year}Ç¯ ${mon}·î ${date}Æü ${hour}»ş ${min}Ê¬ ${sec}ÉÃ";
+    return "${year}å¹´ ${mon}æœˆ ${date}æ—¥ ${hour}æ™‚ ${min}åˆ† ${sec}ç§’";
 }
 
 sub data_print {
-    my ($self) = @_;
+    my ($self, $suf) = @_;
 
-    $self->out("<HR>");
-    $self->out("<H1>¸½Ìò¥Ç¡¼¥¿</H1>");
+    my $lastTime = Hako::DB->get_global_value("last_time");
+    my ($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) = localtime($lastTime);
+    $mon++;
+    $year += 1900;
+    my %vars = (
+        last_turn => Hako::DB->get_global_value("turn"),
+        last_time => Hako::DB->get_global_value("last_time"),
+        time_string => time_to_string($lastTime),
+        suf => $suf,
+        year => $year,
+        mon => $mon,
+        date => $date,
+        hour => $hour,
+        min => $min,
+        sec => $sec,
+    );
+    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/data.tt", \%vars)));
 
     my $lastTurn = Hako::DB->get_global_value("turn");
     my $lastTime = Hako::DB->get_global_value("last_time");
 
     my $timeString = time_to_string($lastTime);
-
-    $self->out(<<END);
-    <B>¥¿¡¼¥ó$lastTurn</B><BR>
-    <B>ºÇ½ª¹¹¿·»ş´Ö</B>:$timeString<BR>
-    <B>ºÇ½ª¹¹¿·»ş´Ö(ÉÃ¿ôÉ½¼¨)</B>:1970Ç¯1·î1Æü¤«¤é$lastTime ÉÃ<BR>
-    <INPUT TYPE="submit" VALUE="¤³¤Î¥Ç¡¼¥¿¤òºï½ü" NAME="DELETE">
-END
-
-    my ($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) = localtime($lastTime);
-    $mon++;
-    $year += 1900;
-
-    $self->out(<<END);
-    <H2>ºÇ½ª¹¹¿·»ş´Ö¤ÎÊÑ¹¹</H2>
-    <INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="$year">Ç¯
-    <INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="$mon">·î
-    <INPUT TYPE="text" SIZE=2 NAME="DATE" VALUE="$date">Æü
-    <INPUT TYPE="text" SIZE=2 NAME="HOUR" VALUE="$hour">»ş
-    <INPUT TYPE="text" SIZE=2 NAME="MIN" VALUE="$min">Ê¬
-    <INPUT TYPE="text" SIZE=2 NAME="NSEC" VALUE="$sec">ÉÃ
-    <INPUT TYPE="submit" VALUE="ÊÑ¹¹" NAME="NTIME"><BR>
-    1970Ç¯1·î1Æü¤«¤é<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="$lastTime">ÉÃ
-    <INPUT TYPE="submit" VALUE="ÉÃ»ØÄê¤ÇÊÑ¹¹" NAME="STIME">
-END
-};
+}
 
 sub main_mode_sub {
     my ($self) = @_;
 
     opendir(DIN, "./");
 
-    $self->out(<<END);
-<FORM action="/mente" method="POST">
-<H1>È¢Åç£² ¥á¥ó¥Æ¥Ê¥ó¥¹¥Ä¡¼¥ë</H1>
-<B>¥Ñ¥¹¥ï¡¼¥É:</B><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD></TD>
-END
+    my %vars = ();
+    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/main.tt", \%vars)));
 
-    # ¸½Ìò¥Ç¡¼¥¿
+    # ç¾å½¹ãƒ‡ãƒ¼ã‚¿
     if (-d Hako::Config::DATA_DIR) {
         $self->data_print("");
     } else {
-    $self->out(<<END);
+        $self->out(<<END);
     <HR>
-    <INPUT TYPE="submit" VALUE="¿·¤·¤¤¥Ç¡¼¥¿¤òºî¤ë" NAME="NEW">
+    <INPUT TYPE="submit" VALUE="æ–°ã—ã„ãƒ‡ãƒ¼ã‚¿ã‚’ä½œã‚‹" NAME="NEW">
 END
     }
 
-    # ¥Ğ¥Ã¥¯¥¢¥Ã¥×¥Ç¡¼¥¿
+    # ãƒãƒƒã‚¯ã‚¢ãƒƒãƒ—ãƒ‡ãƒ¼ã‚¿
     my($dn);
     while($dn = readdir(DIN)) {
         if($dn =~ /^@{[Hako::Config::DATA_DIR]}.bak(.*)/) {
@@ -284,13 +265,7 @@ sub psgi {
         my $response = Plack::Response->new(200);
         $response->content_type("text/html");
 
-        $self->out(<<END);
-        <HTML>
-        <HEAD>
-        <TITLE>È¢Åç£² ¥á¥ó¥Æ¥Ê¥ó¥¹¥Ä¡¼¥ë</TITLE>
-        </HEAD>
-        <BODY>
-END
+        $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/header.tt")));
 
         $self->cgi_input($request);
 
@@ -317,11 +292,7 @@ END
         }
         $self->main_mode_sub;
 
-        $self->out(<<END);
-        </FORM>
-        </BODY>
-        </HTML>
-END
+        $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/footer.tt")));
 
         $response->body($self->{out_buffer});
         $response->headers({"Set-Cookie" => $self->{cookie_buffer}});

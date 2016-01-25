@@ -703,7 +703,7 @@ sub to_app {
         };
     }
 
-# 全島データ書き込み
+    # 全島データ書き込み
     sub writeIslandsFile {
         my($num) = @_;
 
@@ -756,48 +756,48 @@ sub to_app {
 
         # 地形
         if(($num <= -1) || ($num == $island->{'id'})) {
-        open(IOUT, ">${HdirName}/islandtmp.$island->{'id'}");
+            open(IOUT, ">${HdirName}/islandtmp.$island->{'id'}");
 
-        my($land, $landValue);
-        $land = $island->{'land'};
-        $landValue = $island->{'landValue'};
-        my $land_str = "";
-        my($x, $y);
-        for($y = 0; $y < $HislandSize; $y++) {
-            for($x = 0; $x < $HislandSize; $x++) {
-                printf IOUT ("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
-                $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
+            my($land, $landValue);
+            $land = $island->{'land'};
+            $landValue = $island->{'landValue'};
+            my $land_str = "";
+            my($x, $y);
+            for($y = 0; $y < $HislandSize; $y++) {
+                for($x = 0; $x < $HislandSize; $x++) {
+                    printf IOUT ("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
+                    $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
+                }
+                $land_str .= "\n";
+                print IOUT "\n";
             }
-            $land_str .= "\n";
-            print IOUT "\n";
-        }
-        $island->{map} = $land_str;
-        Hako::DB->save_island($island);
+            $island->{map} = $land_str;
+            Hako::DB->save_island($island);
 
-        # コマンド
-        my($command, $cur, $i);
-        $command = $island->{'command'};
-        for($i = 0; $i < $HcommandMax; $i++) {
-            printf IOUT ("%d,%d,%d,%d,%d\n", 
-                 $command->[$i]->{'kind'},
-                 $command->[$i]->{'target'},
-                 $command->[$i]->{'x'},
-                 $command->[$i]->{'y'},
-                 $command->[$i]->{'arg'}
-                 );
-        }
-        Hako::DB->save_command($island->{id}, $island->{command});
+            # コマンド
+            my($command, $cur, $i);
+            $command = $island->{'command'};
+            for($i = 0; $i < $HcommandMax; $i++) {
+                printf IOUT ("%d,%d,%d,%d,%d\n", 
+                     $command->[$i]->{'kind'},
+                     $command->[$i]->{'target'},
+                     $command->[$i]->{'x'},
+                     $command->[$i]->{'y'},
+                     $command->[$i]->{'arg'}
+                     );
+            }
+            Hako::DB->save_command($island->{id}, $island->{command});
 
-        # ローカル掲示板
-        my($lbbs);
-        $lbbs = $island->{'lbbs'};
-        for($i = 0; $i < $HlbbsMax; $i++) {
-            print IOUT $lbbs->[$i] . "\n";
-        }
+            # ローカル掲示板
+            my($lbbs);
+            $lbbs = $island->{'lbbs'};
+            for($i = 0; $i < $HlbbsMax; $i++) {
+                print IOUT $lbbs->[$i] . "\n";
+            }
 
-        close(IOUT);
-        unlink("${HdirName}/island.$island->{'id'}");
-        rename("${HdirName}/islandtmp.$island->{'id'}", "${HdirName}/island.$island->{'id'}");
+            close(IOUT);
+            unlink("${HdirName}/island.$island->{'id'}");
+            rename("${HdirName}/islandtmp.$island->{'id'}", "${HdirName}/island.$island->{'id'}");
         }
     }
 

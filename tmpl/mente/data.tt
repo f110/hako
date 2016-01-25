@@ -1,0 +1,20 @@
+<HR>
+<H1>現役データ</H1>
+<B>ターン[% last_turn %]</B><BR>
+<B>最終更新時間</B>:[% time_string %]<BR>
+<B>最終更新時間(秒数表示)</B>:1970年1月1日から[% last_time %] 秒<BR>
+<INPUT TYPE="submit" VALUE="このデータを削除" NAME="DELETE">
+[% IF suf %]
+<H2>最終更新時間の変更</H2>
+<INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="[% year %]">年
+<INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="[% mon %]">月
+<INPUT TYPE="text" SIZE=2 NAME="DATE" VALUE="[% date %]">日
+<INPUT TYPE="text" SIZE=2 NAME="HOUR" VALUE="[% hour %]">時
+<INPUT TYPE="text" SIZE=2 NAME="MIN" VALUE="[% min %]">分
+<INPUT TYPE="text" SIZE=2 NAME="NSEC" VALUE="[% sec %]">秒
+<INPUT TYPE="submit" VALUE="変更" NAME="NTIME"><BR>
+1970年1月1日から<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="[% last_time %]">秒
+<INPUT TYPE="submit" VALUE="秒指定で変更" NAME="STIME">
+[% ELSE %]
+<INPUT TYPE="submit" VALUE="このデータを現役に" NAME="CURRENT[% suf %]">
+[% END %]
