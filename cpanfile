@@ -4,3 +4,4 @@ requires 'List::MoreUtils';
 requires 'DBI';
 requires 'DBD::mysql';
 requires 'Text::Xslate';
+requires 'Router::Simple';

@@ -1,6 +1,7 @@
-package Hako::MenteApp;
+package Hako::Admin::App;
 use strict;
 use warnings;
+use Data::Dumper;
 use Plack::Request;
 use Plack::Response;
 use Time::Local;
@@ -9,6 +10,7 @@ use Text::Xslate qw(mark_raw);
 use Encode qw();
 use Hako::Config;
 use Hako::DB;
+use Router::Simple;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -135,7 +137,7 @@ sub current_mode {
     mkdir("@{[Hako::Config::DATA_DIR]}", Hako::Config::DIR_MODE);
     opendir(DIN, "@{[Hako::Config::DATA_DIR]}.bak@{[$self->{current_id}]}/");
     my($fileName);
-    while($fileName = readdir(DIN)) {
+    while ($fileName = readdir(DIN)) {
         file_copy("@{[Hako::Config::DATA_DIR]}.bak@{[$self->{current_id}]}/$fileName", "@{[Hako::Config::DATA_DIR]}/$fileName");
     }
     closedir(DIN);
@@ -172,11 +174,10 @@ sub new_mode {
     my ($self) = @_;
     mkdir(Hako::Config::DATA_DIR, Hako::Config::DIR_MODE);
 
-    # 現在の時間を取得
     my ($now) = time;
     $now = $now - ($now % (Hako::Config::UNIT_TIME));
 
-    open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat"); # ファイルを開く
+    open(OUT, "> @{[Hako::Config::DATA_DIR]}/hakojima.dat");
     print OUT "1\n";         # ターン数1
     print OUT "$now\n";      # 開始時間
     print OUT "0\n";         # 島の数
@@ -187,7 +188,6 @@ sub new_mode {
     Hako::DB->set_global_value("number", 0);
     Hako::DB->set_global_value("next_id", 1);
 
-    # ファイルを閉じる
     close(OUT);
 }
 
@@ -218,12 +218,7 @@ sub data_print {
         min => $min,
         sec => $sec,
     );
-    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/data.tt", \%vars)));
-
-    my $lastTurn = Hako::DB->get_global_value("turn");
-    my $lastTime = Hako::DB->get_global_value("last_time");
-
-    my $timeString = time_to_string($lastTime);
+    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/data.tt", \%vars)));
 }
 
 sub main_mode_sub {
@@ -232,7 +227,7 @@ sub main_mode_sub {
     opendir(DIN, "./");
 
     my %vars = ();
-    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/main.tt", \%vars)));
+    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/main.tt", \%vars)));
 
     # 現役データ
     if (-d Hako::Config::DATA_DIR) {
@@ -245,9 +240,9 @@ END
     }
 
     # バックアップデータ
-    my($dn);
-    while($dn = readdir(DIN)) {
-        if($dn =~ /^@{[Hako::Config::DATA_DIR]}.bak(.*)/) {
+    my $dn;
+    while ($dn = readdir(DIN)) {
+        if ($dn =~ /^@{[Hako::Config::DATA_DIR]}.bak(.*)/) {
             $self->data_print($1);
         }
     }
@@ -257,6 +252,9 @@ END
 sub psgi {
     my ($self) = @_;
 
+    my $router = Router::Simple->new;
+    $router->connect("/new", {action => "new_mode"});
+
     return sub {
         my ($env) = @_;
 
@@ -265,9 +263,16 @@ sub psgi {
         my $response = Plack::Response->new(200);
         $response->content_type("text/html");
 
-        $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/header.tt")));
+        $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/header.tt")));
 
         $self->cgi_input($request);
+
+        if (my $p = $router->match($env)) {
+            my $action = $p->{action};
+            if ($self->pass_check) {
+                $self->$action();
+            }
+        }
 
         if ($self->{main_mode} eq 'delete') {
             if ($self->pass_check) {
@@ -292,7 +297,7 @@ sub psgi {
         }
         $self->main_mode_sub;
 
-        $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/mente/footer.tt")));
+        $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/footer.tt")));
 
         $response->body($self->{out_buffer});
         $response->headers({"Set-Cookie" => $self->{cookie_buffer}});

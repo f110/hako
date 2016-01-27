@@ -67,6 +67,12 @@ DISTRIBUTIONS
       perl 5.008001
       strict 0
       warnings 0
+  Class-Accessor-Lite-0.08
+    pathname: K/KA/KAZUHO/Class-Accessor-Lite-0.08.tar.gz
+    provides:
+      Class::Accessor::Lite 0.08
+    requirements:
+      ExtUtils::MakeMaker 6.36
   Class-Inspector-1.28
     pathname: A/AD/ADAMK/Class-Inspector-1.28.tar.gz
     provides:
@@ -762,6 +768,20 @@ DISTRIBUTIONS
       URI 1.59
       parent 0
       perl 5.008001
+  Router-Simple-0.17
+    pathname: T/TO/TOKUHIROM/Router-Simple-0.17.tar.gz
+    provides:
+      Router::Simple 0.17
+      Router::Simple::Declare undef
+      Router::Simple::Route undef
+      Router::Simple::SubMapper undef
+    requirements:
+      Class::Accessor::Lite 0.05
+      List::Util 0
+      Module::Build 0.38
+      Scalar::Util 0
+      parent 0
+      perl 5.008_001
   Stream-Buffered-0.03
     pathname: D/DO/DOY/Stream-Buffered-0.03.tar.gz
     provides:

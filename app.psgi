@@ -2,12 +2,12 @@ use Plack::Builder;
 use File::Spec;
 use File::Basename;
 use Hako::Config;
-use Hako::MenteApp;
+use Hako::Admin::App;
 
 require 'hako-main.cgi';
 
 my $main_app = MainApp::to_app();
-my $mente_app = Hako::MenteApp->new;
+my $admin_app = Hako::Admin::App->new;
 
 builder {
     #enable 'Plack::Middleware::Static',
@@ -19,6 +19,6 @@ builder {
     enable 'Plack::Middleware::Static',
         path => qr{(?:favicon.ico)},
         root => File::Spec->catdir(dirname(__FILE__));
-    mount "/mente" => $mente_app->psgi;
+    mount "/admin" => $admin_app->psgi;
     mount "/" => $main_app;
 };
