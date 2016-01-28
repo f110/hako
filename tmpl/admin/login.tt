@@ -1,0 +1,5 @@
+<form action="/admin/login" method="POST">
+<h1>箱島 メンテナンスツール</h1>
+<b>パスワード:</b><input type=password size=32 name=password><br />
+<input type="submit" value="ログイン">
+</form>

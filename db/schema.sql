@@ -1,3 +1,9 @@
+DROP TABLE IF EXISTS sessions;
+CREATE TABLE sessions (
+    id CHAR(72) PRIMARY KEY,
+    session_data TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 DROP TABLE IF EXISTS hakojima;
 CREATE TABLE hakojima (
     id varchar(255) NOT NULL,

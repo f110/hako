@@ -1,20 +1,22 @@
-<HR>
-<H1>現役データ</H1>
-<B>ターン[% last_turn %]</B><BR>
-<B>最終更新時間</B>:[% time_string %]<BR>
-<B>最終更新時間(秒数表示)</B>:1970年1月1日から[% last_time %] 秒<BR>
-<INPUT TYPE="submit" VALUE="このデータを削除" NAME="DELETE">
+<hr>
+<h1>現役データ</h1>
+<b>ターン[% last_turn %]</b><br>
+<b>最終更新時間</b>:[% time_string %]<br>
+<b>最終更新時間(秒数表示)</b>:1970年1月1日から[% last_time %] 秒<br>
+<form action="/admin/delete">
+<input type="submit" value="このデータを削除" name="delete">
+</form>
 [% IF suf %]
-<H2>最終更新時間の変更</H2>
-<INPUT TYPE="text" SIZE=4 NAME="YEAR" VALUE="[% year %]">年
-<INPUT TYPE="text" SIZE=2 NAME="MON" VALUE="[% mon %]">月
-<INPUT TYPE="text" SIZE=2 NAME="DATE" VALUE="[% date %]">日
-<INPUT TYPE="text" SIZE=2 NAME="HOUR" VALUE="[% hour %]">時
-<INPUT TYPE="text" SIZE=2 NAME="MIN" VALUE="[% min %]">分
-<INPUT TYPE="text" SIZE=2 NAME="NSEC" VALUE="[% sec %]">秒
-<INPUT TYPE="submit" VALUE="変更" NAME="NTIME"><BR>
-1970年1月1日から<INPUT TYPE="text" SIZE=32 NAME="SSEC" VALUE="[% last_time %]">秒
-<INPUT TYPE="submit" VALUE="秒指定で変更" NAME="STIME">
+<h2>最終更新時間の変更</h2>
+<input type="text" size=4 name="YEAR" value="[% year %]">年
+<input type="text" size=2 name="MON" value="[% mon %]">月
+<input type="text" size=2 name="DATE" value="[% date %]">日
+<input type="text" size=2 name="HOUR" value="[% hour %]">時
+<input type="text" size=2 name="MIN" value="[% min %]">分
+<input type="text" size=2 name="NSEC" value="[% sec %]">秒
+<input type="submit" VALUE="変更" NAME="NTIME"><BR>
+1970年1月1日から<input type="text" size=32 name="SSEC" value="[% last_time %]">秒
+<input type="submit" value="秒指定で変更" name="STIME">
 [% ELSE %]
-<INPUT TYPE="submit" VALUE="このデータを現役に" NAME="CURRENT[% suf %]">
+<input type="submit" value="このデータを現役に" name="CURRENT[% suf %]">
 [% END %]

@@ -44,9 +44,6 @@ sub initialize {
     $self->{ct_min} = undef;
     $self->{ct_sec} = undef;
     $self->{out_buffer} = "";
-    $self->{cookie_buffer} = "";
-    $self->{out_buffer} = "";
-    $self->{cookie_buffer} = "";
 }
 
 sub out {
@@ -89,7 +86,7 @@ sub pass_check {
     if($self->{input_pass} eq Hako::Config::MASTER_PASSWORD) {
         return 1;
     } else {
-    $self->out(<<END);
+        $self->out(<<END);
    <FONT SIZE=7>パスワードが違います。</FONT>
 END
         return 0;
@@ -119,13 +116,14 @@ sub file_copy {
 }
 
 sub delete_mode {
-    my ($self) = @_;
+    my ($self, $session, $params) = @_;
 
-    if ($self->{delete_id} eq '') {
+    if ($params->get("delete_id") eq "") {
         rm_tree(Hako::Config::DATA_DIR);
         Hako::DB->force_reset;
     } else {
-        rm_tree("@{[Hako::Config::DATA_DIR]}.bak@{[$self->{delete_id}]}");
+        my $delete_id = $params->get("delete_id");
+        rm_tree("@{[Hako::Config::DATA_DIR]}.bak@{[$delete_id]}");
     }
     unlink "hakojimalockflock";
 }
@@ -226,17 +224,9 @@ sub main_mode_sub {
 
     opendir(DIN, "./");
 
-    my %vars = ();
-    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/main.tt", \%vars)));
-
     # 現役データ
     if (-d Hako::Config::DATA_DIR) {
         $self->data_print("");
-    } else {
-        $self->out(<<END);
-    <HR>
-    <INPUT TYPE="submit" VALUE="新しいデータを作る" NAME="NEW">
-END
     }
 
     # バックアップデータ
@@ -249,11 +239,38 @@ END
     closedir(DIN);
 };
 
+sub main_mode {
+    my ($self, $session, $params) = @_;
+
+    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/main.tt")));
+}
+
+sub login {
+    my ($self, $session, $params) = @_;
+
+    if ($params->get("password") eq Hako::Config::MASTER_PASSWORD) {
+        $session->{is_admin} = 1;
+        $self->out("success");
+    } else {
+        $self->out("failed");
+    }
+}
+
+sub login_form {
+    my ($self) = @_;
+
+    $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/login.tt")));
+}
+
 sub psgi {
     my ($self) = @_;
 
     my $router = Router::Simple->new;
-    $router->connect("/new", {action => "new_mode"});
+    $router->connect("/", {action => "main_mode", login_required => 1});
+    $router->connect("/login", {action => "login_form"}, {method => "GET"});
+    $router->connect("/login", {action => "login"}, {method => "POST"});
+    $router->connect("/new", {action => "new_mode", login_required => 1});
+    $router->connect("/delete", {action => "delete_mode", login_required => 1});
 
     return sub {
         my ($env) = @_;
@@ -269,38 +286,36 @@ sub psgi {
 
         if (my $p = $router->match($env)) {
             my $action = $p->{action};
-            if ($self->pass_check) {
-                $self->$action();
+            if ($p->{login_required} && $request->session->{is_admin} != 1) {
+                $self->out("login required");
+            } else {
+                $self->$action($request->session, $request->parameters);
+                $self->main_mode_sub;
             }
+        } else {
+            if ($self->{main_mode} eq 'delete') {
+                if ($self->pass_check) {
+                    $self->delete_mode;
+                }
+            } elsif ($self->{main_mode} eq 'current') {
+                if ($self->pass_check) {
+                    $self->current_mode;
+                }
+            } elsif ($self->{main_mode} eq 'time') {
+                if ($self->pass_check) {
+                    $self->time_mode;
+                }
+            } elsif ($self->{main_mode} eq 'stime') {
+                if ($self->pass_check) {
+                    $self->stime_mode;
+                }
+            }
+            $self->main_mode_sub;
         }
-
-        if ($self->{main_mode} eq 'delete') {
-            if ($self->pass_check) {
-                $self->delete_mode;
-            }
-        } elsif ($self->{main_mode} eq 'current') {
-            if ($self->pass_check) {
-                $self->current_mode;
-            }
-        } elsif ($self->{main_mode} eq 'time') {
-            if ($self->pass_check) {
-                $self->time_mode;
-            }
-        } elsif ($self->{main_mode} eq 'stime') {
-            if ($self->pass_check) {
-                $self->stime_mode;
-            }
-        } elsif ($self->{main_mode} eq 'new') {
-            if ($self->pass_check) {
-                $self->new_mode;
-            }
-        }
-        $self->main_mode_sub;
 
         $self->out(Encode::encode("UTF-8", $self->{xslate}->render("tmpl/admin/footer.tt")));
 
         $response->body($self->{out_buffer});
-        $response->headers({"Set-Cookie" => $self->{cookie_buffer}});
         return $response->finalize;
     };
 }
