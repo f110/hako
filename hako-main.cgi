@@ -822,7 +822,9 @@ sub to_app {
         my $params = $request->parameters;
         use Data::Dumper;warn Data::Dumper::Dumper($params);
         # 対象の島
-        if (List::MoreUtils::any {$_ eq /CommandButton([0-9]+)=/} $params->keys) {
+        if (List::MoreUtils::any {$_ =~ /CommandButton([0-9]+)/} $params->keys) {
+            my @tmp = grep {$_ =~ /^CommandButton/} $params->keys;
+            $tmp[0] =~ /CommandButton([0-9]+)/;
             # コマンド送信ボタンの場合
             $HcurrentID = $1;
             $defaultID = $1;
@@ -901,7 +903,7 @@ sub to_app {
         } elsif (List::MoreUtils::any {$_ =~ /MessageButton([0-9]*)/} $params->keys) {
             $HmainMode = 'comment';
             $HcurrentID = $1;
-        } elsif (List::MoreUtils::any {$_ eq "CommandButton"} $params->keys) {
+        } elsif (List::MoreUtils::any {$_ =~ /CommandButton/} $params->keys) {
             $HmainMode = 'command';
 
             # コマンドモードの場合、コマンドの取得
