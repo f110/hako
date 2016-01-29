@@ -10,6 +10,7 @@ use List::MoreUtils qw();
 use Text::Xslate qw(mark_raw);
 use Hako::Config;
 use Hako::DB;
+use Hako::Model::Island;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -570,32 +571,32 @@ sub to_app {
         }
         }
 
-        # 各パラメータの読みこみ
-        $HislandTurn     = int(<IN>); # ターン数
-        if($HislandTurn == 0) {
-        return 0;
+        my $tmp = <IN>;
+        $HislandTurn = Hako::DB->get_global_value("turn"); # ターン数
+        if ($HislandTurn == 0) {
+            return 0;
         }
-        $HislandLastTime = int(<IN>); # 最終更新時間
-        if($HislandLastTime == 0) {
-        return 0;
+        my $tmp = <IN>;
+        $HislandLastTime = Hako::DB->get_global_value("last_time"); # 最終更新時間
+        if ($HislandLastTime == 0) {
+            return 0;
         }
-        $HislandNumber   = int(<IN>); # 島の総数
-        $HislandNextID   = int(<IN>); # 次に割り当てるID
+        my $tmp = <IN>;
+        my $tmp = <IN>;
+        $HislandNumber = Hako::DB->get_global_value("number"); # 島の総数
+        $HislandNextID = Hako::DB->get_global_value("next_id"); # 次に割り当てるID
 
         # ターン処理判定
         my($now) = time;
-        if((($Hdebug == 1) && 
-        ($HmainMode eq 'Hdebugturn')) ||
-           (($now - $HislandLastTime) >= $HunitTime)) {
-        $HmainMode = 'turn';
-        $num = -1; # 全島読みこむ
+        if ((($Hdebug == 1) && ($HmainMode eq 'Hdebugturn')) || (($now - $HislandLastTime) >= $HunitTime)) {
+            $HmainMode = 'turn';
+            $num = -1; # 全島読みこむ
         }
 
         # 島の読みこみ
-        my($i);
-        for($i = 0; $i < $HislandNumber; $i++) {
-         $Hislands[$i] = readIsland($num);
-         $HidToNumber{$Hislands[$i]->{'id'}} = $i;
+        for(my $i = 0; $i < $HislandNumber; $i++) {
+            $Hislands[$i] = readIsland($num);
+            $HidToNumber{$Hislands[$i]->{'id'}} = $i;
         }
 
         # ファイルを閉じる
@@ -604,7 +605,7 @@ sub to_app {
         return 1;
     }
 
-# 島ひとつ読みこみ
+    # 島ひとつ読みこみ
     sub readIsland {
         my($num) = @_;
         my($name, $id, $prize, $absent, $comment, $password, $money, $food,
@@ -681,7 +682,7 @@ sub to_app {
         }
 
         # 島型にして返す
-        return {
+        return Hako::Model::Island->new({
          'name' => $name,
          'id' => $id,
          'score' => $score,
@@ -700,7 +701,7 @@ sub to_app {
          'landValue' => \@landValue,
          'command' => \@command,
          'lbbs' => \@lbbs,
-        };
+        });
     }
 
     # 全島データ書き込み
@@ -722,9 +723,8 @@ sub to_app {
         Hako::DB->set_global_value("next_id", $HislandNextID);
 
         # 島の書きこみ
-        my($i);
-        for($i = 0; $i < $HislandNumber; $i++) {
-         writeIsland($Hislands[$i], $num);
+        for (my $i = 0; $i < $HislandNumber; $i++) {
+            writeIsland($Hislands[$i], $num);
         }
 
         # ファイルを閉じる
@@ -931,30 +931,30 @@ sub to_app {
         $cookie = Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $ENV{'HTTP_COOKIE'}));
 
         if($cookie =~ /${HthisFile}OWNISLANDID=\(([^\)]*)\)/) {
-        $defaultID = $1;
+            $defaultID = $1;
         }
         if($cookie =~ /${HthisFile}OWNISLANDPASSWORD=\(([^\)]*)\)/) {
-        $HdefaultPassword = $1;
+            $HdefaultPassword = $1;
         }
         if($cookie =~ /${HthisFile}TARGETISLANDID=\(([^\)]*)\)/) {
-        $defaultTarget = $1;
+            $defaultTarget = $1;
         }
         if($cookie =~ /${HthisFile}LBBSNAME=\(([^\)]*)\)/) {
-        $HdefaultName = $1;
+            $HdefaultName = $1;
         }
         if($cookie =~ /${HthisFile}POINTX=\(([^\)]*)\)/) {
-        $HdefaultX = $1;
+            $HdefaultX = $1;
         }
         if($cookie =~ /${HthisFile}POINTY=\(([^\)]*)\)/) {
-        $HdefaultY = $1;
+            $HdefaultY = $1;
         }
         if($cookie =~ /${HthisFile}KIND=\(([^\)]*)\)/) {
-        $HdefaultKind = $1;
+            $HdefaultKind = $1;
         }
 
     }
 
-#cookie出力
+    #cookie出力
     sub cookieOutput {
         my($cookie, $info);
 
