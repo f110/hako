@@ -735,7 +735,7 @@ sub to_app {
         rename("${HdirName}/hakojima.tmp", "${HdirName}/hakojima.dat");
     }
 
-# 島ひとつ書き込み
+    # 島ひとつ書き込み
     sub writeIsland {
         my($island, $num) = @_;
         my($score);
