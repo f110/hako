@@ -380,21 +380,21 @@ sub turnMain {
     my($remainNumber) = $HislandNumber;
     my($island);
     for($i = 0; $i < $HislandNumber; $i++) {
-	$island = $Hislands[$order[$i]];
-	doIslandProcess($order[$i], $island); 
+        $island = $Hislands[$order[$i]];
+        doIslandProcess($order[$i], $island); 
 
-	# 死滅判定
-	if($island->{'dead'} == 1) {
-	    $island->{'pop'} = 0;
-	    $remainNumber--;
-	} elsif($island->{'pop'} == 0) {
-	    $island->{'dead'} = 1;
-	    $remainNumber--;
-	    # 死滅メッセージ
-	    my($tmpid) = $island->{'id'};
-	    logDead($tmpid, $island->{'name'});
-	    unlink("island.$tmpid");
-	}
+        # 死滅判定
+        if($island->{'dead'} == 1) {
+            $island->{'pop'} = 0;
+            $remainNumber--;
+        } elsif($island->{'pop'} == 0) {
+            $island->{'dead'} = 1;
+            $remainNumber--;
+            # 死滅メッセージ
+            my($tmpid) = $island->{'id'};
+            logDead($tmpid, $island->{'name'});
+            unlink("island.$tmpid");
+        }
     }
 
     # 人口順にソート

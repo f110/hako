@@ -41,16 +41,38 @@ sub insert_history {
 }
 
 sub save_island {
-    my ($class, $island) = @_;
+    my ($class, $island, $sort) = @_;
 
     my $db = $class->connect;
     my $value = $db->selectrow_arrayref("SELECT 1 FROM islands WHERE id = \"@{[$island->{id}]}\"");
     if ($value) {
-        return $db->do("UPDATE islands SET name = ?, score = ?, prize = ?, absent = ?, cmt = ?, password = ?, money = ?, food = ?, population = ?, area = ?, farm = ?, factory = ?, mountain = ?, map = ?, updated_at = NOW() WHERE id = ?", {}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $island->{id});
+        return $db->do("UPDATE islands SET name = ?, score = ?, prize = ?, absent = ?, cmt = ?, password = ?, money = ?, food = ?, population = ?, area = ?, farm = ?, factory = ?, mountain = ?, map = ?, sort = ?, updated_at = NOW() WHERE id = ?", {}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort, $island->{id});
     } else {
-        warn $island->{id};
-        warn Dumper($db->do("INSERT INTO islands (id, name, score, prize, absent, cmt, password, money, food, population, area, farm, factory, mountain, map, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island->{id}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}));
+        return $db->do("INSERT INTO islands (id, name, score, prize, absent, cmt, password, money, food, population, area, farm, factory, mountain, map, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island->{id}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort);
     }
+}
+
+sub get_islands {
+    my ($class) = @_;
+
+    $class->connect->selectall_arrayref("SELECT * FROM islands ORDER BY sort ASC", {Slice => +{}});
+}
+
+sub get_island {
+    my ($class, $island_id) = @_;
+    my $island = $class->connect->selectrow_arrayref("SELECT * FROM islands WHERE id = ?", {}, $island_id);
+
+    if ($island) {
+        return $island->[0];
+    }
+
+    return undef;
+}
+
+sub delete_island {
+    my ($class, $island_id) = @_;
+
+    return $class->connect->do("DELETE FROM islands WHERE id = ?", {}, $island_id);
 }
 
 sub save_command {

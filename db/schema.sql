@@ -27,6 +27,7 @@ CREATE TABLE islands (
     farm int,
     factory int,
     mountain int,
+    sort int,
     map text,
     created_at datetime NOT NULL,
     updated_at datetime NOT NULL,

@@ -9,7 +9,7 @@ toppage_url: http://localhost/index.html
 data_dir: data
 lock_mode: 2
 
-unit_time: 300
+unit_time: 600
 unlock_time: 120
 max_island: 30
 top_log_turn: 1

@@ -594,8 +594,9 @@ sub to_app {
         }
 
         # 島の読みこみ
-        for(my $i = 0; $i < $HislandNumber; $i++) {
-            $Hislands[$i] = readIsland($num);
+        my $islands_from_db = Hako::DB->get_islands;
+        for (my $i = 0; $i < $HislandNumber; $i++) {
+            $Hislands[$i] = readIsland($num, $islands_from_db);
             $HidToNumber{$Hislands[$i]->{'id'}} = $i;
         }
 
@@ -607,78 +608,107 @@ sub to_app {
 
     # 島ひとつ読みこみ
     sub readIsland {
-        my($num) = @_;
-        my($name, $id, $prize, $absent, $comment, $password, $money, $food,
-           $pop, $area, $farm, $factory, $mountain, $score);
-        $name = <IN>; # 島の名前
-        chomp($name);
-        if($name =~ s/,(.*)$//g) {
-        $score = int($1);
-        } else {
-        $score = 0;
-        }
+        my ($num, $islands_from_db) = @_;
+        my $island_from_db = Hako::Model::Island->inflate(shift @$islands_from_db);
+
+        my ($name, $id, $prize, $absent, $comment, $password, $money, $food, $pop, $area, $farm, $factory, $mountain, $score);
+        my $tmp = <IN>;
+        $name = $island_from_db->{name};
+        $score = $island_from_db->{score};
+        #$name = <IN>; # 島の名前
+        #chomp($name);
+        #if($name =~ s/,(.*)$//g) {
+            #$score = int($1);
+        #} else {
+            #$score = 0;
+        #}
         $id = int(<IN>); # ID番号
-        $prize = <IN>; # 受賞
-        chomp($prize);
-        $absent = int(<IN>); # 連続資金繰り数
-        $comment = <IN>; # コメント
-        chomp($comment);
-        $password = <IN>; # 暗号化パスワード
-        chomp($password);
-        $money = int(<IN>);    # 資金
-        $food = int(<IN>);     # 食料
-        $pop = int(<IN>);      # 人口
-        $area = int(<IN>);     # 広さ
-        $farm = int(<IN>);     # 農場
-        $factory = int(<IN>);  # 工場
-        $mountain = int(<IN>); # 採掘場
+        unless (int($island_from_db->{id}) == $id) {
+            warn "wrong id: @{[$island_from_db->{id}]}(db) $id(dat)";
+        }
+        $prize = $island_from_db->{prize}; # 受賞
+        $absent = $island_from_db->{absent}; # 連続資金繰り数
+        $comment = $island_from_db->{comment};
+        $password = $island_from_db->{password};
+        $money = $island_from_db->{money};  # 資金
+        $food = $island_from_db->{food};  # 食料
+        $pop = $island_from_db->{pop};  # 人口
+        $area = $island_from_db->{area};  # 広さ
+        $farm = $island_from_db->{farm};  # 農場
+        $factory = $island_from_db->{factory};  # 工場
+        $mountain = $island_from_db->{mountain}; # 採掘場
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        $tmp = <IN>;
+        #$prize = <IN>;
+        #chomp($prize);
+        #$absent = int(<IN>);
+        #$comment = <IN>; # コメント
+        #chomp($comment);
+        #$password = <IN>; # 暗号化パスワード
+        #chomp($password);
+        #$money = int(<IN>);  
+        #$food = int(<IN>);   
+        #$pop = int(<IN>);    
+        #$area = int(<IN>);   
+        #$farm = int(<IN>);   
+        #$factory = int(<IN>);
+        #$mountain = int(<IN>);
 
         # HidToNameテーブルへ保存
-        $HidToName{$id} = $name;	# 
+        $HidToName{$id} = $name;
 
         # 地形
         my(@land, @landValue, $line, @command, @lbbs);
 
         if(($num == -1) || ($num == $id)) {
-        if(!open(IIN, "${HdirName}/island.$id")) {
-            rename("${HdirName}/islandtmp.$id", "${HdirName}/island.$id");
             if(!open(IIN, "${HdirName}/island.$id")) {
-                warn "koko?";
-                exit(0);
+                rename("${HdirName}/islandtmp.$id", "${HdirName}/island.$id");
+                if(!open(IIN, "${HdirName}/island.$id")) {
+                    warn "koko?";
+                    exit(0);
+                }
             }
-        }
-        my($x, $y);
-        for($y = 0; $y < $HislandSize; $y++) {
-            $line = <IIN>;
-            for($x = 0; $x < $HislandSize; $x++) {
-            $line =~ s/^(.)(..)//;
-            $land[$x][$y] = hex($1);
-            $landValue[$x][$y] = hex($2);
+
+            my($x, $y);
+            for($y = 0; $y < $HislandSize; $y++) {
+                $line = <IIN>;
+                for($x = 0; $x < $HislandSize; $x++) {
+                    $line =~ s/^(.)(..)//;
+                    $land[$x][$y] = hex($1);
+                    $landValue[$x][$y] = hex($2);
+                }
             }
-        }
 
-        # コマンド
-        my($i);
-        for($i = 0; $i < $HcommandMax; $i++) {
-            $line = <IIN>;
-            $line =~ /^([0-9]*),([0-9]*),([0-9]*),([0-9]*),([0-9]*)$/;
-            $command[$i] = {
-            'kind' => int($1),
-            'target' => int($2),
-            'x' => int($3),
-            'y' => int($4),
-            'arg' => int($5)
+            # コマンド
+            for(my $i = 0; $i < $HcommandMax; $i++) {
+                $line = <IIN>;
+                $line =~ /^([0-9]*),([0-9]*),([0-9]*),([0-9]*),([0-9]*)$/;
+                $command[$i] = {
+                'kind' => int($1),
+                'target' => int($2),
+                'x' => int($3),
+                'y' => int($4),
+                'arg' => int($5)
+                }
             }
-        }
 
-        # ローカル掲示板
-        for($i = 0; $i < $HlbbsMax; $i++) {
-            $line = <IIN>;
-            chomp($line);
-            $lbbs[$i] = $line;
-        }
+            # ローカル掲示板
+            for($i = 0; $i < $HlbbsMax; $i++) {
+                $line = <IIN>;
+                chomp($line);
+                $lbbs[$i] = $line;
+            }
 
-        close(IIN);
+            close(IIN);
         }
 
         # 島型にして返す
@@ -724,7 +754,13 @@ sub to_app {
 
         # 島の書きこみ
         for (my $i = 0; $i < $HislandNumber; $i++) {
-            writeIsland($Hislands[$i], $num);
+            writeIsland($Hislands[$i], $num, $i);
+        }
+
+        # DB用に放棄された島を消す
+        my @dead_islands = grep {$_->{dead} == 1} @Hislands;
+        for my $dead_island (@dead_islands) {
+            Hako::DB->delete_island($dead_island->{id});
         }
 
         # ファイルを閉じる
@@ -737,7 +773,7 @@ sub to_app {
 
     # 島ひとつ書き込み
     sub writeIsland {
-        my($island, $num) = @_;
+        my($island, $num, $sort) = @_;
         my($score);
         $score = int($island->{'score'});
         print OUT $island->{'name'} . ",$score\n";
@@ -772,7 +808,7 @@ sub to_app {
                 print IOUT "\n";
             }
             $island->{map} = $land_str;
-            Hako::DB->save_island($island);
+            Hako::DB->save_island($island, $sort);
 
             # コマンド
             my($command, $cur, $i);

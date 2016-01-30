@@ -8,4 +8,13 @@ sub new {
     return bless $argv, $class;
 }
 
+sub inflate {
+    my ($class, $argv) = @_;
+
+    $argv->{comment} = $argv->{cmt};
+    $argv->{pop} = $argv->{population};
+
+    return $class->new($argv);
+}
+
 1;
