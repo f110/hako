@@ -79,9 +79,16 @@ sub save_command {
     my ($class, $island_id, $commands) = @_;
 
     my $db = $class->connect;
+    $db->do("DELETE FROM island_commands WHERE island_id = ?", {}, $island_id);
     for my $command (@$commands) {
         $db->do("INSERT INTO island_commands (island_id, kind, target, x, y, arg, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island_id, $command->{kind}, $command->{target}, $command->{x}, $command->{y}, $command->{arg});
     }
+}
+
+sub get_commands {
+    my ($class, $island_id) = @_;
+
+    return $class->connect->selectall_arrayref("SELECT * FROM island_commands WHERE island_id = ? ORDER BY id ASC", {Slice => +{}}, $island_id);
 }
 
 1;
