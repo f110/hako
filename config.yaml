@@ -19,7 +19,7 @@ backup_times: 4
 history_max: 10
 giveup_turn: 28
 command_max: 20
-use_local_bbs: 0
+use_local_bbs: 1
 local_bbs_max: 10
 island_size: 12
 hide_money_mode: 2

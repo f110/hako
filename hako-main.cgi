@@ -919,6 +919,8 @@ sub to_app {
             $HmainMode = 'new';
         } elsif (List::MoreUtils::any {$_ =~ /LbbsButton(..)([0-9]*)/} $params->keys) {
             $HmainMode = 'lbbs';
+            my @tmp = grep {$_ =~ /^LbbsButton/} $params->keys;
+            $tmp[0] =~ /LbbsButton(..)([0-9]*)/;
             if ($1 eq 'SS') {
                 # ´Ñ¸÷¼Ô
                 $HlbbsMode = 0;
