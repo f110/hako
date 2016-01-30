@@ -91,4 +91,15 @@ sub get_commands {
     return $class->connect->selectall_arrayref("SELECT * FROM island_commands WHERE island_id = ? ORDER BY id ASC", {Slice => +{}}, $island_id);
 }
 
+sub save_bbs {
+    my ($class, $island_id, $bbs) = @_;
+
+    my $db = $class->connect;
+    $db->do("DELETE FROM island_bbs WHERE island_id = ?", {}, $island_id);
+
+    for my $v (@$bbs) {
+        $db->do("INSERT INTO island_bbs (island_id, value) values (?, ?)", {}, $island_id, $v);
+    }
+}
+
 1;

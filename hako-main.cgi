@@ -830,6 +830,7 @@ sub to_app {
             for($i = 0; $i < $HlbbsMax; $i++) {
                 print IOUT $lbbs->[$i] . "\n";
             }
+            Hako::DB->save_bbs($island->{id}, $island->{lbbs});
 
             close(IOUT);
             unlink("${HdirName}/island.$island->{'id'}");
