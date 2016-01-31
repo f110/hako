@@ -678,9 +678,11 @@ sub to_app {
                 }
             }
 
-            my($x, $y);
+            my ($x, $y);
+            my @land_str = split(/\n/, $island_from_db->{map});
             for($y = 0; $y < $HislandSize; $y++) {
                 $line = <IIN>;
+                $line = $land_str[$y];
                 for($x = 0; $x < $HislandSize; $x++) {
                     $line =~ s/^(.)(..)//;
                     $land[$x][$y] = hex($1);
