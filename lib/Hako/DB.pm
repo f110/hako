@@ -38,7 +38,7 @@ sub get_global_value {
 sub insert_history {
     my ($class, $turn, $msg) = @_;
 
-    return $class->connect->do("INSERT INTO histories (turn, message) VALUES (?, ?)", {}, $turn, $msg);
+    return $class->connect->do("INSERT INTO histories (turn, message) VALUES (?, ?)", {}, $turn, Encode::decode("EUC-JP", $msg));
 }
 
 sub save_island {
