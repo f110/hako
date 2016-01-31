@@ -565,26 +565,14 @@ sub to_app {
                        # -1だと全地形を読む
                        # 番号だとその島の地形だけは読みこむ
 
-        # データファイルを開く
-        if(!open(IN, "${HdirName}/hakojima.dat")) {
-        rename("${HdirName}/hakojima.tmp", "${HdirName}/hakojima.dat");
-        if(!open(IN, "${HdirName}/hakojima.dat")) {
-            return 0;
-        }
-        }
-
-        my $tmp = <IN>;
         $HislandTurn = Hako::DB->get_global_value("turn"); # ターン数
         if ($HislandTurn == 0) {
             return 0;
         }
-        my $tmp = <IN>;
         $HislandLastTime = Hako::DB->get_global_value("last_time"); # 最終更新時間
         if ($HislandLastTime == 0) {
             return 0;
         }
-        my $tmp = <IN>;
-        my $tmp = <IN>;
         $HislandNumber = Hako::DB->get_global_value("number"); # 島の総数
         $HislandNextID = Hako::DB->get_global_value("next_id"); # 次に割り当てるID
 
@@ -602,9 +590,6 @@ sub to_app {
             $HidToNumber{$Hislands[$i]->{'id'}} = $i;
         }
 
-        # ファイルを閉じる
-        close(IN);
-
         return 1;
     }
 
@@ -614,20 +599,9 @@ sub to_app {
         my $island_from_db = Hako::Model::Island->inflate(shift @$islands_from_db);
 
         my ($name, $id, $prize, $absent, $comment, $password, $money, $food, $pop, $area, $farm, $factory, $mountain, $score);
-        my $tmp = <IN>;
-        $name = $island_from_db->{name};
+        $name = $island_from_db->{name}; # 島の名前
         $score = $island_from_db->{score};
-        #$name = <IN>; # 島の名前
-        #chomp($name);
-        #if($name =~ s/,(.*)$//g) {
-            #$score = int($1);
-        #} else {
-            #$score = 0;
-        #}
-        $id = int(<IN>); # ID番号
-        unless (int($island_from_db->{id}) == $id) {
-            warn "wrong id: @{[$island_from_db->{id}]}(db) $id(dat)";
-        }
+        $id = $island_from_db->{id}; # ID番号
         $prize = $island_from_db->{prize}; # 受賞
         $absent = $island_from_db->{absent}; # 連続資金繰り数
         $comment = $island_from_db->{comment};
@@ -639,31 +613,6 @@ sub to_app {
         $farm = $island_from_db->{farm};  # 農場
         $factory = $island_from_db->{factory};  # 工場
         $mountain = $island_from_db->{mountain}; # 採掘場
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        $tmp = <IN>;
-        #$prize = <IN>;
-        #chomp($prize);
-        #$absent = int(<IN>);
-        #$comment = <IN>; # コメント
-        #chomp($comment);
-        #$password = <IN>; # 暗号化パスワード
-        #chomp($password);
-        #$money = int(<IN>);  
-        #$food = int(<IN>);   
-        #$pop = int(<IN>);    
-        #$area = int(<IN>);   
-        #$farm = int(<IN>);   
-        #$factory = int(<IN>);
-        #$mountain = int(<IN>);
 
         # HidToNameテーブルへ保存
         $HidToName{$id} = $name;
@@ -672,17 +621,10 @@ sub to_app {
         my(@land, @landValue, $line, @command, @lbbs);
 
         if(($num == -1) || ($num == $id)) {
-            if(!open(IIN, "${HdirName}/island.$id")) {
-                rename("${HdirName}/islandtmp.$id", "${HdirName}/island.$id");
-                if(!open(IIN, "${HdirName}/island.$id")) {
-                    warn "koko?";
-                    exit(0);
-                }
-            }
-
-            my($x, $y);
+            my ($x, $y);
+            my @land_str = split(/\n/, $island_from_db->{map});
             for($y = 0; $y < $HislandSize; $y++) {
-                $line = <IIN>;
+                $line = $land_str[$y];
                 for($x = 0; $x < $HislandSize; $x++) {
                     $line =~ s/^(.)(..)//;
                     $land[$x][$y] = hex($1);
@@ -691,26 +633,12 @@ sub to_app {
             }
 
             # コマンド
-            for(my $i = 0; $i < $HcommandMax; $i++) {
-                $line = <IIN>;
-                $line =~ /^([0-9]*),([0-9]*),([0-9]*),([0-9]*),([0-9]*)$/;
-                $command[$i] = {
-                'kind' => int($1),
-                'target' => int($2),
-                'x' => int($3),
-                'y' => int($4),
-                'arg' => int($5)
-                }
-            }
+            my $commands_from_db = Hako::DB->get_commands($island_from_db->{id});
+            @command = @$commands_from_db;
 
             # ローカル掲示板
-            for($i = 0; $i < $HlbbsMax; $i++) {
-                $line = <IIN>;
-                chomp($line);
-                $lbbs[$i] = $line;
-            }
-
-            close(IIN);
+            my $bbs_from_db = Hako::DB->get_bbs($island_from_db->{id});
+            @lbbs = @$bbs_from_db;
         }
 
         # 島型にして返す
@@ -832,6 +760,7 @@ sub to_app {
             for($i = 0; $i < $HlbbsMax; $i++) {
                 print IOUT $lbbs->[$i] . "\n";
             }
+            Hako::DB->save_bbs($island->{id}, $island->{lbbs});
 
             close(IOUT);
             unlink("${HdirName}/island.$island->{'id'}");
