@@ -2,6 +2,7 @@ package Hako::DB;
 use strict;
 use warnings;
 use DBI;
+use Encode qw();
 use Data::Dumper;
 
 sub connect {
@@ -46,9 +47,9 @@ sub save_island {
     my $db = $class->connect;
     my $value = $db->selectrow_arrayref("SELECT 1 FROM islands WHERE id = \"@{[$island->{id}]}\"");
     if ($value) {
-        return $db->do("UPDATE islands SET name = ?, score = ?, prize = ?, absent = ?, cmt = ?, password = ?, money = ?, food = ?, population = ?, area = ?, farm = ?, factory = ?, mountain = ?, map = ?, sort = ?, updated_at = NOW() WHERE id = ?", {}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort, $island->{id});
+        return $db->do("UPDATE islands SET name = ?, score = ?, prize = ?, absent = ?, cmt = ?, password = ?, money = ?, food = ?, population = ?, area = ?, farm = ?, factory = ?, mountain = ?, map = ?, sort = ?, updated_at = NOW() WHERE id = ?", {}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, Encode::decode("EUC-JP", $island->{comment}), $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort, $island->{id});
     } else {
-        return $db->do("INSERT INTO islands (id, name, score, prize, absent, cmt, password, money, food, population, area, farm, factory, mountain, map, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island->{id}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort);
+        return $db->do("INSERT INTO islands (id, name, score, prize, absent, cmt, password, money, food, population, area, farm, factory, mountain, map, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island->{id}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, Encode::decode("EUC-JP", $island->{comment}), $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort);
     }
 }
 
@@ -98,8 +99,15 @@ sub save_bbs {
     $db->do("DELETE FROM island_bbs WHERE island_id = ?", {}, $island_id);
 
     for my $v (@$bbs) {
-        $db->do("INSERT INTO island_bbs (island_id, value) values (?, ?)", {}, $island_id, $v);
+        $db->do("INSERT INTO island_bbs (island_id, value) values (?, ?)", {}, $island_id, Encode::decode("EUC-JP", $v));
     }
+}
+
+sub get_bbs {
+    my ($class, $island_id) = @_;
+
+    my $bbs = $class->connect->selectcol_arrayref("SELECT value FROM island_bbs WHERE island_id = ? ORDER BY id", {}, $island_id);
+    return [map {Encode::encode("EUC-JP", $_)} @$bbs];
 }
 
 1;
