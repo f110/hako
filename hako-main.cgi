@@ -253,10 +253,12 @@ $HmonsterLevel3  = Hako::Config::MONSTER_LEVEL3; # キングいのらまで(全部)
 # 4 偶数ターンは硬化
 
 # 画像ファイル
-@HmonsterImage = @{Hako::Config::MONSTER_IMAGE};
+$monsterImage = Hako::Config::MONSTER_IMAGE;
+@HmonsterImage = @$monsterImage;
 
 # 画像ファイルその2(硬化中)
-@HmonsterImage2 = @{Hako::Config::MONSTER_IMAGE2};
+$monsterImage2 = Hako::Config::MONSTER_IMAGE2;
+@HmonsterImage2 = @$monsterImage2;
 
 
 #----------------------------------------
