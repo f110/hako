@@ -691,6 +691,7 @@ sub to_app {
             }
 
             # コマンド
+            my $commands_from_db = Hako::DB->get_commands($island_from_db->{id});
             for(my $i = 0; $i < $HcommandMax; $i++) {
                 $line = <IIN>;
                 $line =~ /^([0-9]*),([0-9]*),([0-9]*),([0-9]*),([0-9]*)$/;
@@ -702,13 +703,16 @@ sub to_app {
                 'arg' => int($5)
                 }
             }
+            @command = @$commands_from_db;
 
             # ローカル掲示板
+            my $bbs_from_db = Hako::DB->get_bbs($island_from_db->{id});
             for($i = 0; $i < $HlbbsMax; $i++) {
                 $line = <IIN>;
                 chomp($line);
                 $lbbs[$i] = $line;
             }
+            @lbbs = @$bbs_from_db;
 
             close(IIN);
         }
