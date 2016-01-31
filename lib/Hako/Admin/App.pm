@@ -129,14 +129,15 @@ sub delete_mode {
 }
 
 sub current_mode {
-    my ($self) = @_;
+    my ($self, $session, $params) = @_;
 
+    my $current_id = $params->get("current_id");
     rm_tree(Hako::Config::DATA_DIR);
     mkdir("@{[Hako::Config::DATA_DIR]}", Hako::Config::DIR_MODE);
-    opendir(DIN, "@{[Hako::Config::DATA_DIR]}.bak@{[$self->{current_id}]}/");
+    opendir(DIN, "@{[Hako::Config::DATA_DIR]}.bak@{[$current_id]}/");
     my($fileName);
     while ($fileName = readdir(DIN)) {
-        file_copy("@{[Hako::Config::DATA_DIR]}.bak@{[$self->{current_id}]}/$fileName", "@{[Hako::Config::DATA_DIR]}/$fileName");
+        file_copy("@{[Hako::Config::DATA_DIR]}.bak@{[$current_id]}/$fileName", "@{[Hako::Config::DATA_DIR]}/$fileName");
     }
     closedir(DIN);
 }
@@ -271,6 +272,7 @@ sub psgi {
     $router->connect("/login", {action => "login"}, {method => "POST"});
     $router->connect("/new", {action => "new_mode", login_required => 1});
     $router->connect("/delete", {action => "delete_mode", login_required => 1});
+    $router->connect("/current", {action => "current_mode", login_required => 1});
 
     return sub {
         my ($env) = @_;
@@ -293,15 +295,7 @@ sub psgi {
                 $self->main_mode_sub;
             }
         } else {
-            if ($self->{main_mode} eq 'delete') {
-                if ($self->pass_check) {
-                    $self->delete_mode;
-                }
-            } elsif ($self->{main_mode} eq 'current') {
-                if ($self->pass_check) {
-                    $self->current_mode;
-                }
-            } elsif ($self->{main_mode} eq 'time') {
+            if ($self->{main_mode} eq 'time') {
                 if ($self->pass_check) {
                     $self->time_mode;
                 }

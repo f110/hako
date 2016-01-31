@@ -3,7 +3,7 @@
 <b>ターン[% last_turn %]</b><br>
 <b>最終更新時間</b>:[% time_string %]<br>
 <b>最終更新時間(秒数表示)</b>:1970年1月1日から[% last_time %] 秒<br>
-<form action="/admin/delete">
+<form action="/admin/delete" method="POST">
 <input type="submit" value="このデータを削除" name="delete">
 </form>
 [% IF suf %]
@@ -18,5 +18,8 @@
 1970年1月1日から<input type="text" size=32 name="SSEC" value="[% last_time %]">秒
 <input type="submit" value="秒指定で変更" name="STIME">
 [% ELSE %]
+<form action="/admin/current" method="POST">
+<input type="hidden" name="current_id" value="[% suf %]">
 <input type="submit" value="このデータを現役に" name="CURRENT[% suf %]">
+</form>
 [% END %]
