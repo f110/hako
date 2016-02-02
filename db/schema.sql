@@ -61,5 +61,18 @@ CREATE TABLE histories (
     id int NOT NULL auto_increment,
     turn int NOT NULL,
     message varchar(255),
+    created_at datetime NOT NULL,
     primary key(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS logs;
+CREATE TABLE logs (
+    id int NOT NULL auto_increment,
+    log_type int NOT NULL,
+    turn int NOT NULL,
+    island_id int NOT NULL,
+    target_id int NOT NULL,
+    message varchar(255),
+    created_at datetime NOT NULL,
+    PRIMARY KEY(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

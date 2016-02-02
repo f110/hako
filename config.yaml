@@ -9,7 +9,7 @@ toppage_url: http://localhost/index.html
 data_dir: data
 lock_mode: 2
 
-unit_time: 600
+unit_time: 43200
 unlock_time: 120
 max_island: 30
 top_log_turn: 1
@@ -64,7 +64,7 @@ disaster_fall_down: 30
 disaster_monster_border1: 1000
 disaster_monster_border2: 2500
 disaster_monster_border3: 4000
-disaster_monster: 3
+disaster_monster: 1
 monster_number: 8
 monster_level1: 2
 monster_level2: 5

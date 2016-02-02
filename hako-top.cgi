@@ -224,27 +224,21 @@ END
 
 # トップページ用ログ表示
 sub logPrintTop {
-    my($i);
-    for($i = 0; $i < $HtopLogTurn; $i++) {
-	logFilePrint($i, 0, 0);
+    my $logs = Hako::DB->get_common_log($HislandTurn);
+
+    for (@$logs) {
+        $_->{message} = Encode::encode("EUC-JP", Encode::decode("UTF-8", $_->{message}));
+        out("<NOBR>${HtagNumber_}ターン@{[$_->{turn}]}${H_tagNumber}：@{[$_->{message}]}</NOBR><BR>\n");
     }
 }
 
 # 記録ファイル表示
 sub historyPrint {
-    open(HIN, "${HdirName}/hakojima.his");
-    my(@line, $l);
-    while($l = <HIN>) {
-	chomp($l);
-	push(@line, $l);
+    my $histories = Hako::DB->get_history();
+    for my $line (@$histories) {
+        my $msg = Encode::encode("EUC-JP", Encode::decode("UTF-8", $line->{message}));
+        out("<NOBR>${HtagNumber_}ターン@{[$line->{turn}]}${H_tagNumber}：@{[$msg]}</NOBR><BR>\n");
     }
-    @line = reverse(@line);
-
-    foreach $l (@line) {
-	$l =~ /^([0-9]*),(.*)$/;
-	out("<NOBR>${HtagNumber_}ターン${1}${H_tagNumber}：${2}</NOBR><BR>\n");
-    }
-    close(HIN);
 }
 
 1;

@@ -558,9 +558,29 @@ sub landString {
 # 個別ログ表示
 sub logPrintLocal {
     my($mode) = @_;
-    my($i);
-    for($i = 0; $i < $HlogMax; $i++) {
-	logFilePrint($i, $HcurrentID, $mode);
+
+    my $logs = Hako::DB->get_log($HcurrentID, $HislandTurn);
+    my (@secrets, @lates, @normals);
+    for my $log (@$logs) {
+        $log->{message} = Encode::encode("EUC-JP", Encode::decode("UTF-8", $log->{message}));
+        if ($log->{log_type} == 3) {
+            push @secrets, $log;
+        } elsif ($log->{log_type} == 2) {
+            push @lates, $log;
+        } elsif ($log->{log_type} == 1) {
+            push @normals, $log;
+        }
+    }
+    if ($mode == 1) {
+        for (@secrets) {
+            out("<NOBR>${HtagNumber_}ターン@{[$_->{turn}]}<B>(機密)</B>${H_tagNumber}：@{[$_->{message}]}</NOBR><BR>\n");
+        }
+    }
+    for (@lates) {
+        out("<NOBR>${HtagNumber_}ターン@{[$_->{turn}]}${H_tagNumber}：@{[$_->{message}]}</NOBR><BR>\n");
+    }
+    for (@normals) {
+        out("<NOBR>${HtagNumber_}ターン@{[$_->{turn}]}${H_tagNumber}：@{[$_->{message}]}</NOBR><BR>\n");
     }
 }
 
