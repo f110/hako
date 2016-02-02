@@ -414,23 +414,21 @@ sub turnMain {
 
     # バックアップターンであれば、書く前にrename
     if(($HislandTurn % $HbackupTurn) == 0) {
-	my($i);
-	my($tmp) = $HbackupTimes - 1;
-	myrmtree("${HdirName}.bak$tmp");
-	for($i = ($HbackupTimes - 1); $i > 0; $i--) {
-	    my($j) = $i - 1;
-	    rename("${HdirName}.bak$j", "${HdirName}.bak$i");
-	}
-	rename("${HdirName}", "${HdirName}.bak0");
-	mkdir("${HdirName}", $HdirMode);
+        my($i);
+        my($tmp) = $HbackupTimes - 1;
+        myrmtree("${HdirName}.bak$tmp");
+        for($i = ($HbackupTimes - 1); $i > 0; $i--) {
+            my($j) = $i - 1;
+            rename("${HdirName}.bak$j", "${HdirName}.bak$i");
+        }
+        rename("${HdirName}", "${HdirName}.bak0");
+        mkdir("${HdirName}", $HdirMode);
 
-	# ログファイルだけ戻す
-	for($i = 0; $i <= $HlogMax; $i++) {
-	    rename("${HdirName}.bak0/hakojima.log$i",
-		   "${HdirName}/hakojima.log$i");
-	}
-	rename("${HdirName}.bak0/hakojima.his",
-	       "${HdirName}/hakojima.his");
+        # ログファイルだけ戻す
+        for($i = 0; $i <= $HlogMax; $i++) {
+            rename("${HdirName}.bak0/hakojima.log$i",
+               "${HdirName}/hakojima.log$i");
+        }
     }
 
     # ファイルに書き出し
@@ -438,9 +436,6 @@ sub turnMain {
 
     # ログ書き出し
     logFlush();
-
-    # 記録ログ調整
-    logHistoryTrim();
 
     # トップへ
     topPageMain();
@@ -2183,32 +2178,7 @@ sub logSecret {
 
 # 記録ログ
 sub logHistory {
-    open(HOUT, ">>${HdirName}/hakojima.his");
-    print HOUT "$HislandTurn,$_[0]\n";
-    close(HOUT);
     Hako::DB->insert_history($HislandTurn, $_[0]);
-}
-
-# 記録ログ調整
-sub logHistoryTrim {
-    open(HIN, "${HdirName}/hakojima.his");
-    my(@line, $l, $count);
-    $count = 0;
-    while($l = <HIN>) {
-	chomp($l);
-	push(@line, $l);
-	$count++;
-    }
-    close(HIN);
-
-    if($count > $HhistoryMax) {
-	open(HOUT, ">${HdirName}/hakojima.his");
-	my($i);
-	for($i = ($count - $HhistoryMax); $i < $count; $i++) {
-	    print HOUT "$line[$i]\n";
-	}
-	close(HOUT);
-    }
 }
 
 # ログ書き出し
