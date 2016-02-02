@@ -54,10 +54,15 @@ sub insert_log {
 }
 
 sub get_log {
-    my ($class) = @_;
+    my ($class, $island_id, $current_turn) = @_;
 
-    return $class->_get_log_common(1);
+    return $class->connect->selectall_arrayref("SELECT * FROM logs WHERE island_id = ? AND turn >= ? ORDER BY id DESC", {Slice => +{}}, $island_id, $current_turn - Hako::Config::LOG_MAX);
+}
 
+sub get_common_log {
+    my ($class, $current_turn) = @_;
+
+    return $class->connect->selectall_arrayref("SELECT * FROM logs WHERE log_type <> 3 AND turn >= ? ORDER BY id DESC", {Slice => +{}}, $current_turn - Hako::Config::TOP_LOG_TURN);
 }
 
 sub insert_late_log {
@@ -66,22 +71,10 @@ sub insert_late_log {
     return $class->_insert_log_common(2, @_);
 }
 
-sub get_late_log {
-    my ($class) = @_;
-
-    return $class->_get_log_common(2);
-}
-
 sub insert_secret_log {
     my $class = shift;
 
     return $class->_insert_log_common(3, @_);
-}
-
-sub get_secret_log {
-    my ($class) = @_;
-
-    return $class->_get_log_common(3);
 }
 
 sub save_island {
@@ -157,12 +150,6 @@ sub _insert_log_common {
     my ($class, $type, $turn, $island_id, $target_id, $message) = @_;
 
     return $class->connect->do("INSERT INTO logs (log_type, turn, island_id, target_id, message, created_at) VALUES (?, ?, ?, ?, ?, NOW())", {}, $type, $turn, $island_id, $target_id, Encode::decode("EUC-JP", $message));
-}
-
-sub _get_log_common {
-    my ($class, $type) = @_;
-
-    return $class->connect->selectall_arrayref("SELECT * FROM log WHERE log_type = ? ORDER BY id DESC", {Slice => +{}}, $type);
 }
 
 1;

@@ -224,9 +224,11 @@ END
 
 # トップページ用ログ表示
 sub logPrintTop {
-    my($i);
-    for($i = 0; $i < $HtopLogTurn; $i++) {
-	logFilePrint($i, 0, 0);
+    my $logs = Hako::DB->get_common_log($HislandTurn);
+
+    for (@$logs) {
+        $_->{message} = Encode::encode("EUC-JP", Encode::decode("UTF-8", $_->{message}));
+        out("<NOBR>${HtagNumber_}ターン@{[$_->{turn}]}${H_tagNumber}：@{[$_->{message}]}</NOBR><BR>\n");
     }
 }
 
