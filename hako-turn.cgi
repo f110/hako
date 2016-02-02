@@ -434,9 +434,6 @@ sub turnMain {
     # ファイルに書き出し
     writeIslandsFile(-1);
 
-    # ログ書き出し
-    logFlush();
-
     # トップへ
     topPageMain();
 }
@@ -2179,27 +2176,6 @@ sub logSecret {
 # 記録ログ
 sub logHistory {
     Hako::DB->insert_history($HislandTurn, $_[0]);
-}
-
-# ログ書き出し
-sub logFlush {
-    open(LOUT, ">${HdirName}/hakojima.log0");
-
-    # 全部逆順にして書き出す
-    my($i);
-    for($i = $#HsecretLogPool; $i >= 0; $i--) {
-	print LOUT $HsecretLogPool[$i];
-	print LOUT "\n";
-    }
-    for($i = $#HlateLogPool; $i >= 0; $i--) {
-	print LOUT $HlateLogPool[$i];
-	print LOUT "\n";
-    }
-    for($i = $#HlogPool; $i >= 0; $i--) {
-	print LOUT $HlogPool[$i];
-	print LOUT "\n";
-    }
-    close(LOUT);
 }
 
 #----------------------------------------------------------------------
