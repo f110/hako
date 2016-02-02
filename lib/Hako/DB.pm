@@ -44,7 +44,7 @@ sub insert_history {
 sub get_history {
     my ($class) = @_;
 
-    return $class->connect->selectall_arrayref("SELECT * FROM histories ORDER BY id DESC", {Slice => +{}});
+    return $class->connect->selectall_arrayref("SELECT * FROM histories ORDER BY id DESC LIMIT @{[Hako::Config::HISTORY_MAX]}", {Slice => +{}});
 }
 
 sub insert_log {
