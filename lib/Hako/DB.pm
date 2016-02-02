@@ -38,7 +38,50 @@ sub get_global_value {
 sub insert_history {
     my ($class, $turn, $msg) = @_;
 
-    return $class->connect->do("INSERT INTO histories (turn, message) VALUES (?, ?)", {}, $turn, Encode::decode("EUC-JP", $msg));
+    return $class->connect->do("INSERT INTO histories (turn, message, created_at) VALUES (?, ?, NOW())", {}, $turn, Encode::decode("EUC-JP", $msg));
+}
+
+sub get_history {
+    my ($class) = @_;
+
+    return $class->connect->selectall_arrayref("SELECT * FROM histories ORDER BY id DESC", {Slice => +{}});
+}
+
+sub insert_log {
+    my $class = shift;
+
+    return $class->_insert_log_common(1, @_);
+}
+
+sub get_log {
+    my ($class) = @_;
+
+    return $class->_get_log_common(1);
+
+}
+
+sub insert_late_log {
+    my $class = shift;
+
+    return $class->_insert_log_common(2, @_);
+}
+
+sub get_late_log {
+    my ($class) = @_;
+
+    return $class->_get_log_common(2);
+}
+
+sub insert_secret_log {
+    my $class = shift;
+
+    return $class->_insert_log_common(3, @_);
+}
+
+sub get_secret_log {
+    my ($class) = @_;
+
+    return $class->_get_log_common(3);
 }
 
 sub save_island {
@@ -108,6 +151,18 @@ sub get_bbs {
 
     my $bbs = $class->connect->selectcol_arrayref("SELECT value FROM island_bbs WHERE island_id = ? ORDER BY id", {}, $island_id);
     return [map {Encode::encode("EUC-JP", $_)} @$bbs];
+}
+
+sub _insert_log_common {
+    my ($class, $type, $turn, $island_id, $target_id, $message) = @_;
+
+    return $class->connect->do("INSERT INTO logs (log_type, turn, island_id, target_id, message, created_at) VALUES (?, ?, ?, ?, ?, NOW())", {}, $type, $turn, $island_id, $target_id, Encode::decode("EUC-JP", $message));
+}
+
+sub _get_log_common {
+    my ($class, $type) = @_;
+
+    return $class->connect->selectall_arrayref("SELECT * FROM log WHERE log_type = ? ORDER BY id DESC", {Slice => +{}}, $type);
 }
 
 1;

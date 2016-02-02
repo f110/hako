@@ -2163,16 +2163,22 @@ sub wideDamage {
 # 通常ログ
 sub logOut {
     push(@HlogPool,"0,$HislandTurn,$_[1],$_[2],$_[0]");
+
+    Hako::DB->insert_log($HislandTurn, $_[1], $_[2], $_[0]);
 }
 
 # 遅延ログ
 sub logLate {
     push(@HlateLogPool,"0,$HislandTurn,$_[1],$_[2],$_[0]");
+
+    Hako::DB->insert_late_log($HislandTurn, $_[1], $_[2], $_[0]);
 }
 
 # 機密ログ
 sub logSecret {
     push(@HsecretLogPool,"1,$HislandTurn,$_[1],$_[2],$_[0]");
+
+    Hako::DB->insert_secret_log($HislandTurn, $_[1], $_[2], $_[0]);
 }
 
 # 記録ログ
