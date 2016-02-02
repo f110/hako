@@ -143,7 +143,7 @@ sub get_bbs {
     my ($class, $island_id) = @_;
 
     my $bbs = $class->connect->selectcol_arrayref("SELECT value FROM island_bbs WHERE island_id = ? ORDER BY id", {}, $island_id);
-    return [map {Encode::encode("EUC-JP", $_)} @$bbs];
+    return [map {Encode::encode("EUC-JP", Encode::decode("UTF-8", $_))} @$bbs];
 }
 
 sub _insert_log_common {

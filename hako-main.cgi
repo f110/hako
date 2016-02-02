@@ -828,11 +828,11 @@ sub to_app {
 
         # ローカル掲示板
         if (List::MoreUtils::any {$_ eq "LBBSNAME"} $params->keys) {
-            $HlbbsName = $params->get("LBBSNAME");
-            $HdefaultName = $params->get("LBBSNAME");
+            $HlbbsName = Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $params->get("LBBSNAME")));
+            $HdefaultName = Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $params->get("LBBSNAME")));
         }
         if (List::MoreUtils::any {$_ eq "LBBSMESSAGE"} $params->keys) {
-            $HlbbsMessage = cutColumn($params->get("LBBSMESSAGE"), 80);
+            $HlbbsMessage = cutColumn(Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $params->get("LBBSMESSAGE"))), 80);
         }
 
         # main modeの取得

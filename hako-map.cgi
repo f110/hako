@@ -210,28 +210,28 @@ sub localBbsMain {
 
     # なぜかその島がない場合
     if($HcurrentNumber eq '') {
-	unlock();
-	tempProblem();
-	return;
+        unlock();
+        tempProblem();
+        return;
     }
 
     # 削除モードじゃなくて名前かメッセージがない場合
     if($HlbbsMode != 2) {
-	if(($HlbbsName eq '') || ($HlbbsName eq '')) {
-	    unlock();
-	    tempLbbsNoMessage();
-	    return;
-	}
+        if(($HlbbsName eq '') || ($HlbbsName eq '')) {
+            unlock();
+            tempLbbsNoMessage();
+            return;
+        }
     }
 
     # 観光者モードじゃない時はパスワードチェック
     if($HlbbsMode != 0) {
-	if(!checkPassword($island->{'password'},$HinputPassword)) {
-	    # password間違い
-	    unlock();
-	    tempWrongPassword();
-	    return;
-	}
+        if(!checkPassword($island->{'password'},$HinputPassword)) {
+            # password間違い
+            unlock();
+            tempWrongPassword();
+            return;
+        }
     }
 
     my($lbbs);
@@ -239,27 +239,27 @@ sub localBbsMain {
 
     # モードで分岐
     if($HlbbsMode == 2) {
-	# 削除モード
-	# メッセージを前にずらす
-	slideBackLbbsMessage($lbbs, $HcommandPlanNumber);
-	tempLbbsDelete();
+        # 削除モード
+        # メッセージを前にずらす
+        slideBackLbbsMessage($lbbs, $HcommandPlanNumber);
+        tempLbbsDelete();
     } else {
-	# 記帳モード
-	# メッセージを後ろにずらす
-	slideLbbsMessage($lbbs);
+        # 記帳モード
+        # メッセージを後ろにずらす
+        slideLbbsMessage($lbbs);
 
-	# メッセージ書き込み
-	my($message);
-	if($HlbbsMode == 0) {
-	    $message = '0';
-	} else {
-	    $message = '1';
-	}
-	$HlbbsName = "$HislandTurn：" . htmlEscape($HlbbsName);
-	$HlbbsMessage = htmlEscape($HlbbsMessage);
-	$lbbs->[0] = "$message>$HlbbsName>$HlbbsMessage";
+        # メッセージ書き込み
+        my($message);
+        if($HlbbsMode == 0) {
+            $message = '0';
+        } else {
+            $message = '1';
+        }
+        $HlbbsName = "$HislandTurn：" . htmlEscape($HlbbsName);
+        $HlbbsMessage = htmlEscape($HlbbsMessage);
+        $lbbs->[0] = "$message>$HlbbsName>$HlbbsMessage";
 
-	tempLbbsAdd();
+        tempLbbsAdd();
     }
 
     # データ書き出し
