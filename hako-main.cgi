@@ -1,5 +1,6 @@
 # vim: set ft=perl:
 package MainApp;
+use utf8;
 use Encode qw();
 use YAML ();
 use File::Spec;
@@ -13,427 +14,427 @@ use Hako::DB;
 use Hako::Model::Island;
 
 #----------------------------------------------------------------------
-# Ȣ������ ver2.30
-# �ᥤ�󥹥���ץ�(ver1.02)
-# ���Ѿ�������ˡ���ϡ�hako-readme.txt�ե�����򻲾�
+# 箱庭諸島 ver2.30
+# メインスクリプト(ver1.02)
+# 使用条件、使用方法等は、hako-readme.txtファイルを参照
 #
-# Ȣ������Υڡ���: http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html
+# 箱庭諸島のページ: http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html
 #----------------------------------------------------------------------
 
 
 #----------------------------------------------------------------------
-# �Ƽ�������
-# (����ʹߤ���ʬ�γ������ͤ�Ŭ�ڤ��ͤ��ѹ����Ƥ�������)
+# 各種設定値
+# (これ以降の部分の各設定値を、適切な値に変更してください)
 #----------------------------------------------------------------------
 
-# ���Υե�������֤��ǥ��쥯�ȥ�
-# my($baseDir) = 'http://�����С�/�ǥ��쥯�ȥ�';
+# このファイルを置くディレクトリ
+# my($baseDir) = 'http://サーバー/ディレクトリ';
 #
-# ��)
+# 例)
 # http://cgi2.bekkoame.ne.jp/cgi-bin/user/u5534/hakoniwa/hako-main.cgi
-# �Ȥ����֤���硢
+# として置く場合、
 # my($baseDir) = 'http://cgi2.bekkoame.ne.jp/cgi-bin/user/u5534/hakoniwa';
-# �Ȥ��롣�Ǹ�˥���å���(/)���դ��ʤ���
+# とする。最後にスラッシュ(/)は付けない。
 
 my($baseDir) = Hako::Config::BASE_DIR;
 
-# �����ե�������֤��ǥ��쥯�ȥ�
-# my($imageDir) = 'http://�����С�/�ǥ��쥯�ȥ�';
+# 画像ファイルを置くディレクトリ
+# my($imageDir) = 'http://サーバー/ディレクトリ';
 my($imageDir) = Hako::Config::IMAGE_DIR;
 
-# �ޥ������ѥ����
-# ���Υѥ���ɤϡ����٤Ƥ���Υѥ���ɤ����ѤǤ��ޤ���
-# �㤨�С���¾����Υѥ�����ѹ�������Ǥ��ޤ���
+# マスターパスワード
+# このパスワードは、すべての島のパスワードを代用できます。
+# 例えば、「他の島のパスワード変更」等もできます。
 my($masterPassword) = Hako::Config::MASTER_PASSWORD;
 
-# �ü�ѥ����
-# ���Υѥ���ɤǡ�̾���ѹ��פ�Ԥ��ȡ�������λ�⡢�����������ͤˤʤ�ޤ���
-# (�ºݤ�̾�����Ѥ���ɬ�פϤ���ޤ���)
+# 特殊パスワード
+# このパスワードで「名前変更」を行うと、その島の資金、食料が最大値になります。
+# (実際に名前を変える必要はありません。)
 $HspecialPassword = Hako::Config::SPECIAL_PASSWORD;
 
-# ������̾
-my($adminName) = Encode::encode("EUC-JP", Hako::Config::ADMIN_NAME);
+# 管理者名
+my($adminName) = Hako::Config::ADMIN_NAME;
 
-# �����ԤΥ᡼�륢�ɥ쥹
+# 管理者のメールアドレス
 my($email) = Hako::Config::ADMIN_EMAIL;
 
-# �Ǽ��ĥ��ɥ쥹
+# 掲示板アドレス
 my($bbs) = Hako::Config::BBS_URL();
 
-# �ۡ���ڡ����Υ��ɥ쥹
+# ホームページのアドレス
 my($toppage) = Hako::Config::TOPPAGE_URL;
 
-# �ǥ��쥯�ȥ�Υѡ��ߥå����
-# �̾��0755�Ǥ褤����0777��0705��0704���Ǥʤ��ȤǤ��ʤ������С��⤢��餷��
+# ディレクトリのパーミッション
+# 通常は0755でよいが、0777、0705、0704等でないとできないサーバーもあるらしい
 $HdirMode = 0755;
 
-# �ǡ����ǥ��쥯�ȥ��̾��
-# ���������ꤷ��̾���Υǥ��쥯�ȥ�ʲ��˥ǡ�������Ǽ����ޤ���
-# �ǥե���ȤǤ�'data'�ȤʤäƤ��ޤ������������ƥ��Τ���
-# �ʤ�٤��㤦̾�����ѹ����Ƥ���������
+# データディレクトリの名前
+# ここで設定した名前のディレクトリ以下にデータが格納されます。
+# デフォルトでは'data'となっていますが、セキュリティのため
+# なるべく違う名前に変更してください。
 $HdirName = Hako::Config::DATA_DIR;
 
-# �ǡ����ν񤭹�����
+# データの書き込み方
 
-# ���å�������
-# 1 �ǥ��쥯�ȥ�
-# 2 �����ƥॳ����(��ǽ�ʤ�кǤ�˾�ޤ���)
-# 3 ����ܥ�å����
-# 4 �̾�ե�����(���ޤꤪ����Ǥʤ�)
+# ロックの方式
+# 1 ディレクトリ
+# 2 システムコール(可能ならば最も望ましい)
+# 3 シンボリックリンク
+# 4 通常ファイル(あまりお勧めでない)
 my($lockMode) = Hako::Config::LOCK_MODE;
 
-# (��)
-# 4�����򤹤���ˤϡ�'key-free'�Ȥ������ѡ��ߥ����666�ζ��Υե������
-# ���Υե������Ʊ���֤��֤��Ʋ�������
+# (注)
+# 4を選択する場合には、'key-free'という、パーミション666の空のファイルを、
+# このファイルと同位置に置いて下さい。
 
 #----------------------------------------------------------------------
-# ɬ�����ꤹ����ʬ�ϰʾ�
+# 必ず設定する部分は以上
 #----------------------------------------------------------------------
 
 #----------------------------------------------------------------------
-# �ʲ������ߤˤ�ä����ꤹ����ʬ
+# 以下、好みによって設定する部分
 #----------------------------------------------------------------------
 #----------------------------------------
-# ������οʹԤ�ե�����ʤ�
+# ゲームの進行やファイルなど
 #----------------------------------------
-# 1�����󤬲��ä�
-$HunitTime = Hako::Config::UNIT_TIME; # 6����
+# 1ターンが何秒か
+$HunitTime = Hako::Config::UNIT_TIME; # 6時間
 
-# �۾ｪλ������
-# (���å��岿�äǡ�����������뤫)
+# 異常終了基準時間
+# (ロック後何秒で、強制解除するか)
 my($unlockTime) = Hako::Config::UNLOCK_TIME;
 
-# ��κ����
+# 島の最大数
 $HmaxIsland = Hako::Config::MAX_ISLAND;
 
-# �ȥåץڡ�����ɽ����������Υ������
+# トップページに表示するログのターン数
 $HtopLogTurn = Hako::Config::TOP_LOG_TURN;
 
-# �����ե������ݻ��������
+# ログファイル保持ターン数
 $HlogMax = Hako::Config::LOG_MAX;
 
-# �Хå����åפ򲿥����󤪤��˼�뤫
+# バックアップを何ターンおきに取るか
 $HbackupTurn = Hako::Config::BACKUP_TURN;
 
-# �Хå����åפ򲿲�ʬ�Ĥ���
+# バックアップを何回分残すか
 $HbackupTimes = Hako::Config::BACKUP_TIMES;
 
-# ȯ�������ݻ��Կ�
+# 発見ログ保持行数
 $HhistoryMax = Hako::Config::HISTORY_MAX;
 
-# �������ޥ�ɼ�ư���ϥ������
+# 放棄コマンド自動入力ターン数
 $HgiveupTurn = Hako::Config::GIVEUP_TURN;
 
-# ���ޥ�����ϸ³���
-# (�����ब�ϤޤäƤ����ѹ�����ȡ��ǡ����ե�����θߴ�����̵���ʤ�ޤ���)
+# コマンド入力限界数
+# (ゲームが始まってから変更すると、データファイルの互換性が無くなります。)
 $HcommandMax = Hako::Config::COMMAND_MAX;
 
-# ��������Ǽ��ĹԿ�����Ѥ��뤫�ɤ���(0:���Ѥ��ʤ���1:���Ѥ���)
+# ローカル掲示板行数を使用するかどうか(0:使用しない、1:使用する)
 $HuseLbbs = Hako::Config::USE_LOCAL_BBS;
 
-# ��������Ǽ��ĹԿ�
+# ローカル掲示板行数
 $HlbbsMax = Hako::Config::LOCAL_BBS_MAX;
 
-# ����礭��
-# (�ѹ��Ǥ��ʤ�����)
+# 島の大きさ
+# (変更できないかも)
 $HislandSize = Hako::Config::ISLAND_SIZE;
 
-# ¾�ͤ�����򸫤��ʤ����뤫
-# 0 �����ʤ�
-# 1 ������
-# 2 100�ΰ̤ǻͼθ���
+# 他人から資金を見えなくするか
+# 0 見えない
+# 1 見える
+# 2 100の位で四捨五入
 $HhideMoneyMode = Hako::Config::HIDE_MONEY_MODE;
 
-# �ѥ���ɤΰŹ沽(0���ȰŹ沽���ʤ���1���ȰŹ沽����)
+# パスワードの暗号化(0だと暗号化しない、1だと暗号化する)
 my($cryptOn) = Hako::Config::CRYPT;
 
-# �ǥХå��⡼��(1���ȡ��֥������ʤ��ץܥ��󤬻��ѤǤ���)
+# デバッグモード(1だと、「ターンを進める」ボタンが使用できる)
 $Hdebug = Hako::Config::DEBUG;
 
 #----------------------------------------
-# ��⡢�����ʤɤ������ͤ�ñ��
+# 資金、食料などの設定値と単位
 #----------------------------------------
-# ������
+# 初期資金
 $HinitialMoney = Hako::Config::INITIAL_MONEY;
 
-# �������
+# 初期食料
 $HinitialFood = Hako::Config::INITIAL_FOOD;
 
-# �����ñ��
-$HunitMoney = Encode::encode("EUC-JP", Hako::Config::UNIT_MONEY);
+# お金の単位
+$HunitMoney = Hako::Config::UNIT_MONEY;
 
-# ������ñ��
-$HunitFood = Encode::encode("EUC-JP", Hako::Config::UNIT_FOOD);
+# 食料の単位
+$HunitFood = Hako::Config::UNIT_FOOD;
 
-# �͸���ñ��
-$HunitPop = Encode::encode("EUC-JP", Hako::Config::UNIT_POPULATION);
+# 人口の単位
+$HunitPop = Hako::Config::UNIT_POPULATION;
 
-# ������ñ��
-$HunitArea = Encode::encode("EUC-JP", Hako::Config::UNIT_AREA);
+# 広さの単位
+$HunitArea = Hako::Config::UNIT_AREA;
 
-# �ڤο���ñ��
-$HunitTree = Encode::encode("EUC-JP", Hako::Config::UNIT_TREE);
+# 木の数の単位
+$HunitTree = Hako::Config::UNIT_TREE;
 
-# �ڤ�ñ�������������
+# 木の単位当たりの売値
 $HtreeValue = Hako::Config::TREE_VALUE;
 
-# ̾���ѹ��Υ�����
+# 名前変更のコスト
 $HcostChangeName = Hako::Config::CHANGE_NAME_COST;
 
-# �͸�1ñ�̤�����ο���������
+# 人口1単位あたりの食料消費料
 $HeatenFood = Hako::Config::EATEN_FOOD;
 
 #----------------------------------------
-# ���Ϥηи���
+# 基地の経験値
 #----------------------------------------
-# �и��ͤκ�����
-$HmaxExpPoint = Hako::Config::MAX_EXP_POINT; # ������������Ǥ�255�ޤ�
+# 経験値の最大値
+$HmaxExpPoint = Hako::Config::MAX_EXP_POINT; # ただし、最大でも255まで
 
-# ��٥�κ�����
-my($maxBaseLevel) = Hako::Config::MAX_BASE_LEVEL;  # �ߥ��������
-my($maxSBaseLevel) = Hako::Config::MAX_SEA_BASE_LEVEL; # �������
+# レベルの最大値
+my($maxBaseLevel) = Hako::Config::MAX_BASE_LEVEL;  # ミサイル基地
+my($maxSBaseLevel) = Hako::Config::MAX_SEA_BASE_LEVEL; # 海底基地
 
-# �и��ͤ������Ĥǥ�٥륢�åפ�
+# 経験値がいくつでレベルアップか
 my(@baseLevelUp, @sBaseLevelUp);
-@baseLevelUp = @{Hako::Config::BASE_LEVEL_UP()}; # �ߥ��������
-@sBaseLevelUp = @{Hako::Config::SEA_BASE_LEVEL_UP()};         # �������
+@baseLevelUp = @{Hako::Config::BASE_LEVEL_UP()}; # ミサイル基地
+@sBaseLevelUp = @{Hako::Config::SEA_BASE_LEVEL_UP()};         # 海底基地
 
 #----------------------------------------
-# �ɱһ��ߤμ���
+# 防衛施設の自爆
 #----------------------------------------
-# ���ä�Ƨ�ޤ줿����������ʤ�1�����ʤ��ʤ�0
+# 怪獣に踏まれた時自爆するなら1、しないなら0
 $HdBaseAuto = Hako::Config::DEFENCE_BASE_AUTO;
 
 #----------------------------------------
-# �ҳ�
+# 災害
 #----------------------------------------
-# �̾�ҳ�ȯ��Ψ(��Ψ��0.1%ñ��)
-$HdisEarthquake = Hako::Config::DISASTER_EARTHQUAKE;  # �Ͽ�
-$HdisTsunami    = Hako::Config::DISASTER_TSUNAMI; # ����
-$HdisTyphoon    = Hako::Config::DISASTER_TYPHOON; # ����
-$HdisMeteo      = Hako::Config::DISASTER_METEO; # ���
-$HdisHugeMeteo  = Hako::Config::DISASTER_HUGE_METEO;  # �������
-$HdisEruption   = Hako::Config::DISASTER_ERUPTION; # ʮ��
-$HdisFire       = Hako::Config::DISASTER_FIRE; # �к�
-$HdisMaizo      = Hako::Config::DISASTER_MAIZO; # ��¢��
+# 通常災害発生率(確率は0.1%単位)
+$HdisEarthquake = Hako::Config::DISASTER_EARTHQUAKE;  # 地震
+$HdisTsunami    = Hako::Config::DISASTER_TSUNAMI; # 津波
+$HdisTyphoon    = Hako::Config::DISASTER_TYPHOON; # 台風
+$HdisMeteo      = Hako::Config::DISASTER_METEO; # 隕石
+$HdisHugeMeteo  = Hako::Config::DISASTER_HUGE_METEO;  # 巨大隕石
+$HdisEruption   = Hako::Config::DISASTER_ERUPTION; # 噴火
+$HdisFire       = Hako::Config::DISASTER_FIRE; # 火災
+$HdisMaizo      = Hako::Config::DISASTER_MAIZO; # 埋蔵金
 
-# ��������
-$HdisFallBorder = Hako::Config::DISASTER_FALL_BORDER; # �����³��ι���(Hex��)
-$HdisFalldown   = Hako::Config::DISASTER_FALL_DOWN; # ���ι�����Ķ�������γ�Ψ
+# 地盤沈下
+$HdisFallBorder = Hako::Config::DISASTER_FALL_BORDER; # 安全限界の広さ(Hex数)
+$HdisFalldown   = Hako::Config::DISASTER_FALL_DOWN; # その広さを超えた場合の確率
 
-# ����
-$HdisMonsBorder1 = Hako::Config::DISASTER_MONSTER_BORDER1; # �͸����1(���å�٥�1)
-$HdisMonsBorder2 = Hako::Config::DISASTER_MONSTER_BORDER2; # �͸����2(���å�٥�2)
-$HdisMonsBorder3 = Hako::Config::DISASTER_MONSTER_BORDER3; # �͸����3(���å�٥�3)
-$HdisMonster     = Hako::Config::DISASTER_MONSTER;    # ñ�����Ѥ�����νи�Ψ(0.01%ñ��)
+# 怪獣
+$HdisMonsBorder1 = Hako::Config::DISASTER_MONSTER_BORDER1; # 人口基準1(怪獣レベル1)
+$HdisMonsBorder2 = Hako::Config::DISASTER_MONSTER_BORDER2; # 人口基準2(怪獣レベル2)
+$HdisMonsBorder3 = Hako::Config::DISASTER_MONSTER_BORDER3; # 人口基準3(怪獣レベル3)
+$HdisMonster     = Hako::Config::DISASTER_MONSTER;    # 単位面積あたりの出現率(0.01%単位)
 
-# ����
+# 種類
 $HmonsterNumber  = Hako::Config::MONSTER_NUMBER;
 
-# �ƴ��ˤ����ƽФƤ�����ä��ֹ�κ�����
-$HmonsterLevel1  = Hako::Config::MONSTER_LEVEL1; # ���󥸥�ޤ�
-$HmonsterLevel2  = Hako::Config::MONSTER_LEVEL2; # ���Τ饴�����Ȥޤ�
-$HmonsterLevel3  = Hako::Config::MONSTER_LEVEL3; # ���󥰤��Τ�ޤ�(����)
+# 各基準において出てくる怪獣の番号の最大値
+$HmonsterLevel1  = Hako::Config::MONSTER_LEVEL1; # サンジラまで
+$HmonsterLevel2  = Hako::Config::MONSTER_LEVEL2; # いのらゴーストまで
+$HmonsterLevel3  = Hako::Config::MONSTER_LEVEL3; # キングいのらまで(全部)
 
-# ̾��
-@HmonsterName = map { Encode::encode("EUC-JP", $_) } @{Hako::Config::MONSTER_NAME()};
+# 名前
+@HmonsterName = map { $_ } @{Hako::Config::MONSTER_NAME()};
 
-# �������ϡ����Ϥ������ü�ǽ�ϡ��и��͡����Τ�����
+# 最低体力、体力の幅、特殊能力、経験値、死体の値段
 @HmonsterBHP     = @{Hako::Config::MONSTER_BOTTOM_HP};
 @HmonsterDHP     = @{Hako::Config::MONSTER_DHP};
 @HmonsterSpecial = @{Hako::Config::MONSTER_SPECIAL};
 @HmonsterExp     = @{Hako::Config::MONSTER_EXP};
 @HmonsterValue   = @{Hako::Config::MONSTER_VALUE};
 
-# �ü�ǽ�Ϥ����Ƥϡ�
-# 0 �äˤʤ�
-# 1 ­��®��(����2�⤢�뤯)
-# 2 ­���ȤƤ�®��(���粿�⤢�뤯������)
-# 3 ���������ϹŲ�
-# 4 ����������ϹŲ�
+# 特殊能力の内容は、
+# 0 特になし
+# 1 足が速い(最大2歩あるく)
+# 2 足がとても速い(最大何歩あるくか不明)
+# 3 奇数ターンは硬化
+# 4 偶数ターンは硬化
 
-# �����ե�����
+# 画像ファイル
 $monsterImage = Hako::Config::MONSTER_IMAGE;
 @HmonsterImage = @$monsterImage;
 
-# �����ե����뤽��2(�Ų���)
+# 画像ファイルその2(硬化中)
 $monsterImage2 = Hako::Config::MONSTER_IMAGE2;
 @HmonsterImage2 = @$monsterImage2;
 
 
 #----------------------------------------
-# ����
+# 油田
 #----------------------------------------
-# ���Ĥμ���
+# 油田の収入
 $HoilMoney = Hako::Config::OIL_MONEY;
 
-# ���Ĥθϳ��Ψ
+# 油田の枯渇確率
 $HoilRatio = Hako::Config::OIL_RAITO;
 
 #----------------------------------------
-# ��ǰ��
+# 記念碑
 #----------------------------------------
-# �����ढ�뤫
+# 何種類あるか
 $HmonumentNumber = Hako::Config::MONUMENT_NUMBER;
 
-# ̾��
-@HmonumentName = map { Encode::encode("EUC-JP", $_) } @{Hako::Config::MONUMEBT_NAME};
+# 名前
+@HmonumentName = map { $_ } @{Hako::Config::MONUMEBT_NAME};
 
-# �����ե�����
+# 画像ファイル
 @HmonumentImage = @{Hako::Config::MONUMENT_IMAGE};
 
 #----------------------------------------
-# �޴ط�
+# 賞関係
 #----------------------------------------
-# �������դ򲿥�������˽Ф���
+# ターン杯を何ターン毎に出すか
 $HturnPrizeUnit = Hako::Config::TURN_PRIZE_UNIT;
 
-# �ޤ�̾��
-@Hprize = map { Encode::encode("EUC-JP", $_ ) } @{Hako::Config::PRIZE};
+# 賞の名前
+@Hprize = map { $_  } @{Hako::Config::PRIZE};
 
 #----------------------------------------
-# �����ط�
+# 外見関係
 #----------------------------------------
-# <BODY>�����Υ��ץ����
+# <BODY>タグのオプション
 my($htmlBody) = Hako::Config::HTML_BODY;
 
-# ������Υ����ȥ�ʸ��
-$Htitle = Encode::encode("EUC-JP", Hako::Config::TITLE);
+# ゲームのタイトル文字
+$Htitle = Hako::Config::TITLE;
 
-# ����
-# �����ȥ�ʸ��
+# タグ
+# タイトル文字
 $HtagTitle_ = Hako::Config::TAG_TITLE_;
 $H_tagTitle = Hako::Config::_TAG_TITLE;
 
-# H1������
+# H1タグ用
 $HtagHeader_ = Hako::Config::TAG_HEADER_;
 $H_tagHeader = Hako::Config::_TAG_HEADER;
 
-# �礭��ʸ��
+# 大きい文字
 $HtagBig_ = Hako::Config::TAG_BIG_;
 $H_tagBig = Hako::Config::_TAG_BIG;
 
-# ���̾���ʤ�
+# 島の名前など
 $HtagName_ = Hako::Config::TAG_NAME_;
 $H_tagName = Hako::Config::_TAG_NAME;
 
-# �����ʤä����̾��
+# 薄くなった島の名前
 $HtagName2_ = Hako::Config::TAG_NAME2_;
 $H_tagName2 = Hako::Config::_TAG_NAME2;
 
-# ��̤��ֹ�ʤ�
+# 順位の番号など
 $HtagNumber_ = Hako::Config::TAG_NUMBER_;
 $H_tagNumber = Hako::Config::_TAG_NUMBER;
 
-# ���ɽ�ˤ����븫����
+# 順位表における見だし
 $HtagTH_ = Hako::Config::TAG_TH_;
 $H_tagTH = Hako::Config::_TAG_TH;
 
-# ��ȯ�ײ��̾��
+# 開発計画の名前
 $HtagComName_ = Hako::Config::TAG_COM_NAME_;
 $H_tagComName = Hako::Config::_TAG_COM_NAME;
 
-# �ҳ�
+# 災害
 $HtagDisaster_ = Hako::Config::TAG_DISASTER_;
 $H_tagDisaster = Hako::Config::_TAG_DISASTER;
 
-# ��������Ǽ��ġ��Ѹ��Ԥν񤤤�ʸ��
+# ローカル掲示板、観光者の書いた文字
 $HtagLbbsSS_ = Hako::Config::TAG_LOCAL_BBS_SS_;
 $H_tagLbbsSS = Hako::Config::_TAG_LOCAL_BBS_SS;
 
-# ��������Ǽ��ġ����ν񤤤�ʸ��
+# ローカル掲示板、島主の書いた文字
 $HtagLbbsOW_ = Hako::Config::TAG_LOCAL_BBS_OW_;
 $H_tagLbbsOW = Hako::Config::_TAG_LOCAL_BBS_OW;
 
-# �̾��ʸ����(��������Ǥʤ���BODY�����Υ��ץ�����������ѹ����٤�
+# 通常の文字色(これだけでなく、BODYタグのオプションもちゃんと変更すべし
 $HnormalColor = Hako::Config::NORMAL_COLOR;
 
-# ���ɽ�������°��
-$HbgTitleCell   = Hako::Config::BG_TITLE_CELL; # ���ɽ���Ф�
-$HbgNumberCell  = Hako::Config::BG_NUMBER_CELL; # ���ɽ���
-$HbgNameCell    = Hako::Config::BG_NAME_CELL; # ���ɽ���̾��
-$HbgInfoCell    = Hako::Config::BG_INFO_CELL; # ���ɽ��ξ���
-$HbgCommentCell = Hako::Config::BG_COMMENT_CELL; # ���ɽ��������
-$HbgInputCell   = Hako::Config::BG_INPUT_CELL; # ��ȯ�ײ�ե�����
-$HbgMapCell     = Hako::Config::BG_MAP_CELL; # ��ȯ�ײ��Ͽ�
-$HbgCommandCell = Hako::Config::BG_COMMAND_CELL; # ��ȯ�ײ����ϺѤ߷ײ�
+# 順位表、セルの属性
+$HbgTitleCell   = Hako::Config::BG_TITLE_CELL; # 順位表見出し
+$HbgNumberCell  = Hako::Config::BG_NUMBER_CELL; # 順位表順位
+$HbgNameCell    = Hako::Config::BG_NAME_CELL; # 順位表島の名前
+$HbgInfoCell    = Hako::Config::BG_INFO_CELL; # 順位表島の情報
+$HbgCommentCell = Hako::Config::BG_COMMENT_CELL; # 順位表コメント欄
+$HbgInputCell   = Hako::Config::BG_INPUT_CELL; # 開発計画フォーム
+$HbgMapCell     = Hako::Config::BG_MAP_CELL; # 開発計画地図
+$HbgCommandCell = Hako::Config::BG_COMMAND_CELL; # 開発計画入力済み計画
 
 #----------------------------------------------------------------------
-# ���ߤˤ�ä����ꤹ����ʬ�ϰʾ�
-#----------------------------------------------------------------------
-
-#----------------------------------------------------------------------
-# ����ʹߤΥ�����ץȤϡ��ѹ�����뤳�Ȥ����ꤷ�Ƥ��ޤ��󤬡�
-# �����äƤ⤫�ޤ��ޤ���
-# ���ޥ�ɤ�̾�������ʤʤɤϲ��䤹���Ȼפ��ޤ���
+# 好みによって設定する部分は以上
 #----------------------------------------------------------------------
 
 #----------------------------------------------------------------------
-# �Ƽ����
+# これ以降のスクリプトは、変更されることを想定していませんが、
+# いじってもかまいません。
+# コマンドの名前、値段などは解りやすいと思います。
 #----------------------------------------------------------------------
-# ���Υե�����
+
+#----------------------------------------------------------------------
+# 各種定数
+#----------------------------------------------------------------------
+# このファイル
 $HthisFile = "$baseDir/hako-main.cgi";
 
-# �Ϸ��ֹ�
-$HlandSea      = 0;  # ��
-$HlandWaste    = 1;  # ����
-$HlandPlains   = 2;  # ʿ��
-$HlandTown     = 3;  # Į��
-$HlandForest   = 4;  # ��
-$HlandFarm     = 5;  # ����
-$HlandFactory  = 6;  # ����
-$HlandBase     = 7;  # �ߥ��������
-$HlandDefence  = 8;  # �ɱһ���
-$HlandMountain = 9;  # ��
-$HlandMonster  = 10; # ����
-$HlandSbase    = 11; # �������
-$HlandOil      = 12; # ��������
-$HlandMonument = 13; # ��ǰ��
-$HlandHaribote = 14; # �ϥ�ܥ�
+# 地形番号
+$HlandSea      = 0;  # 海
+$HlandWaste    = 1;  # 荒地
+$HlandPlains   = 2;  # 平地
+$HlandTown     = 3;  # 町系
+$HlandForest   = 4;  # 森
+$HlandFarm     = 5;  # 農場
+$HlandFactory  = 6;  # 工場
+$HlandBase     = 7;  # ミサイル基地
+$HlandDefence  = 8;  # 防衛施設
+$HlandMountain = 9;  # 山
+$HlandMonster  = 10; # 怪獣
+$HlandSbase    = 11; # 海底基地
+$HlandOil      = 12; # 海底油田
+$HlandMonument = 13; # 記念碑
+$HlandHaribote = 14; # ハリボテ
 
-# ���ޥ��
-$HcommandTotal = 28; # ���ޥ�ɤμ���
+# コマンド
+$HcommandTotal = 28; # コマンドの種類
 
-# �ײ��ֹ������
-# ���Ϸ�
-$HcomPrepare  = 01; # ����
-$HcomPrepare2 = 02; # �Ϥʤ餷
-$HcomReclaim  = 03; # ���Ω��
-$HcomDestroy  = 04; # ����
-$HcomSellTree = 05; # Ȳ��
+# 計画番号の設定
+# 整地系
+$HcomPrepare  = 01; # 整地
+$HcomPrepare2 = 02; # 地ならし
+$HcomReclaim  = 03; # 埋め立て
+$HcomDestroy  = 04; # 掘削
+$HcomSellTree = 05; # 伐採
 
-# ����
-$HcomPlant    = 11; # ����
-$HcomFarm     = 12; # ��������
-$HcomFactory  = 13; # �������
-$HcomMountain = 14; # �η�������
-$HcomBase     = 15; # �ߥ�������Ϸ���
-$HcomDbase    = 16; # �ɱһ��߷���
-$HcomSbase    = 17; # ������Ϸ���
-$HcomMonument = 18; # ��ǰ���¤
-$HcomHaribote = 19; # �ϥ�ܥ�����
+# 作る系
+$HcomPlant    = 11; # 植林
+$HcomFarm     = 12; # 農場整備
+$HcomFactory  = 13; # 工場建設
+$HcomMountain = 14; # 採掘場整備
+$HcomBase     = 15; # ミサイル基地建設
+$HcomDbase    = 16; # 防衛施設建設
+$HcomSbase    = 17; # 海底基地建設
+$HcomMonument = 18; # 記念碑建造
+$HcomHaribote = 19; # ハリボテ設置
 
-# ȯ�ͷ�
-$HcomMissileNM   = 31; # �ߥ�����ȯ��
-$HcomMissilePP   = 32; # PP�ߥ�����ȯ��
-$HcomMissileST   = 33; # ST�ߥ�����ȯ��
-$HcomMissileLD   = 34; # Φ���˲���ȯ��
-$HcomSendMonster = 35; # �����ɸ�
+# 発射系
+$HcomMissileNM   = 31; # ミサイル発射
+$HcomMissilePP   = 32; # PPミサイル発射
+$HcomMissileST   = 33; # STミサイル発射
+$HcomMissileLD   = 34; # 陸地破壊弾発射
+$HcomSendMonster = 35; # 怪獣派遣
 
-# ���ķ�
-$HcomDoNothing  = 41; # ��ⷫ��
-$HcomSell       = 42; # ����͢��
-$HcomMoney      = 43; # �����
-$HcomFood       = 44; # �������
-$HcomPropaganda = 45; # Ͷ�׳�ư
-$HcomGiveup     = 46; # �������
+# 運営系
+$HcomDoNothing  = 41; # 資金繰り
+$HcomSell       = 42; # 食料輸出
+$HcomMoney      = 43; # 資金援助
+$HcomFood       = 44; # 食料援助
+$HcomPropaganda = 45; # 誘致活動
+$HcomGiveup     = 46; # 島の放棄
 
-# ��ư���Ϸ�
-$HcomAutoPrepare  = 61; # �ե�����
-$HcomAutoPrepare2 = 62; # �ե��Ϥʤ餷
-$HcomAutoDelete   = 63; # �����ޥ�ɾõ�
+# 自動入力系
+$HcomAutoPrepare  = 61; # フル整地
+$HcomAutoPrepare2 = 62; # フル地ならし
+$HcomAutoDelete   = 63; # 全コマンド消去
 
-# ����
+# 順番
 @HcomList =
     ($HcomPrepare, $HcomSell, $HcomPrepare2, $HcomReclaim, $HcomDestroy,
      $HcomSellTree, $HcomPlant, $HcomFarm, $HcomFactory, $HcomMountain,
@@ -443,82 +444,82 @@ $HcomAutoDelete   = 63; # �����ޥ�ɾõ�
      $HcomMoney, $HcomFood, $HcomPropaganda, $HcomGiveup,
      $HcomAutoPrepare, $HcomAutoPrepare2, $HcomAutoDelete);
 
-# �ײ��̾��������
-$HcomName[$HcomPrepare]      = '����';
+# 計画の名前と値段
+$HcomName[$HcomPrepare]      = '整地';
 $HcomCost[$HcomPrepare]      = 5;
-$HcomName[$HcomPrepare2]     = '�Ϥʤ餷';
+$HcomName[$HcomPrepare2]     = '地ならし';
 $HcomCost[$HcomPrepare2]     = 100;
-$HcomName[$HcomReclaim]      = '���Ω��';
+$HcomName[$HcomReclaim]      = '埋め立て';
 $HcomCost[$HcomReclaim]      = 150;
-$HcomName[$HcomDestroy]      = '����';
+$HcomName[$HcomDestroy]      = '掘削';
 $HcomCost[$HcomDestroy]      = 200;
-$HcomName[$HcomSellTree]     = 'Ȳ��';
+$HcomName[$HcomSellTree]     = '伐採';
 $HcomCost[$HcomSellTree]     = 0;
-$HcomName[$HcomPlant]        = '����';
+$HcomName[$HcomPlant]        = '植林';
 $HcomCost[$HcomPlant]        = 50;
-$HcomName[$HcomFarm]         = '��������';
+$HcomName[$HcomFarm]         = '農場整備';
 $HcomCost[$HcomFarm]         = 20;
-$HcomName[$HcomFactory]      = '�������';
+$HcomName[$HcomFactory]      = '工場建設';
 $HcomCost[$HcomFactory]      = 100;
-$HcomName[$HcomMountain]     = '�η�������';
+$HcomName[$HcomMountain]     = '採掘場整備';
 $HcomCost[$HcomMountain]     = 300;
-$HcomName[$HcomBase]         = '�ߥ�������Ϸ���';
+$HcomName[$HcomBase]         = 'ミサイル基地建設';
 $HcomCost[$HcomBase]         = 300;
-$HcomName[$HcomDbase]        = '�ɱһ��߷���';
+$HcomName[$HcomDbase]        = '防衛施設建設';
 $HcomCost[$HcomDbase]        = 800;
-$HcomName[$HcomSbase]        = '������Ϸ���';
+$HcomName[$HcomSbase]        = '海底基地建設';
 $HcomCost[$HcomSbase]        = 8000;
-$HcomName[$HcomMonument]     = '��ǰ���¤';
+$HcomName[$HcomMonument]     = '記念碑建造';
 $HcomCost[$HcomMonument]     = 9999;
-$HcomName[$HcomHaribote]     = '�ϥ�ܥ�����';
+$HcomName[$HcomHaribote]     = 'ハリボテ設置';
 $HcomCost[$HcomHaribote]     = 1;
-$HcomName[$HcomMissileNM]    = '�ߥ�����ȯ��';
+$HcomName[$HcomMissileNM]    = 'ミサイル発射';
 $HcomCost[$HcomMissileNM]    = 20;
-$HcomName[$HcomMissilePP]    = 'PP�ߥ�����ȯ��';
+$HcomName[$HcomMissilePP]    = 'PPミサイル発射';
 $HcomCost[$HcomMissilePP]    = 50;
-$HcomName[$HcomMissileST]    = 'ST�ߥ�����ȯ��';
+$HcomName[$HcomMissileST]    = 'STミサイル発射';
 $HcomCost[$HcomMissileST]    = 50;
-$HcomName[$HcomMissileLD]    = 'Φ���˲���ȯ��';
+$HcomName[$HcomMissileLD]    = '陸地破壊弾発射';
 $HcomCost[$HcomMissileLD]    = 100;
-$HcomName[$HcomSendMonster]  = '�����ɸ�';
+$HcomName[$HcomSendMonster]  = '怪獣派遣';
 $HcomCost[$HcomSendMonster]  = 3000;
-$HcomName[$HcomDoNothing]    = '��ⷫ��';
+$HcomName[$HcomDoNothing]    = '資金繰り';
 $HcomCost[$HcomDoNothing]    = 0;
-$HcomName[$HcomSell]         = '����͢��';
+$HcomName[$HcomSell]         = '食料輸出';
 $HcomCost[$HcomSell]         = -100;
-$HcomName[$HcomMoney]        = '�����';
+$HcomName[$HcomMoney]        = '資金援助';
 $HcomCost[$HcomMoney]        = 100;
-$HcomName[$HcomFood]         = '�������';
+$HcomName[$HcomFood]         = '食料援助';
 $HcomCost[$HcomFood]         = -100;
-$HcomName[$HcomPropaganda]   = 'Ͷ�׳�ư';
+$HcomName[$HcomPropaganda]   = '誘致活動';
 $HcomCost[$HcomPropaganda]   = 1000;
-$HcomName[$HcomGiveup]       = '�������';
+$HcomName[$HcomGiveup]       = '島の放棄';
 $HcomCost[$HcomGiveup]       = 0;
-$HcomName[$HcomAutoPrepare]  = '���ϼ�ư����';
+$HcomName[$HcomAutoPrepare]  = '整地自動入力';
 $HcomCost[$HcomAutoPrepare]  = 0;
-$HcomName[$HcomAutoPrepare2] = '�Ϥʤ餷��ư����';
+$HcomName[$HcomAutoPrepare2] = '地ならし自動入力';
 $HcomCost[$HcomAutoPrepare2] = 0;
-$HcomName[$HcomAutoDelete]   = '���ײ�����ű��';
+$HcomName[$HcomAutoDelete]   = '全計画を白紙撤回';
 $HcomCost[$HcomAutoDelete]   = 0;
 
 #----------------------------------------------------------------------
-# �ѿ�
+# 変数
 #----------------------------------------------------------------------
 
 # COOKIE
-my($defaultID);       # ���̾��
-my($defaultTarget);   # �������åȤ�̾��
+my($defaultID);       # 島の名前
+my($defaultTarget);   # ターゲットの名前
 
 
-# ��κ�ɸ��
+# 島の座標数
 $HpointNumber = $HislandSize * $HislandSize;
 
 #----------------------------------------------------------------------
-# �ᥤ��
+# メイン
 #----------------------------------------------------------------------
 
-# �����ץ��
-$HtempBack = "<A HREF=\"$HthisFile\">${HtagBig_}�ȥåפ����${H_tagBig}</A>";
+# 「戻る」リンク
+$HtempBack = "<A HREF=\"$HthisFile\">${HtagBig_}トップへ戻る${H_tagBig}</A>";
 
 sub to_app {
     my $out_buffer = "";
@@ -526,15 +527,15 @@ sub to_app {
     my $response;
     my $request;
 
-    # ���ޥ�ɤ����ˤ��餹
+    # コマンドを前にずらす
     sub slideFront {
         my($command, $number) = @_;
         my($i);
 
-        # ���줾�줺�餹
+        # それぞれずらす
         splice(@$command, $number, 1);
 
-        # �Ǹ�˻�ⷫ��
+        # 最後に資金繰り
         $command->[$HcommandMax - 1] = {
         'kind' => $HcomDoNothing,
         'target' => 0,
@@ -544,46 +545,46 @@ sub to_app {
         };
     }
 
-# ���ޥ�ɤ��ˤ��餹
+# コマンドを後にずらす
     sub slideBack {
         my($command, $number) = @_;
         my($i);
 
-        # ���줾�줺�餹
+        # それぞれずらす
         return if $number == $#$command;
         pop(@$command);
         splice(@$command, $number, 0, $command->[$number]);
     }
 
 #----------------------------------------------------------------------
-# ��ǡ���������
+# 島データ入出力
 #----------------------------------------------------------------------
 
-# ����ǡ����ɤߤ���
+# 全島データ読みこみ
     sub readIslandsFile {
-        my($num) = @_; # 0�����Ϸ��ɤߤ��ޤ�
-                       # -1�������Ϸ����ɤ�
-                       # �ֹ���Ȥ�������Ϸ��������ɤߤ���
+        my($num) = @_; # 0だと地形読みこまず
+                       # -1だと全地形を読む
+                       # 番号だとその島の地形だけは読みこむ
 
-        $HislandTurn = Hako::DB->get_global_value("turn"); # �������
+        $HislandTurn = Hako::DB->get_global_value("turn"); # ターン数
         if ($HislandTurn == 0) {
             return 0;
         }
-        $HislandLastTime = Hako::DB->get_global_value("last_time"); # �ǽ���������
+        $HislandLastTime = Hako::DB->get_global_value("last_time"); # 最終更新時間
         if ($HislandLastTime == 0) {
             return 0;
         }
-        $HislandNumber = Hako::DB->get_global_value("number"); # �������
-        $HislandNextID = Hako::DB->get_global_value("next_id"); # ���˳�����Ƥ�ID
+        $HislandNumber = Hako::DB->get_global_value("number"); # 島の総数
+        $HislandNextID = Hako::DB->get_global_value("next_id"); # 次に割り当てるID
 
-        # ���������Ƚ��
+        # ターン処理判定
         my($now) = time;
         if ((($Hdebug == 1) && ($HmainMode eq 'Hdebugturn')) || (($now - $HislandLastTime) >= $HunitTime)) {
             $HmainMode = 'turn';
-            $num = -1; # �����ɤߤ���
+            $num = -1; # 全島読みこむ
         }
 
-        # ����ɤߤ���
+        # 島の読みこみ
         my $islands_from_db = Hako::DB->get_islands;
         for (my $i = 0; $i < $HislandNumber; $i++) {
             $Hislands[$i] = readIsland($num, $islands_from_db);
@@ -593,31 +594,31 @@ sub to_app {
         return 1;
     }
 
-    # ��ҤȤ��ɤߤ���
+    # 島ひとつ読みこみ
     sub readIsland {
         my ($num, $islands_from_db) = @_;
         my $island_from_db = Hako::Model::Island->inflate(shift @$islands_from_db);
 
         my ($name, $id, $prize, $absent, $comment, $password, $money, $food, $pop, $area, $farm, $factory, $mountain, $score);
-        $name = $island_from_db->{name}; # ���̾��
+        $name = $island_from_db->{name}; # 島の名前
         $score = $island_from_db->{score};
-        $id = $island_from_db->{id}; # ID�ֹ�
-        $prize = $island_from_db->{prize}; # ����
-        $absent = $island_from_db->{absent}; # Ϣ³��ⷫ���
+        $id = $island_from_db->{id}; # ID番号
+        $prize = $island_from_db->{prize}; # 受賞
+        $absent = $island_from_db->{absent}; # 連続資金繰り数
         $comment = $island_from_db->{comment};
         $password = $island_from_db->{password};
-        $money = $island_from_db->{money};  # ���
-        $food = $island_from_db->{food};  # ����
-        $pop = $island_from_db->{pop};  # �͸�
-        $area = $island_from_db->{area};  # ����
-        $farm = $island_from_db->{farm};  # ����
-        $factory = $island_from_db->{factory};  # ����
-        $mountain = $island_from_db->{mountain}; # �η���
+        $money = $island_from_db->{money};  # 資金
+        $food = $island_from_db->{food};  # 食料
+        $pop = $island_from_db->{pop};  # 人口
+        $area = $island_from_db->{area};  # 広さ
+        $farm = $island_from_db->{farm};  # 農場
+        $factory = $island_from_db->{factory};  # 工場
+        $mountain = $island_from_db->{mountain}; # 採掘場
 
-        # HidToName�ơ��֥����¸
+        # HidToNameテーブルへ保存
         $HidToName{$id} = $name;
 
-        # �Ϸ�
+        # 地形
         my(@land, @landValue, $line, @command, @lbbs);
 
         if(($num == -1) || ($num == $id)) {
@@ -632,16 +633,16 @@ sub to_app {
                 }
             }
 
-            # ���ޥ��
+            # コマンド
             my $commands_from_db = Hako::DB->get_commands($island_from_db->{id});
             @command = @$commands_from_db;
 
-            # ��������Ǽ���
+            # ローカル掲示板
             my $bbs_from_db = Hako::DB->get_bbs($island_from_db->{id});
             @lbbs = @$bbs_from_db;
         }
 
-        # �緿�ˤ����֤�
+        # 島型にして返す
         return Hako::Model::Island->new({
          'name' => $name,
          'id' => $id,
@@ -664,14 +665,14 @@ sub to_app {
         });
     }
 
-    # ����ǡ����񤭹���
+    # 全島データ書き込み
     sub writeIslandsFile {
         my($num) = @_;
 
-        # �ե�����򳫤�
+        # ファイルを開く
         open(OUT, ">${HdirName}/hakojima.tmp");
 
-        # �ƥѥ�᡼���񤭹���
+        # 各パラメータ書き込み
         print OUT "$HislandTurn\n";
         print OUT "$HislandLastTime\n";
         print OUT "$HislandNumber\n";
@@ -682,26 +683,26 @@ sub to_app {
         Hako::DB->set_global_value("number", $HislandNumber);
         Hako::DB->set_global_value("next_id", $HislandNextID);
 
-        # ��ν񤭤���
+        # 島の書きこみ
         for (my $i = 0; $i < $HislandNumber; $i++) {
             writeIsland($Hislands[$i], $num, $i);
         }
 
-        # DB�Ѥ��������줿���ä�
+        # DB用に放棄された島を消す
         my @dead_islands = grep {$_->{dead} == 1} @Hislands;
         for my $dead_island (@dead_islands) {
             Hako::DB->delete_island($dead_island->{id});
         }
 
-        # �ե�������Ĥ���
+        # ファイルを閉じる
         close(OUT);
 
-        # �����̾���ˤ���
+        # 本来の名前にする
         unlink("${HdirName}/hakojima.dat");
         rename("${HdirName}/hakojima.tmp", "${HdirName}/hakojima.dat");
     }
 
-    # ��ҤȤĽ񤭹���
+    # 島ひとつ書き込み
     sub writeIsland {
         my($island, $num, $sort) = @_;
         my($score);
@@ -720,7 +721,7 @@ sub to_app {
         print OUT $island->{'factory'} . "\n";
         print OUT $island->{'mountain'} . "\n";
 
-        # �Ϸ�
+        # 地形
         if(($num <= -1) || ($num == $island->{'id'})) {
             open(IOUT, ">${HdirName}/islandtmp.$island->{'id'}");
 
@@ -740,7 +741,7 @@ sub to_app {
             $island->{map} = $land_str;
             Hako::DB->save_island($island, $sort);
 
-            # ���ޥ��
+            # コマンド
             my($command, $cur, $i);
             $command = $island->{'command'};
             for($i = 0; $i < $HcommandMax; $i++) {
@@ -754,14 +755,6 @@ sub to_app {
             }
             Hako::DB->save_command($island->{id}, $island->{command});
 
-            # ��������Ǽ���
-            my($lbbs);
-            $lbbs = $island->{'lbbs'};
-            for($i = 0; $i < $HlbbsMax; $i++) {
-                print IOUT $lbbs->[$i] . "\n";
-            }
-            Hako::DB->save_bbs($island->{id}, $island->{lbbs});
-
             close(IOUT);
             unlink("${HdirName}/island.$island->{'id'}");
             rename("${HdirName}/islandtmp.$island->{'id'}", "${HdirName}/island.$island->{'id'}");
@@ -769,46 +762,46 @@ sub to_app {
     }
 
 #----------------------------------------------------------------------
-# ������
+# 入出力
 #----------------------------------------------------------------------
 
-    # ɸ����Ϥؤν���
+    # 標準出力への出力
     sub out {
-        $out_buffer .= sprintf("%s", Encode::encode("Shift_JIS", Encode::decode("EUC-JP", $_[0])));
+        $out_buffer .= sprintf("%s", Encode::encode("utf-8", $_[0]));
     }
 
-    # �ǥХå�����
+    # デバッグログ
     sub HdebugOut {
        open(DOUT, ">>debug.log");
        print DOUT ($_[0]);
        close(DOUT);
     }
 
-    # CGI���ɤߤ���
+    # CGIの読みこみ
     sub cgiInput {
         my $params = $request->parameters;
         use Data::Dumper;warn Data::Dumper::Dumper($params);
-        # �оݤ���
+        # 対象の島
         if (List::MoreUtils::any {$_ =~ /CommandButton([0-9]+)/} $params->keys) {
             my @tmp = grep {$_ =~ /^CommandButton/} $params->keys;
             $tmp[0] =~ /CommandButton([0-9]+)/;
-            # ���ޥ�������ܥ���ξ��
+            # コマンド送信ボタンの場合
             $HcurrentID = $1;
             $defaultID = $1;
         }
 
         if (List::MoreUtils::any {$_ eq "ISLANDNAME"} $params->keys) {
-            # ̾������ξ��
+            # 名前指定の場合
             $HcurrentName = cutColumn($params->get("ISLANDNAME"), 32);
         }
 
         if (List::MoreUtils::any { $_ eq "ISLANDID" } $params->keys) {
-            # ����¾�ξ��
+            # その他の場合
             $HcurrentID = $params->get("ISLANDID");
             $defaultID = $params->get("ISLANDID");
         }
 
-        # �ѥ����
+        # パスワード
         if ($line =~ /OLDPASS=([^\&]*)\&/) {
             $HoldPassword = $params->get("OLDPASS");
             $HdefaultPassword = $params->get("OLDPASS");
@@ -821,21 +814,21 @@ sub to_app {
             $HinputPassword2 = $params->get("PASSWORD2");
         }
 
-        # ��å�����
+        # メッセージ
         if (List::MoreUtils::any {$_ eq "MESSAGE"} $params->keys) {
             $Hmessage = cutColumn($params->get("MESSAGE"), 80);
         }
 
-        # ��������Ǽ���
+        # ローカル掲示板
         if (List::MoreUtils::any {$_ eq "LBBSNAME"} $params->keys) {
-            $HlbbsName = Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $params->get("LBBSNAME")));
-            $HdefaultName = Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $params->get("LBBSNAME")));
+            $HlbbsName = Encode::decode("utf-8", $params->get("LBBSNAME"));
+            $HdefaultName = Encode::decode("utf-8", $params->get("LBBSNAME"));
         }
         if (List::MoreUtils::any {$_ eq "LBBSMESSAGE"} $params->keys) {
-            $HlbbsMessage = cutColumn(Encode::encode("EUC-JP", Encode::decode("Shift_JIS", $params->get("LBBSMESSAGE"))), 80);
+            $HlbbsMessage = cutColumn(Encode::decode("utf-8", $params->get("LBBSMESSAGE")), 80);
         }
 
-        # main mode�μ���
+        # main modeの取得
         $HmainMode = "top";
         if(List::MoreUtils::any {$_ eq "TurnButton"} $params->keys) {
             if($Hdebug == 1) {
@@ -853,18 +846,18 @@ sub to_app {
             my @tmp = grep {$_ =~ /^LbbsButton/} $params->keys;
             $tmp[0] =~ /LbbsButton(..)([0-9]*)/;
             if ($1 eq 'SS') {
-                # �Ѹ���
+                # 観光者
                 $HlbbsMode = 0;
             } elsif($1 eq 'OW') {
-                # ���
+                # 島主
                 $HlbbsMode = 1;
             } else {
-                # ���
+                # 削除
                 $HlbbsMode = 2;
             }
             $HcurrentID = $2;
 
-            # ������⤷��ʤ��Τǡ��ֹ�����
+            # 削除かもしれないので、番号を取得
             $HcommandPlanNumber = $params->get("NUMBER");
 
         } elsif (List::MoreUtils::any {$_ eq "ChangeInfoButton"} $params->keys) {
@@ -875,7 +868,7 @@ sub to_app {
         } elsif (List::MoreUtils::any {$_ =~ /CommandButton/} $params->keys) {
             $HmainMode = 'command';
 
-            # ���ޥ�ɥ⡼�ɤξ�硢���ޥ�ɤμ���
+            # コマンドモードの場合、コマンドの取得
             $HcommandPlanNumber = $params->get("NUMBER");
             $HcommandKind = $params->get("COMMAND");
             $HdefaultKind = $params->get("COMMAND");
@@ -893,7 +886,7 @@ sub to_app {
     }
 
 
-    #cookie����
+    #cookie入力
     sub cookieInput {
         my($cookie);
 
@@ -923,30 +916,30 @@ sub to_app {
 
     }
 
-    #cookie����
+    #cookie出力
     sub cookieOutput {
         my($cookie, $info);
 
-        # �ä�����¤�����
+        # 消える期限の設定
         my($sec, $min, $hour, $date, $mon, $year, $day, $yday, $dummy) =
-        gmtime(time + 30 * 86400); # ���� + 30��
+        gmtime(time + 30 * 86400); # 現在 + 30日
 
-        # 2������
+        # 2ケタ化
         $year += 1900;
         if ($date < 10) { $date = "0$date"; }
         if ($hour < 10) { $hour = "0$hour"; }
         if ($min < 10) { $min  = "0$min"; }
         if ($sec < 10) { $sec  = "0$sec"; }
 
-        # ������ʸ����
+        # 曜日を文字に
         $day = ("Sunday", "Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday")[$day];
 
-        # ���ʸ����
+        # 月を文字に
         $mon = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")[$mon];
 
-        # �ѥ��ȴ��¤Υ��å�
+        # パスと期限のセット
         $info = "; expires=$day, $date\-$mon\-$year $hour:$min:$sec GMT\n";
 
         if(($HcurrentID) && ($HmainMode eq 'owner')){
@@ -968,53 +961,53 @@ sub to_app {
             $cookie_buffer .= "${HthisFile}POINTY=($HcommandY) $info";
         }
         if($HcommandKind) {
-            # ��ư�ϰʳ�
+            # 自動系以外
             $cookie_buffer .= "${HthisFile}KIND=($HcommandKind) $info";
         }
     }
 
 #----------------------------------------------------------------------
-# �桼�ƥ���ƥ�
+# ユーティリティ
 #----------------------------------------------------------------------
     sub hakolock {
         if($lockMode == 1) {
-        # directory�����å�
+        # directory式ロック
         return hakolock1();
 
         } elsif($lockMode == 2) {
-        # flock�����å�
+        # flock式ロック
         return hakolock2();
         } elsif($lockMode == 3) {
-        # symlink�����å�
+        # symlink式ロック
         return hakolock3();
         } else {
-        # �̾�ե����뼰���å�
+        # 通常ファイル式ロック
         return hakolock4();
         }
     }
 
     sub hakolock1 {
-        # ���å���
+        # ロックを試す
         if(mkdir('hakojimalock', $HdirMode)) {
-        # ����
+        # 成功
         return 1;
         } else {
-        # ����
+        # 失敗
         my($b) = (stat('hakojimalock'))[9];
         if(($b > 0) && ((time() -  $b)> $unlockTime)) {
-            # �������
+            # 強制解除
             unlock();
 
-            # �إå�����
+            # ヘッダ出力
             tempHeader();
 
-            # ���������å�����
+            # 強制解除メッセージ
             tempUnlock();
 
-            # �եå�����
+            # フッタ出力
             tempFooter();
 
-            # ��λ
+            # 終了
             warn "no way";
             exit(0);
         }
@@ -1025,36 +1018,36 @@ sub to_app {
     sub hakolock2 {
         open(LOCKID, '>>hakojimalockflock');
         if(flock(LOCKID, 2)) {
-        # ����
+        # 成功
         return 1;
         } else {
-        # ����
+        # 失敗
         return 0;
         }
     }
 
     sub hakolock3 {
-        # ���å���
+        # ロックを試す
         if(symlink('hakojimalockdummy', 'hakojimalock')) {
-        # ����
+        # 成功
         return 1;
         } else {
-        # ����
+        # 失敗
         my($b) = (lstat('hakojimalock'))[9];
         if(($b > 0) && ((time() -  $b)> $unlockTime)) {
-            # �������
+            # 強制解除
             unlock();
 
-            # �إå�����
+            # ヘッダ出力
             tempHeader();
 
-            # ���������å�����
+            # 強制解除メッセージ
             tempUnlock();
 
-            # �եå�����
+            # フッタ出力
             tempFooter();
 
-            # ��λ
+            # 終了
             warn "ihr";
             exit(0);
         }
@@ -1063,15 +1056,15 @@ sub to_app {
     }
 
     sub hakolock4 {
-        # ���å���
+        # ロックを試す
         if(unlink('key-free')) {
-        # ����
+        # 成功
         open(OUT, '>key-locked');
         print OUT time;
         close(OUT);
         return 1;
         } else {
-        # ���å����֥����å�
+        # ロック時間チェック
         if(!open(IN, 'key-locked')) {
             return 0;
         }
@@ -1080,19 +1073,19 @@ sub to_app {
         $t = <IN>;
         close(IN);
         if(($t != 0) && (($t + $unlockTime) < time)) {
-            # 120�ðʾ�вᤷ�Ƥ��顢����Ū�˥��å��򳰤�
+            # 120秒以上経過してたら、強制的にロックを外す
             unlock();
 
-            # �إå�����
+            # ヘッダ出力
             tempHeader();
 
-            # ���������å�����
+            # 強制解除メッセージ
             tempUnlock();
 
-            # �եå�����
+            # フッタ出力
             tempFooter();
 
-            # ��λ
+            # 終了
             warn "hoge";
             exit(0);
         }
@@ -1100,32 +1093,32 @@ sub to_app {
         }
     }
 
-# ���å��򳰤�
+# ロックを外す
     sub unlock {
         if($lockMode == 1) {
-        # directory�����å�
+        # directory式ロック
         rmdir('hakojimalock');
 
         } elsif($lockMode == 2) {
-        # flock�����å�
+        # flock式ロック
         close(LOCKID);
 
         } elsif($lockMode == 3) {
-        # symlink�����å�
+        # symlink式ロック
         unlink('hakojimalock');
         } else {
-        # �̾�ե����뼰���å�
+        # 通常ファイル式ロック
         my($i);
         $i = rename('key-locked', 'key-free');
         }
     }
 
-# �����������֤�
+# 小さい方を返す
     sub min {
         return ($_[0] < $_[1]) ? $_[0] : $_[1];
     }
 
-# �ѥ���ɥ��󥳡���
+# パスワードエンコード
     sub encode {
         if($cryptOn == 1) {
         return crypt($_[0], 'h2');
@@ -1134,21 +1127,21 @@ sub to_app {
         }
     }
 
-# �ѥ���ɥ����å�
+# パスワードチェック
     sub checkPassword {
         my($p1, $p2) = @_;
 
-        # null�����å�
+        # nullチェック
         if($p2 eq '') {
         return 0;
         }
 
-        # �ޥ������ѥ���ɥ����å�
+        # マスターパスワードチェック
         if($masterPassword eq $p2) {
         return 1;
         }
 
-        # ����Υ����å�
+        # 本来のチェック
         if($p1 eq encode($p2)) {
         return 1;
         }
@@ -1156,18 +1149,18 @@ sub to_app {
         return 0;
     }
 
-# 1000��ñ�̴ݤ�롼����
+# 1000億単位丸めルーチン
     sub aboutMoney {
         my($m) = @_;
         if($m < 500) {
-        return "����500${HunitMoney}̤��";
+        return "推定500${HunitMoney}未満";
         } else {
         $m = int(($m + 500) / 1000);
-        return "����${m}000${HunitMoney}";
+        return "推定${m}000${HunitMoney}";
         }
     }
 
-# ����������ʸ���ν���
+# エスケープ文字の処理
     sub htmlEscape {
         my($s) = @_;
         $s =~ s/&/&amp;/g;
@@ -1177,13 +1170,13 @@ sub to_app {
         return $s;
     }
 
-# 80�������ڤ�·��
+# 80ケタに切り揃え
     sub cutColumn {
         my($s, $c) = @_;
         if(length($s) <= $c) {
         return $s;
         } else {
-        # ���80�����ˤʤ�ޤ��ڤ���
+        # 合計80ケタになるまで切り取り
         my($ss) = '';
         my($count) = 0;
         while($count < $c) {
@@ -1200,11 +1193,11 @@ sub to_app {
         }
     }
 
-# ���̾�������ֹ������(ID����ʤ����ֹ�)
+# 島の名前から番号を得る(IDじゃなくて番号)
     sub nameToNumber {
         my($name) = @_;
 
-        # ���礫��õ��
+        # 全島から探す
         my($i);
         for($i = 0; $i < $HislandNumber; $i++) {
         if($Hislands[$i]->{'name'} eq $name) {
@@ -1212,33 +1205,33 @@ sub to_app {
         }
         }
 
-        # ���Ĥ���ʤ��ä����
+        # 見つからなかった場合
         return -1;
     }
 
-# ���äξ���
+# 怪獣の情報
     sub monsterSpec {
         my($lv) = @_;
 
-        # ����
+        # 種類
         my($kind) = int($lv / 10);
 
-        # ̾��
+        # 名前
         my($name);
         $name = $HmonsterName[$kind];
 
-        # ����
+        # 体力
         my($hp) = $lv - ($kind * 10);
         
         return ($kind, $name, $hp);
     }
 
-# �и��Ϥ����٥�򻻽�
+# 経験地からレベルを算出
     sub expToLevel {
         my($kind, $exp) = @_;
         my($i);
         if($kind == $HlandBase) {
-        # �ߥ��������
+        # ミサイル基地
         for($i = $maxBaseLevel; $i > 1; $i--) {
             if($exp >= $baseLevelUp[$i - 2]) {
             return $i;
@@ -1246,7 +1239,7 @@ sub to_app {
         }
         return 1;
         } else {
-        # �������
+        # 海底基地
         for($i = $maxSBaseLevel; $i > 1; $i--) {
             if($exp >= $sBaseLevelUp[$i - 2]) {
             return $i;
@@ -1257,17 +1250,17 @@ sub to_app {
 
     }
 
-# (0,0)����(size - 1, size - 1)�ޤǤο��������ŤĽФƤ���褦��
-# (@Hrpx, @Hrpy)������
+# (0,0)から(size - 1, size - 1)までの数字が一回づつ出てくるように
+# (@Hrpx, @Hrpy)を設定
     sub makeRandomPointArray {
-        # �����
+        # 初期値
         my($y);
         @Hrpx = (0..$HislandSize-1) x $HislandSize;
         for($y = 0; $y < $HislandSize; $y++) {
         push(@Hrpy, ($y) x $HislandSize);
         }
 
-        # ����åե�
+        # シャッフル
         my ($i);
         for ($i = $HpointNumber; --$i; ) {
         my($j) = int(rand($i+1)); 
@@ -1277,103 +1270,102 @@ sub to_app {
         }
     }
 
-# 0����(n - 1)�����
+# 0から(n - 1)の乱数
     sub random {
         return int(rand(1) * $_[0]);
     }
 
 #----------------------------------------------------------------------
-# �ƥ�ץ졼��
+# テンプレート
 #----------------------------------------------------------------------
-# �����
+# 初期化
     sub tempInitialize {
-        # �祻�쥯��(�ǥե���ȼ�ʬ)
+        # 島セレクト(デフォルト自分)
         $HislandList = getIslandList($defaultID);
         $HtargetList = getIslandList($defaultTarget);
     }
 
-# ��ǡ����Υץ�������˥塼��
+# 島データのプルダウンメニュー用
     sub getIslandList {
         my($select) = @_;
         my($list, $name, $id, $s, $i);
 
-        #��ꥹ�ȤΥ�˥塼
+        #島リストのメニュー
         $list = '';
         for($i = 0; $i < $HislandNumber; $i++) {
-        $name = $Hislands[$i]->{'name'};
-        $id = $Hislands[$i]->{'id'};
-        if($id eq $select) {
-            $s = 'SELECTED';
-        } else {
-            $s = '';
-        }
-        $list .=
-            "<OPTION VALUE=\"$id\" $s>${name}��\n";
+            $name = $Hislands[$i]->{'name'};
+            $id = $Hislands[$i]->{'id'};
+            if($id eq $select) {
+                $s = 'SELECTED';
+            } else {
+                $s = '';
+            }
+            $list .= "<OPTION VALUE=\"$id\" $s>${name}島\n";
         }
         return $list;
     }
 
 
-# �إå�
+# ヘッダ
     sub tempHeader {
         my $xslate = Text::Xslate->new(syntax => 'TTerse');
         my %vars = (
-            title => Encode::decode("EUC-JP", $Htitle),
+            title => $Htitle,
             image_dir => mark_raw($imageDir),
             html_body => mark_raw($htmlBody),
         );
-        out(Encode::encode("EUC-JP", $xslate->render("tmpl/header.tt", \%vars)));
+        out($xslate->render("tmpl/header.tt", \%vars));
     }
 
-# �եå�
+# フッタ
     sub tempFooter {
         my $xslate = Text::Xslate->new(syntax => 'TTerse');
         my %vars = (
-            admin_name => Encode::decode("EUC-JP", $adminName),
+            admin_name => $adminName,
             email => $email,
             bbs => $bbs,
             toppage => $toppage,
         );
-        out(Encode::encode("EUC-JP", $xslate->render("tmpl/footer.tt", \%vars)));
+        out($xslate->render("tmpl/footer.tt", \%vars));
     }
 
-# ���å�����
+# ロック失敗
     sub tempLockFail {
-        # �����ȥ�
+        # タイトル
         out(<<END);
-    ${HtagBig_}Ʊ�������������顼�Ǥ���<BR>
-    �֥饦���Ρ����ץܥ���򲡤���<BR>
-    ���Ф餯�ԤäƤ�����٤����������${H_tagBig}$HtempBack
+    ${HtagBig_}同時アクセスエラーです。<BR>
+    ブラウザの「戻る」ボタンを押し、<BR>
+    しばらく待ってから再度お試し下さい。${H_tagBig}$HtempBack
 END
     }
 
-# �������
+# 強制解除
     sub tempUnlock {
-        # �����ȥ�
+        # タイトル
         out(<<END);
-    ${HtagBig_}����Υ����������۾ｪλ���ä��褦�Ǥ���<BR>
-    ���å�����������ޤ�����${H_tagBig}$HtempBack
+    ${HtagBig_}前回のアクセスが異常終了だったようです。<BR>
+    ロックを強制解除しました。${H_tagBig}$HtempBack
 END
     }
 
-# hakojima.dat���ʤ�
+# hakojima.datがない
     sub tempNoDataFile {
         out(<<END);
-    ${HtagBig_}�ǡ����ե����뤬�����ޤ���${H_tagBig}$HtempBack
+    ${HtagBig_}データファイルが開けません。${H_tagBig}$HtempBack
 END
     }
 
-# �ѥ���ɴְ㤤
+# パスワード間違い
     sub tempWrongPassword {
         out(<<END);
-    ${HtagBig_}�ѥ���ɤ��㤤�ޤ���${H_tagBig}$HtempBack
+    ${HtagBig_}パスワードが違います。${H_tagBig}$HtempBack
 END
     }
 
-# ��������ȯ��
+# 何か問題発生
     sub tempProblem {
         out(<<END);
-    ${HtagBig_}����ȯ�����Ȥꤢ������äƤ���������${H_tagBig}$HtempBack
+    ${HtagBig_}問題発生、とりあえず戻ってください。${H_tagBig}$HtempBack
 END
     }
 
@@ -1386,32 +1378,32 @@ END
         $response = Plack::Response->new(200);
         $response->content_type("text/html");
 
-        # ���å��򤫤���
+        # ロックをかける
         if(!hakolock()) {
-            # ���å�����
-            # �إå�����
+            # ロック失敗
+            # ヘッダ出力
             tempHeader();
 
-            # ���å����ԥ�å�����
+            # ロック失敗メッセージ
             tempLockFail();
 
-            # �եå�����
+            # フッタ出力
             tempFooter();
 
-            # ��λ
+            # 終了
             exit(0);
         }
 
-        # ����ν����
+        # 乱数の初期化
         srand(time^$$);
 
-        # COOKIE�ɤߤ���
+        # COOKIE読みこみ
         cookieInput();
 
-        # CGI�ɤߤ���
+        # CGI読みこみ
         cgiInput();
 
-        # ��ǡ������ɤߤ���
+        # 島データの読みこみ
         if(readIslandsFile($HcurrentID) == 0) {
             unlock();
             tempHeader();
@@ -1420,67 +1412,67 @@ END
             exit(0);
         }
 
-        # �ƥ�ץ졼�Ȥ�����
+        # テンプレートを初期化
         tempInitialize();
 
-        # COOKIE����
+        # COOKIE出力
         cookieOutput();
 
-        # �إå�����
+        # ヘッダ出力
         tempHeader();
 
         if($HmainMode eq 'turn') {
-            # ������ʹ�
+            # ターン進行
             require('hako-turn.cgi');
             require('hako-top.cgi');
             turnMain();
 
         } elsif($HmainMode eq 'new') {
-            # ��ο�������
+            # 島の新規作成
             require('hako-turn.cgi');
             require('hako-map.cgi');
             newIslandMain();
 
         } elsif($HmainMode eq 'print') {
-            # �Ѹ��⡼��
+            # 観光モード
             require('hako-map.cgi');
             printIslandMain();
 
         } elsif($HmainMode eq 'owner') {
 
-            # ��ȯ�⡼��
+            # 開発モード
             require('hako-map.cgi');
             ownerMain();
 
         } elsif($HmainMode eq 'command') {
-            # ���ޥ�����ϥ⡼��
+            # コマンド入力モード
             require('hako-map.cgi');
             commandMain();
 
         } elsif($HmainMode eq 'comment') {
-            # ���������ϥ⡼��
+            # コメント入力モード
             require('hako-map.cgi');
             commentMain();
 
         } elsif($HmainMode eq 'lbbs') {
 
-            # ��������Ǽ��ĥ⡼��
+            # ローカル掲示板モード
             require('hako-map.cgi');
             localBbsMain();
 
         } elsif($HmainMode eq 'change') {
-            # �����ѹ��⡼��
+            # 情報変更モード
             require('hako-turn.cgi');
             require('hako-top.cgi');
             changeMain();
 
         } else {
-            # ����¾�ξ��ϥȥåץڡ����⡼��
+            # その他の場合はトップページモード
             require('hako-top.cgi');
             topPageMain();
         }
 
-        # �եå�����
+        # フッタ出力
         tempFooter();
 
         $response->body($out_buffer);
