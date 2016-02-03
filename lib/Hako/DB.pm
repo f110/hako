@@ -6,7 +6,7 @@ use Encode qw();
 use Data::Dumper;
 
 sub connect {
-    return DBI->connect("DBI:mysql:database=hako;host=127.0.0.1;port=3306", "root", "");
+    return DBI->connect("DBI:mysql:database=hako;host=127.0.0.1;port=3306", "root", "", {mysql_enable_utf8 => 1});
 }
 
 sub force_reset {
@@ -38,7 +38,7 @@ sub get_global_value {
 sub insert_history {
     my ($class, $turn, $msg) = @_;
 
-    return $class->connect->do("INSERT INTO histories (turn, message, created_at) VALUES (?, ?, NOW())", {}, $turn, Encode::decode("EUC-JP", $msg));
+    return $class->connect->do("INSERT INTO histories (turn, message, created_at) VALUES (?, ?, NOW())", {}, $turn, $msg);
 }
 
 sub get_history {
@@ -83,9 +83,9 @@ sub save_island {
     my $db = $class->connect;
     my $value = $db->selectrow_arrayref("SELECT 1 FROM islands WHERE id = \"@{[$island->{id}]}\"");
     if ($value) {
-        return $db->do("UPDATE islands SET name = ?, score = ?, prize = ?, absent = ?, cmt = ?, password = ?, money = ?, food = ?, population = ?, area = ?, farm = ?, factory = ?, mountain = ?, map = ?, sort = ?, updated_at = NOW() WHERE id = ?", {}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, Encode::decode("EUC-JP", $island->{comment}), $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort, $island->{id});
+        return $db->do("UPDATE islands SET name = ?, score = ?, prize = ?, absent = ?, cmt = ?, password = ?, money = ?, food = ?, population = ?, area = ?, farm = ?, factory = ?, mountain = ?, map = ?, sort = ?, updated_at = NOW() WHERE id = ?", {}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort, $island->{id});
     } else {
-        return $db->do("INSERT INTO islands (id, name, score, prize, absent, cmt, password, money, food, population, area, farm, factory, mountain, map, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island->{id}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, Encode::decode("EUC-JP", $island->{comment}), $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort);
+        return $db->do("INSERT INTO islands (id, name, score, prize, absent, cmt, password, money, food, population, area, farm, factory, mountain, map, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island->{id}, $island->{name}, $island->{score}, $island->{prize}, $island->{absent}, $island->{comment}, $island->{password}, $island->{money}, $island->{food}, $island->{pop}, $island->{area}, $island->{farm}, $island->{factory}, $island->{mountain}, $island->{map}, $sort);
     }
 }
 
@@ -128,28 +128,22 @@ sub get_commands {
     return $class->connect->selectall_arrayref("SELECT * FROM island_commands WHERE island_id = ? ORDER BY id ASC", {Slice => +{}}, $island_id);
 }
 
-sub save_bbs {
+sub insert_bbs {
     my ($class, $island_id, $bbs) = @_;
 
-    my $db = $class->connect;
-    $db->do("DELETE FROM island_bbs WHERE island_id = ?", {}, $island_id);
-
-    for my $v (@$bbs) {
-        $db->do("INSERT INTO island_bbs (island_id, value) values (?, ?)", {}, $island_id, Encode::decode("EUC-JP", $v));
-    }
+    return $class->connect->do("INSERT INTO island_bbs (island_id, value) values (?, ?)", {}, $island_id, $bbs);
 }
 
 sub get_bbs {
     my ($class, $island_id) = @_;
 
-    my $bbs = $class->connect->selectcol_arrayref("SELECT value FROM island_bbs WHERE island_id = ? ORDER BY id", {}, $island_id);
-    return [map {Encode::encode("EUC-JP", Encode::decode("UTF-8", $_))} @$bbs];
+    return $class->connect->selectcol_arrayref("SELECT value FROM island_bbs WHERE island_id = ? ORDER BY id DESC", {}, $island_id);
 }
 
 sub _insert_log_common {
     my ($class, $type, $turn, $island_id, $target_id, $message) = @_;
 
-    return $class->connect->do("INSERT INTO logs (log_type, turn, island_id, target_id, message, created_at) VALUES (?, ?, ?, ?, ?, NOW())", {}, $type, $turn, $island_id, $target_id, Encode::decode("EUC-JP", $message));
+    return $class->connect->do("INSERT INTO logs (log_type, turn, island_id, target_id, message, created_at) VALUES (?, ?, ?, ?, ?, NOW())", {}, $type, $turn, $island_id, $target_id, $message);
 }
 
 1;

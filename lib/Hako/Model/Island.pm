@@ -13,7 +13,7 @@ sub new {
 sub inflate {
     my ($class, $argv) = @_;
 
-    $argv->{comment} = Encode::encode("EUC-JP", Encode::decode("UTF-8", $argv->{cmt}));
+    $argv->{comment} = $argv->{cmt};
     $argv->{pop} = $argv->{population};
 
     return $class->new($argv);
