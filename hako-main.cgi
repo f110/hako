@@ -669,15 +669,6 @@ sub to_app {
     sub writeIslandsFile {
         my($num) = @_;
 
-        # ファイルを開く
-        open(OUT, ">${HdirName}/hakojima.tmp");
-
-        # 各パラメータ書き込み
-        print OUT "$HislandTurn\n";
-        print OUT "$HislandLastTime\n";
-        print OUT "$HislandNumber\n";
-        print OUT "$HislandNextID\n";
-
         Hako::DB->set_global_value("turn", $HislandTurn);
         Hako::DB->set_global_value("last_time", $HislandLastTime);
         Hako::DB->set_global_value("number", $HislandNumber);
@@ -693,38 +684,13 @@ sub to_app {
         for my $dead_island (@dead_islands) {
             Hako::DB->delete_island($dead_island->{id});
         }
-
-        # ファイルを閉じる
-        close(OUT);
-
-        # 本来の名前にする
-        unlink("${HdirName}/hakojima.dat");
-        rename("${HdirName}/hakojima.tmp", "${HdirName}/hakojima.dat");
     }
 
     # 島ひとつ書き込み
     sub writeIsland {
-        my($island, $num, $sort) = @_;
-        my($score);
-        $score = int($island->{'score'});
-        print OUT $island->{'name'} . ",$score\n";
-        print OUT $island->{'id'} . "\n";
-        print OUT $island->{'prize'} . "\n";
-        print OUT $island->{'absent'} . "\n";
-        print OUT $island->{'comment'} . "\n";
-        print OUT $island->{'password'} . "\n";
-        print OUT $island->{'money'} . "\n";
-        print OUT $island->{'food'} . "\n";
-        print OUT $island->{'pop'} . "\n";
-        print OUT $island->{'area'} . "\n";
-        print OUT $island->{'farm'} . "\n";
-        print OUT $island->{'factory'} . "\n";
-        print OUT $island->{'mountain'} . "\n";
-
+        my ($island, $num, $sort) = @_;
         # 地形
         if(($num <= -1) || ($num == $island->{'id'})) {
-            open(IOUT, ">${HdirName}/islandtmp.$island->{'id'}");
-
             my($land, $landValue);
             $land = $island->{'land'};
             $landValue = $island->{'landValue'};
@@ -732,31 +698,12 @@ sub to_app {
             my($x, $y);
             for($y = 0; $y < $HislandSize; $y++) {
                 for($x = 0; $x < $HislandSize; $x++) {
-                    printf IOUT ("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
                     $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
                 }
                 $land_str .= "\n";
-                print IOUT "\n";
             }
             $island->{map} = $land_str;
             Hako::DB->save_island($island, $sort);
-
-            # コマンド
-            my($command, $cur, $i);
-            $command = $island->{'command'};
-            for($i = 0; $i < $HcommandMax; $i++) {
-                printf IOUT ("%d,%d,%d,%d,%d\n", 
-                     $command->[$i]->{'kind'},
-                     $command->[$i]->{'target'},
-                     $command->[$i]->{'x'},
-                     $command->[$i]->{'y'},
-                     $command->[$i]->{'arg'}
-                     );
-            }
-
-            close(IOUT);
-            unlink("${HdirName}/island.$island->{'id'}");
-            rename("${HdirName}/islandtmp.$island->{'id'}", "${HdirName}/island.$island->{'id'}");
         }
     }
 
