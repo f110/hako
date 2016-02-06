@@ -488,7 +488,7 @@ sub doCommand {
     my($comArray, $command);
     $comArray = $island->{'command'};
     $command = $comArray->[0]; # 最初のを取り出し
-    slideFront($comArray, 0); # 以降を詰める
+    Hako::DB->delete_command($island->{id}, 0); # 以降を詰める
 
     # 各要素の取り出し
     my($kind, $target, $x, $y, $arg) = 
@@ -822,53 +822,50 @@ sub doCommand {
 	# 金を差し引く
 	$island->{'money'} -= $cost;
 
-	# 回数付きなら、コマンドを戻す
-	if(($kind == $HcomFarm) ||
-	   ($kind == $HcomFactory)) {
-	    if($arg > 1) {
-		my($command);
-		$arg--;
-		slideBack($comArray, 0);
-		$comArray->[0] = {
-		    'kind' => $kind,
-		    'target' => $target,
-		    'x' => $x,
-		    'y' => $y,
-		    'arg' => $arg
-		    };
-	    }
-	}
+        # 回数付きなら、コマンドを戻す
+        if(($kind == $HcomFarm) || ($kind == $HcomFactory)) {
+            if($arg > 1) {
+                $arg--;
+                $comArray->[0] = {
+                    'kind'   => $kind,
+                    'target' => $target,
+                    'x'      => $x,
+                    'y'      => $y,
+                    'arg'    => $arg
+                };
+                Hako::DB->insert_command($island->{id}, 0, $comArray->[0]);
+            }
+        }
 
-	return 1;
+        return 1;
     } elsif($kind == $HcomMountain) {
-	# 採掘場
-	if($landKind != $HlandMountain) {
-	    # 山以外には作れない
-	    logLandFail($id, $name, $comName, $landName, $point);
-	    return 0;
-	}
+        # 採掘場
+        if($landKind != $HlandMountain) {
+            # 山以外には作れない
+            logLandFail($id, $name, $comName, $landName, $point);
+            return 0;
+        }
 
-	$landValue->[$x][$y] += 5; # 規模 + 5000人
-	if($landValue->[$x][$y] > 200) {
-	    $landValue->[$x][$y] = 200; # 最大 200000人
-	}
-	logLandSuc($id, $name, $comName, $point);
+        $landValue->[$x][$y] += 5; # 規模 + 5000人
+        if($landValue->[$x][$y] > 200) {
+            $landValue->[$x][$y] = 200; # 最大 200000人
+        }
+        logLandSuc($id, $name, $comName, $point);
 
-	# 金を差し引く
-	$island->{'money'} -= $cost;
-	if($arg > 1) {
-	    my($command);
-	    $arg--;
-	    slideBack($comArray, 0);
-	    $comArray->[0] = {
-		'kind' => $kind,
-		'target' => $target,
-		'x' => $x,
-		'y' => $y,
-		'arg' => $arg
-		};
-	}
-	return 1;
+        # 金を差し引く
+        $island->{'money'} -= $cost;
+        if($arg > 1) {
+            $arg--;
+            $comArray->[0] = {
+                'kind'   => $kind,
+                'target' => $target,
+                'x'      => $x,
+                'y'      => $y,
+                'arg'    => $arg
+            };
+            Hako::DB->insert_command($island->{id}, 0, $comArray->[0]);
+        }
+        return 1;
     } elsif($kind == $HcomSbase) {
 	# 海底基地
 	if(($landKind != $HlandSea) || ($lv != 0)){

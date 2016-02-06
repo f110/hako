@@ -527,35 +527,6 @@ sub to_app {
     my $response;
     my $request;
 
-    # コマンドを前にずらす
-    sub slideFront {
-        my($command, $number) = @_;
-        my($i);
-
-        # それぞれずらす
-        splice(@$command, $number, 1);
-
-        # 最後に資金繰り
-        $command->[$HcommandMax - 1] = {
-        'kind' => $HcomDoNothing,
-        'target' => 0,
-        'x' => 0,
-        'y' => 0,
-        'arg' => 0
-        };
-    }
-
-# コマンドを後にずらす
-    sub slideBack {
-        my($command, $number) = @_;
-        my($i);
-
-        # それぞれずらす
-        return if $number == $#$command;
-        pop(@$command);
-        splice(@$command, $number, 0, $command->[$number]);
-    }
-
 #----------------------------------------------------------------------
 # 島データ入出力
 #----------------------------------------------------------------------
