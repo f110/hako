@@ -100,10 +100,6 @@ my($lockMode) = Hako::Config::LOCK_MODE;
 # 1ターンが何秒か
 $HunitTime = Hako::Config::UNIT_TIME; # 6時間
 
-# 異常終了基準時間
-# (ロック後何秒で、強制解除するか)
-my($unlockTime) = Hako::Config::UNLOCK_TIME;
-
 # 島の最大数
 $HmaxIsland = Hako::Config::MAX_ISLAND;
 
@@ -886,150 +882,6 @@ sub to_app {
 #----------------------------------------------------------------------
 # ユーティリティ
 #----------------------------------------------------------------------
-    sub hakolock {
-        if($lockMode == 1) {
-        # directory式ロック
-        return hakolock1();
-
-        } elsif($lockMode == 2) {
-        # flock式ロック
-        return hakolock2();
-        } elsif($lockMode == 3) {
-        # symlink式ロック
-        return hakolock3();
-        } else {
-        # 通常ファイル式ロック
-        return hakolock4();
-        }
-    }
-
-    sub hakolock1 {
-        # ロックを試す
-        if(mkdir('hakojimalock', $HdirMode)) {
-        # 成功
-        return 1;
-        } else {
-        # 失敗
-        my($b) = (stat('hakojimalock'))[9];
-        if(($b > 0) && ((time() -  $b)> $unlockTime)) {
-            # 強制解除
-            unlock();
-
-            # ヘッダ出力
-            tempHeader();
-
-            # 強制解除メッセージ
-            tempUnlock();
-
-            # フッタ出力
-            tempFooter();
-
-            # 終了
-            warn "no way";
-            exit(0);
-        }
-        return 0;
-        }
-    }
-
-    sub hakolock2 {
-        open(LOCKID, '>>hakojimalockflock');
-        if(flock(LOCKID, 2)) {
-        # 成功
-        return 1;
-        } else {
-        # 失敗
-        return 0;
-        }
-    }
-
-    sub hakolock3 {
-        # ロックを試す
-        if(symlink('hakojimalockdummy', 'hakojimalock')) {
-        # 成功
-        return 1;
-        } else {
-        # 失敗
-        my($b) = (lstat('hakojimalock'))[9];
-        if(($b > 0) && ((time() -  $b)> $unlockTime)) {
-            # 強制解除
-            unlock();
-
-            # ヘッダ出力
-            tempHeader();
-
-            # 強制解除メッセージ
-            tempUnlock();
-
-            # フッタ出力
-            tempFooter();
-
-            # 終了
-            warn "ihr";
-            exit(0);
-        }
-        return 0;
-        }
-    }
-
-    sub hakolock4 {
-        # ロックを試す
-        if(unlink('key-free')) {
-        # 成功
-        open(OUT, '>key-locked');
-        print OUT time;
-        close(OUT);
-        return 1;
-        } else {
-        # ロック時間チェック
-        if(!open(IN, 'key-locked')) {
-            return 0;
-        }
-
-        my($t);
-        $t = <IN>;
-        close(IN);
-        if(($t != 0) && (($t + $unlockTime) < time)) {
-            # 120秒以上経過してたら、強制的にロックを外す
-            unlock();
-
-            # ヘッダ出力
-            tempHeader();
-
-            # 強制解除メッセージ
-            tempUnlock();
-
-            # フッタ出力
-            tempFooter();
-
-            # 終了
-            warn "hoge";
-            exit(0);
-        }
-        return 0;
-        }
-    }
-
-# ロックを外す
-    sub unlock {
-        if($lockMode == 1) {
-        # directory式ロック
-        rmdir('hakojimalock');
-
-        } elsif($lockMode == 2) {
-        # flock式ロック
-        close(LOCKID);
-
-        } elsif($lockMode == 3) {
-        # symlink式ロック
-        unlink('hakojimalock');
-        } else {
-        # 通常ファイル式ロック
-        my($i);
-        $i = rename('key-locked', 'key-free');
-        }
-    }
-
 # 小さい方を返す
     sub min {
         return ($_[0] < $_[1]) ? $_[0] : $_[1];
@@ -1256,15 +1108,6 @@ sub to_app {
 END
     }
 
-# 強制解除
-    sub tempUnlock {
-        # タイトル
-        out(<<END);
-    ${HtagBig_}前回のアクセスが異常終了だったようです。<BR>
-    ロックを強制解除しました。${H_tagBig}$HtempBack
-END
-    }
-
 # hakojima.datがない
     sub tempNoDataFile {
         out(<<END);
@@ -1295,22 +1138,6 @@ END
         $response = Plack::Response->new(200);
         $response->content_type("text/html");
 
-        # ロックをかける
-        if(!hakolock()) {
-            # ロック失敗
-            # ヘッダ出力
-            tempHeader();
-
-            # ロック失敗メッセージ
-            tempLockFail();
-
-            # フッタ出力
-            tempFooter();
-
-            # 終了
-            exit(0);
-        }
-
         # 乱数の初期化
         srand(time^$$);
 
@@ -1322,7 +1149,6 @@ END
 
         # 島データの読みこみ
         if(readIslandsFile($HcurrentID) == 0) {
-            unlock();
             tempHeader();
             tempNoDataFile();
             tempFooter();

@@ -10,7 +10,6 @@ data_dir: data
 lock_mode: 2
 
 unit_time: 43200
-unlock_time: 120
 max_island: 30
 top_log_turn: 1
 log_max: 8

@@ -20,14 +20,12 @@ my(@ay) = (0,-1, 0, 1, 1, 0,-1,-2,-1, 0, 1, 2, 2, 2, 1, 0,-1,-2,-2);
 sub newIslandMain {
     # 島がいっぱいでないかチェック
     if($HislandNumber >= $HmaxIsland) {
-        unlock();
         tempNewIslandFull();
         return;
     }
 
     # 名前があるかチェック
     if($HcurrentName eq '') {
-        unlock();
         tempNewIslandNoName();
         return;
     }
@@ -35,7 +33,6 @@ sub newIslandMain {
     # 名前が正当かチェック
     if($HcurrentName =~ /[,\?\(\)\<\>\$]|^無人$/) {
         # 使えない名前
-        unlock();
         tempNewIslandBadName();
         return;
     }
@@ -43,7 +40,6 @@ sub newIslandMain {
     # 名前の重複チェック
     if(nameToNumber($HcurrentName) != -1) {
         # すでに発見ずみ
-        unlock();
         tempNewIslandAlready();
         return;
     }
@@ -51,7 +47,6 @@ sub newIslandMain {
     # passwordの存在判定
     if($HinputPassword eq '') {
         # password無し
-        unlock();
         tempNewIslandNoPassword();
         return;
     }
@@ -59,7 +54,6 @@ sub newIslandMain {
     # 確認用パスワード
     if($HinputPassword2 ne $HinputPassword) {
         # password間違い
-        unlock();
         tempWrongPassword();
         return;
     }
@@ -85,9 +79,6 @@ sub newIslandMain {
     writeIslandsFile($island->{'id'});
     logDiscover($HcurrentName); # ログ
     Hako::DB->init_command($island->{id});
-
-    # 開放
-    unlock();
 
     # 発見画面
     tempNewIslandHead($HcurrentName); # 発見しました!!
@@ -260,7 +251,6 @@ sub changeMain {
 	$island->{'food'} = 9999;
     } elsif(!checkPassword($island->{'password'},$HoldPassword)) {
 	# password間違い
-	unlock();
 	tempWrongPassword();
 	return;
     }
@@ -268,7 +258,6 @@ sub changeMain {
     # 確認用パスワード
     if($HinputPassword2 ne $HinputPassword) {
 	# password間違い
-	unlock();
 	tempWrongPassword();
 	return;
     }
@@ -278,7 +267,6 @@ sub changeMain {
 	# 名前が正当かチェック
 	if($HcurrentName =~ /[,\?\(\)\<\>]|^無人$/) {
 	    # 使えない名前
-	    unlock();
 	    tempNewIslandBadName();
 	    return;
 	}
@@ -286,14 +274,12 @@ sub changeMain {
 	# 名前の重複チェック
 	if(nameToNumber($HcurrentName) != -1) {
 	    # すでに発見ずみ
-	    unlock();
 	    tempNewIslandAlready();
 	    return;
 	}
 
 	if($island->{'money'} < $HcostChangeName) {
 	    # 金が足りない
-	    unlock();
 	    tempChangeNoMoney();
 	    return;
 	}
@@ -318,14 +304,12 @@ sub changeMain {
 
     if(($flag == 0) && ($HoldPassword ne $HspecialPassword)) {
 	# どちらも変更されていない
-	unlock();
 	tempChangeNothing();
 	return;
     }
 
     # データ書き出し
     writeIslandsFile($HcurrentID);
-    unlock();
 
     # 変更成功
     tempChange();
