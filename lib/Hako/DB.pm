@@ -141,6 +141,13 @@ sub delete_command {
     $db->do("UPDATE command_lists SET lists = ?, lock_version = ?, updated_at = NOW() WHERE island_id = ? AND lock_version = ?", {}, $new_lists, $command_lists->{lock_version} + 1, $island_id, $command_lists->{lock_version});
 }
 
+sub init_command {
+    my ($class, $island_id) = @_;
+
+    my $new_lists = join(",", map {"-1"} 0..19);
+    $class->connect->do("INSERT INTO command_lists (island_id, lists, lock_version, created_at, updated_at) VALUE (?, ?, 1, NOW(), NOW())", {}, $island_id, $new_lists);
+}
+
 sub delete_all_command {
     my ($class, $island_id) = @_;
 
