@@ -112,20 +112,75 @@ sub delete_island {
     return $class->connect->do("DELETE FROM islands WHERE id = ?", {}, $island_id);
 }
 
-sub save_command {
-    my ($class, $island_id, $commands) = @_;
+sub insert_command {
+    my ($class, $island_id, $position, $command, $override) = @_;
 
     my $db = $class->connect;
-    $db->do("DELETE FROM island_commands WHERE island_id = ?", {}, $island_id);
-    for my $command (@$commands) {
-        $db->do("INSERT INTO island_commands (island_id, kind, target, x, y, arg, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island_id, $command->{kind}, $command->{target}, $command->{x}, $command->{y}, $command->{arg});
+    $db->do("INSERT INTO island_commands (island_id, position, kind, target, x, y, arg, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())", {}, $island_id, $position, $command->{kind}, $command->{target}, $command->{x}, $command->{y}, $command->{arg});
+    my $insert_id = $db->selectcol_arrayref("SELECT LAST_INSERT_ID()")->[0];
+
+    my $command_lists = $db->selectrow_hashref("SELECT * FROM command_lists WHERE island_id = ?", {}, $island_id);
+    my @command_ids = split(",", $command_lists->{lists});
+    if ($override) {
+        splice(@command_ids, $position, 1, $insert_id);
+    } else {
+        splice(@command_ids, $position, 0, $insert_id);
     }
+    my $new_lists = join(",", @command_ids[0..19]);
+    $db->do("UPDATE command_lists SET lists = ?, lock_version = ?, updated_at = NOW() WHERE island_id = ? AND lock_version = ?", {}, $new_lists, $command_lists->{lock_version} + 1, $island_id, $command_lists->{lock_version});
+}
+
+sub delete_command {
+    my ($class, $island_id, $position) = @_;
+
+    my $db = $class->connect;
+    my $command_lists = $db->selectrow_hashref("SELECT * FROM command_lists WHERE island_id = ?", {}, $island_id);
+    my @command_ids = split(",", $command_lists->{lists});
+    splice(@command_ids, $position, 1);
+    my $new_lists = join(",", map {$_ ? $_ : "-1"} @command_ids[0..19]);
+    $db->do("UPDATE command_lists SET lists = ?, lock_version = ?, updated_at = NOW() WHERE island_id = ? AND lock_version = ?", {}, $new_lists, $command_lists->{lock_version} + 1, $island_id, $command_lists->{lock_version});
+}
+
+sub init_command {
+    my ($class, $island_id) = @_;
+
+    my $new_lists = join(",", map {"-1"} 0..19);
+    $class->connect->do("INSERT INTO command_lists (island_id, lists, lock_version, created_at, updated_at) VALUE (?, ?, 1, NOW(), NOW())", {}, $island_id, $new_lists);
+}
+
+sub delete_all_command {
+    my ($class, $island_id) = @_;
+
+    my $db = $class->connect;
+    my $command_lists = $db->selectrow_hashref("SELECT * FROM command_lists WHERE island_id = ?", {}, $island_id);
+    my @command_ids = map {"-1"} 0..19;
+    my $new_lists = join(",", @command_ids);
+    $db->do("UPDATE command_lists SET lists = ?, lock_version = ?, updated_at = NOW() WHERE island_id = ? AND lock_version = ?", {}, $new_lists, $command_lists->{lock_version} + 1, $island_id, $command_lists->{lock_version});
 }
 
 sub get_commands {
     my ($class, $island_id) = @_;
 
-    return $class->connect->selectall_arrayref("SELECT * FROM island_commands WHERE island_id = ? ORDER BY id ASC", {Slice => +{}}, $island_id);
+    my $db = $class->connect;
+    my $command_lists = $db->selectrow_hashref("SELECT lists FROM command_lists WHERE island_id = ?", {}, $island_id);
+    my $ids = join(",", grep {$_ ne "-1"} split(",", $command_lists->{lists}));
+    my $commands = $db->selectall_arrayref("SELECT * FROM island_commands WHERE id IN (@{[$ids]})", {Slice => +{}});
+    my %id_map = map { $_->{id} => $_ } @$commands;
+    my $sorted_commands = [map {
+            if (exists($id_map{$_})) {
+                $id_map{$_};
+            } else {
+                {
+                    kind => 41,
+                    target => 0,
+                    x => 0,
+                    y => 0,
+                    arg => 0,
+                }
+            }
+        } split(",", $command_lists->{lists})];
+
+    return $sorted_commands;
 }
 
 sub insert_bbs {

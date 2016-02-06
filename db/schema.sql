@@ -38,6 +38,7 @@ DROP TABLE IF EXISTS island_commands;
 CREATE TABLE island_commands (
     id int NOT NULL auto_increment,
     island_id int NOT NULL,
+    position int NOT NULL,
     kind varchar(255),
     target varchar(255),
     x varchar(255),
@@ -75,4 +76,14 @@ CREATE TABLE logs (
     message varchar(255),
     created_at datetime NOT NULL,
     PRIMARY KEY(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS command_lists;
+CREATE TABLE command_lists (
+    island_id int NOT NULL,
+    lists text,
+    lock_version int NOT NULL DEFAULT 1,
+    created_at datetime NOT NULL,
+    updated_at datetime NOT NULL,
+    PRIMARY KEY(island_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

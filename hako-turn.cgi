@@ -20,48 +20,48 @@ my(@ay) = (0,-1, 0, 1, 1, 0,-1,-2,-1, 0, 1, 2, 2, 2, 1, 0,-1,-2,-2);
 sub newIslandMain {
     # 島がいっぱいでないかチェック
     if($HislandNumber >= $HmaxIsland) {
-	unlock();
-	tempNewIslandFull();
-	return;
+        unlock();
+        tempNewIslandFull();
+        return;
     }
 
     # 名前があるかチェック
     if($HcurrentName eq '') {
-	unlock();
-	tempNewIslandNoName();
-	return;
+        unlock();
+        tempNewIslandNoName();
+        return;
     }
 
     # 名前が正当かチェック
     if($HcurrentName =~ /[,\?\(\)\<\>\$]|^無人$/) {
-	# 使えない名前
-	unlock();
-	tempNewIslandBadName();
-	return;
+        # 使えない名前
+        unlock();
+        tempNewIslandBadName();
+        return;
     }
 
     # 名前の重複チェック
     if(nameToNumber($HcurrentName) != -1) {
-	# すでに発見ずみ
-	unlock();
-	tempNewIslandAlready();
-	return;
+        # すでに発見ずみ
+        unlock();
+        tempNewIslandAlready();
+        return;
     }
 
     # passwordの存在判定
     if($HinputPassword eq '') {
-	# password無し
-	unlock();
-	tempNewIslandNoPassword();
-	return;
+        # password無し
+        unlock();
+        tempNewIslandNoPassword();
+        return;
     }
 
     # 確認用パスワード
     if($HinputPassword2 ne $HinputPassword) {
-	# password間違い
-	unlock();
-	tempWrongPassword();
-	return;
+        # password間違い
+        unlock();
+        tempWrongPassword();
+        return;
     }
 
     # 新しい島の番号を決める
@@ -84,6 +84,7 @@ sub newIslandMain {
     # データ書き出し
     writeIslandsFile($island->{'id'});
     logDiscover($HcurrentName); # ログ
+    Hako::DB->init_command($island->{id});
 
     # 開放
     unlock();

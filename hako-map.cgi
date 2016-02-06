@@ -94,78 +94,77 @@ sub commandMain {
 
     # パスワード
     if(!checkPassword($island->{'password'},$HinputPassword)) {
-	# password間違い
-	unlock();
-	tempWrongPassword();
-	return;
+        # password間違い
+        unlock();
+        tempWrongPassword();
+        return;
     }
 
     # モードで分岐
     my($command) = $island->{'command'};
 
     if($HcommandMode eq 'delete') {
-	slideFront($command, $HcommandPlanNumber);
-	tempCommandDelete();
-    } elsif(($HcommandKind == $HcomAutoPrepare) ||
-	    ($HcommandKind == $HcomAutoPrepare2)) {
-	# フル整地、フル地ならし
-	# 座標配列を作る
-	makeRandomPointArray();
-	my($land) = $island->{'land'};
+        Hako::DB->delete_command($island->{id}, $HcommandPlanNumber);
+        tempCommandDelete();
+    } elsif(($HcommandKind == $HcomAutoPrepare) || ($HcommandKind == $HcomAutoPrepare2)) {
+        # フル整地、フル地ならし
+        # 座標配列を作る
+        makeRandomPointArray();
+        my($land) = $island->{'land'};
 
-	# コマンドの種類決定
-	my($kind) = $HcomPrepare;
-	if($HcommandKind == $HcomAutoPrepare2) {
-	    $kind = $HcomPrepare2;
-	}
+        # コマンドの種類決定
+        my($kind) = $HcomPrepare;
+        if($HcommandKind == $HcomAutoPrepare2) {
+            $kind = $HcomPrepare2;
+        }
 
-	my($i) = 0;
-	my($j) = 0;
-	while(($j < $HpointNumber) && ($i < $HcommandMax)) {
-	    my($x) = $Hrpx[$j];
-	    my($y) = $Hrpy[$j];
-	    if($land->[$x][$y] == $HlandWaste) {
-		slideBack($command, $HcommandPlanNumber);
-		$command->[$HcommandPlanNumber] = {
-		    'kind' => $kind,
-		    'target' => 0,
-		    'x' => $x,
-		    'y' => $y,
-		    'arg' => 0
-		    };
-		$i++;
-	    }
-	    $j++;
-	}
-	tempCommandAdd();
+        my($i) = 0;
+        my($j) = 0;
+        while(($j < $HpointNumber) && ($i < $HcommandMax)) {
+            my($x) = $Hrpx[$j];
+            my($y) = $Hrpy[$j];
+            if($land->[$x][$y] == $HlandWaste) {
+                my $cmd = {
+                    kind   => $kind,
+                    target => 0,
+                    x      => $x,
+                    y      => $y,
+                    arg    => 0,
+                };
+                Hako::DB->insert_command($island->{id}, $HcommandPlanNumber, $cmd);
+
+                $i++;
+            }
+            $j++;
+        }
+        tempCommandAdd();
     } elsif($HcommandKind == $HcomAutoDelete) {
-	# 全消し
-	my($i);
-	for($i = 0; $i < $HcommandMax; $i++) {
-	    slideFront($command, $HcommandPlanNumber);
-	}
-	tempCommandDelete();
+        # 全消し
+        Hako::DB->delete_all_command($island->{id});
+        tempCommandDelete();
     } else {
-	if($HcommandMode eq 'insert') {
-	    slideBack($command, $HcommandPlanNumber);
-	}
-	tempCommandAdd();
-	# コマンドを登録
-	$command->[$HcommandPlanNumber] = {
-	    'kind' => $HcommandKind,
-	    'target' => $HcommandTarget,
-	    'x' => $HcommandX,
-	    'y' => $HcommandY,
-	    'arg' => $HcommandArg
-	    };
+        tempCommandAdd();
+        # コマンドを登録
+        my $cmd = {
+            kind   => $HcommandKind,
+            target => $HcommandTarget,
+            x      => $HcommandX,
+            y      => $HcommandY,
+            arg    => $HcommandArg,
+        };
+        if ($HcommandMode eq "insert") {
+            Hako::DB->insert_command($island->{id}, $HcommandPlanNumber, $cmd);
+        } else {
+            Hako::DB->insert_command($island->{id}, $HcommandPlanNumber, $cmd, 1);
+        }
     }
+    $island->{command} = Hako::DB->get_commands($island->{id});
 
     # データの書き出し
     writeIslandsFile($HcurrentID);
 
     # owner modeへ
     ownerMain();
-
 }
 
 #----------------------------------------------------------------------
@@ -818,7 +817,6 @@ sub tempCommand {
     } elsif(($kind == $HcomFarm) || ($kind == $HcomFactory) || ($kind == $HcomMountain)) {
         # 回数付き
         if($arg == 0) {
-            warn $name;
             out("@{[$point]}で@{[$name]}");
         } else {
             out("@{[$point]}で@{[$name]}(@{[$arg]}回)");
