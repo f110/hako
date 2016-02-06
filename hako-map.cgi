@@ -14,9 +14,6 @@ use utf8;
 #----------------------------------------------------------------------
 # メイン
 sub printIslandMain {
-    # 開放
-    unlock();
-
     # idから島番号を取得
     $HcurrentNumber = $HidToNumber{$HcurrentID};
 
@@ -50,9 +47,6 @@ sub printIslandMain {
 #----------------------------------------------------------------------
 # メイン
 sub ownerMain {
-    # 開放
-    unlock();
-
     # モードを明示
     $HmainMode = 'owner';
 
@@ -95,7 +89,6 @@ sub commandMain {
     # パスワード
     if(!checkPassword($island->{'password'},$HinputPassword)) {
         # password間違い
-        unlock();
         tempWrongPassword();
         return;
     }
@@ -180,7 +173,6 @@ sub commentMain {
     # パスワード
     if(!checkPassword($island->{'password'},$HinputPassword)) {
 	# password間違い
-	unlock();
 	tempWrongPassword();
 	return;
     }
@@ -210,7 +202,6 @@ sub localBbsMain {
 
     # なぜかその島がない場合
     if($HcurrentNumber eq '') {
-        unlock();
         tempProblem();
         return;
     }
@@ -218,7 +209,6 @@ sub localBbsMain {
     # 削除モードじゃなくて名前かメッセージがない場合
     if($HlbbsMode != 2) {
         if(($HlbbsName eq '') || ($HlbbsName eq '')) {
-            unlock();
             tempLbbsNoMessage();
             return;
         }
@@ -228,7 +218,6 @@ sub localBbsMain {
     if($HlbbsMode != 0) {
         if(!checkPassword($island->{'password'},$HinputPassword)) {
             # password間違い
-            unlock();
             tempWrongPassword();
             return;
         }
