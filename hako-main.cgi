@@ -753,7 +753,6 @@ sub to_app {
                      $command->[$i]->{'arg'}
                      );
             }
-            Hako::DB->save_command($island->{id}, $island->{command});
 
             close(IOUT);
             unlink("${HdirName}/island.$island->{'id'}");
