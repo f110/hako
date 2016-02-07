@@ -1,5 +1,7 @@
 # vim: set ft=perl:
 use utf8;
+use Hako::Config;
+use Hako::Template::Function;
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
 # トップモジュール(ver1.00)
@@ -22,11 +24,11 @@ sub topPageMain {
 sub tempTopPage {
     # タイトル
     out(<<END);
-${HtagTitle_}$Htitle${H_tagTitle}
+@{[Hako::Config::TAG_TITLE_]}@{[Hako::Config::TITLE]}@{[Hako::Config::_TAG_TITLE]}
 END
 
     # デバッグモードなら「ターンを進める」ボタン
-    if($Hdebug == 1) {
+    if(Hako::Config::DEBUG == 1) {
         out(<<END);
 <FORM action="$HthisFile" method="POST">
 <INPUT TYPE="submit" VALUE="ターンを進める" NAME="TurnButton">
@@ -35,17 +37,19 @@ END
     }
 
     my($mStr1) = '';
-    if($HhideMoneyMode != 0) {
-	$mStr1 = "<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}資金${H_tagTH}</NOBR></TH>";
+    if (Hako::Config::HIDE_MONEY_MODE != 0) {
+        $mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
     }
 
     # フォーム
     out(<<END);
-<H1>${HtagHeader_}ターン$HislandTurn${H_tagHeader}</H1>
+<H1>@{[Hako::Config::TAG_HEADER_]}ターン$HislandTurn@{[Hako::Config::_TAG_HEADER]}</H1>
 
 <HR>
-<H1>${HtagHeader_}自分の島へ${H_tagHeader}</H1>
+<H1>@{[Hako::Config::TAG_HEADER_]}自分の島へ@{[Hako::Config::_TAG_HEADER]}</H1>
 <FORM action="$HthisFile" method="POST">
+END
+        out(<<END);
 あなたの島の名前は？<BR>
 <SELECT NAME="ISLANDID">
 $HislandList
@@ -58,21 +62,23 @@ $HislandList
 
 <HR>
 
-<H1>${HtagHeader_}諸島の状況${H_tagHeader}</H1>
+END
+        out(<<END);
+<H1>@{[Hako::Config::TAG_HEADER_]}諸島の状況@{[Hako::Config::_TAG_HEADER]}</H1>
 <P>
 島の名前をクリックすると、<B>観光</B>することができます。
 </P>
 <TABLE BORDER>
 <TR>
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}順位${H_tagTH}</NOBR></TH>
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}島${H_tagTH}</NOBR></TH>
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}人口${H_tagTH}</NOBR></TH>
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}面積${H_tagTH}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("順位")]}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("島")]}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("人口")]}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("面積")]}</NOBR></TH>
 $mStr1
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}食料${H_tagTH}</NOBR></TH>
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}農場規模${H_tagTH}</NOBR></TH>
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}工場規模${H_tagTH}</NOBR></TH>
-<TH $HbgTitleCell align=center nowrap=nowrap><NOBR>${HtagTH_}採掘場規模${H_tagTH}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("食料")]}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("農場規模")]}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("工場規模")]}</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("")]}採掘場規模</NOBR></TH>
 </TR>
 END
 
@@ -85,13 +91,13 @@ END
 	$farm = $island->{'farm'};
 	$factory = $island->{'factory'};
 	$mountain = $island->{'mountain'};
-	$farm = ($farm == 0) ? "保有せず" : "${farm}0$HunitPop";
-	$factory = ($factory == 0) ? "保有せず" : "${factory}0$HunitPop";
-	$mountain = ($mountain == 0) ? "保有せず" : "${mountain}0$HunitPop";
+	$farm = ($farm == 0) ? "保有せず" : "${farm}0" . Hako::Config::UNIT_POPULATION;
+	$factory = ($factory == 0) ? "保有せず" : "${factory}0" . Hako::Config::UNIT_POPULATION;
+	$mountain = ($mountain == 0) ? "保有せず" : "${mountain}0" . Hako::Config::UNIT_POPULATION;
 	if($island->{'absent'}  == 0) {
-		$name = "${HtagName_}$island->{'name'}島${H_tagName}";
+		$name = "@{[Hako::Config::TAG_NAME_]}$island->{'name'}島@{[Hako::Config::_TAG_NAME]}";
 	} else {
-	    $name = "${HtagName2_}$island->{'name'}島($island->{'absent'})${H_tagName2}";
+	    $name = "@{[Hako::Config::TAG_NAME2_]}$island->{'name'}島($island->{'absent'})@{[Hako::Config::_TAG_NAME2]}";
 	}
 
 	$prize = $island->{'prize'};
@@ -104,7 +110,7 @@ END
 
 	# ターン杯の表示
 	while($turns =~ s/([0-9]*),//) {
-	    $prize .= "<IMG SRC=\"prize0.gif\" ALT=\"$1${Hprize[0]}\" WIDTH=16 HEIGHT=16> ";
+	    $prize .= "<IMG SRC=\"prize0.gif\" ALT=\"$1" . ${Hako::Config::PRIZE()}[0] . "\" WIDTH=16 HEIGHT=16> ";
 	}
 
 	# 名前に賞の文字を追加
@@ -112,7 +118,7 @@ END
 	my($i);
 	for($i = 1; $i < 10; $i++) {
 	    if($flags & $f) {
-		$prize .= "<IMG SRC=\"prize${i}.gif\" ALT=\"${Hprize[$i]}\" WIDTH=16 HEIGHT=16> ";
+		$prize .= "<IMG SRC=\"prize${i}.gif\" ALT=\"" . ${Hako::Config::PRIZE()}[$i] . "\" WIDTH=16 HEIGHT=16> ";
 	    }
 	    $f *= 2;
 	}
@@ -121,40 +127,40 @@ END
 	$f = 1;
 	my($max) = -1;
 	my($mNameList) = '';
-	for($i = 0; $i < $HmonsterNumber; $i++) {
+	for($i = 0; $i < Hako::Config::MONSTER_NUMBER; $i++) {
 	    if($monsters & $f) {
-		$mNameList .= "[$HmonsterName[$i]] ";
+		$mNameList .= "[" . ${Hako::Config::MONSTER_NAME()}[$i] . "] ";
 		$max = $i;
 	    }
 	    $f *= 2;
 	}
 	if($max != -1) {
-	    $prize .= "<IMG SRC=\"${HmonsterImage[$max]}\" ALT=\"$mNameList\" WIDTH=16 HEIGHT=16> ";
+	    $prize .= "<IMG SRC=\"" . ${Hako::Config::MONSTER_IMAGE()}[$max] . "\" ALT=\"$mNameList\" WIDTH=16 HEIGHT=16> ";
 	}
 
 
 	my($mStr1) = '';
-	if($HhideMoneyMode == 1) {
-	    $mStr1 = "<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'money'}$HunitMoney</NOBR></TD>";
-	} elsif($HhideMoneyMode == 2) {
+	if (Hako::Config::HIDE_MONEY_MODE == 1) {
+	    $mStr1 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{money}@{[Hako::Config::UNIT_MONEY]}</NOBR></TD>";
+	} elsif (Hako::Config::HIDE_MONEY_MODE == 2) {
 	    my($mTmp) = aboutMoney($island->{'money'});
-	    $mStr1 = "<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$mTmp</NOBR></TD>";
+	    $mStr1 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mTmp</NOBR></TD>";
 	}
 
 	out(<<END);
 <TR>
-<TD $HbgNumberCell ROWSPAN=2 align=center nowrap=nowrap><NOBR>${HtagNumber_}$j${H_tagNumber}</NOBR></TD>
-<TD $HbgNameCell ROWSPAN=2 align=left nowrap=nowrap><NOBR><A STYlE=\"text-decoration:none\" HREF="${HthisFile}?Sight=${id}">$name</A></NOBR><BR>$prize</TD>
-<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'pop'}$HunitPop</NOBR></TD>
-<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'area'}$HunitArea</NOBR></TD>
+<TD @{[Hako::Config::BG_NUMBER_CELL]} ROWSPAN=2 align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_number($j)]}</NOBR></TD>
+<TD @{[Hako::Config::BG_NAME_CELL]} ROWSPAN=2 align=left nowrap=nowrap><NOBR><A STYlE=\"text-decoration:none\" HREF="${HthisFile}?Sight=${id}">$name</A></NOBR><BR>$prize</TD>
+<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'pop'}@{[Hako::Config::UNIT_POPULATION]}</NOBR></TD>
+<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'area'}@{[Hako::Config::UNIT_AREA]}</NOBR></TD>
 $mStr1
-<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$island->{'food'}$HunitFood</NOBR></TD>
-<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$farm</NOBR></TD>
-<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$factory</NOBR></TD>
-<TD $HbgInfoCell align=right nowrap=nowrap><NOBR>$mountain</NOBR></TD>
+<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'food'}@{[Hako::Config::UNIT_FOOD]}</NOBR></TD>
+<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$farm</NOBR></TD>
+<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$factory</NOBR></TD>
+<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mountain</NOBR></TD>
 </TR>
 <TR>
-<TD $HbgCommentCell COLSPAN=7 align=left nowrap=nowrap><NOBR>${HtagTH_}コメント：${H_tagTH}$island->{'comment'}</NOBR></TD>
+<TD @{[Hako::Config::BG_COMMENT_CELL]} COLSPAN=7 align=left nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("コメント：")]}$island->{'comment'}</NOBR></TD>
 </TR>
 END
     }
@@ -163,10 +169,10 @@ END
 </TABLE>
 
 <HR>
-<H1>${HtagHeader_}新しい島を探す${H_tagHeader}</H1>
+<H1>@{[Hako::Config::TAG_HEADER_]}新しい島を探す@{[Hako::Config::_TAG_HEADER]}</H1>
 END
 
-    if($HislandNumber < $HmaxIsland) {
+    if($HislandNumber < Hako::Config::MAX_ISLAND) {
 	out(<<END);
 <FORM action="$HthisFile" method="POST">
 どんな名前をつける予定？<BR>
@@ -187,9 +193,9 @@ END
 
     out(<<END);
 <HR>
-<H1>${HtagHeader_}島の名前とパスワードの変更${H_tagHeader}</H1>
+<H1>@{[Hako::Config::TAG_HEADER_]}島の名前とパスワードの変更@{[Hako::Config::_TAG_HEADER]}</H1>
 <P>
-(注意)名前の変更には$HcostChangeName${HunitMoney}かかります。
+(注意)名前の変更には@{[Hako::Config::CHANGE_NAME_COST]}@{[Hako::Config::UNIT_MONEY]}かかります。
 </P>
 <FORM action="$HthisFile" method="POST">
 どの島ですか？<BR>
@@ -211,11 +217,11 @@ $HislandList
 
 <HR>
 
-<H1>${HtagHeader_}最近の出来事${H_tagHeader}</H1>
+<H1>@{[Hako::Config::TAG_HEADER_]}最近の出来事@{[Hako::Config::_TAG_HEADER]}</H1>
 END
     logPrintTop();
     out(<<END);
-<H1>${HtagHeader_}発見の記録${H_tagHeader}</H1>
+<H1>@{[Hako::Config::TAG_HEADER_]}発見の記録@{[Hako::Config::_TAG_HEADER]}</H1>
 END
     historyPrint();
 }
@@ -224,9 +230,8 @@ END
 sub logPrintTop {
     my $logs = Hako::DB->get_common_log($HislandTurn);
 
-    use Devel::Peek;
     for (@$logs) {
-        out("<NOBR>${HtagNumber_}ターン@{[$_->{turn}]}${H_tagNumber}：@{[$_->{message}]}</NOBR><BR>\n");
+        out("<NOBR>".Hako::Template::Function->wrap_number("ターン".$_->{turn})."：@{[$_->{message}]}</NOBR><BR>\n");
     }
 }
 
@@ -235,7 +240,7 @@ sub historyPrint {
     my $histories = Hako::DB->get_history();
     for my $line (@$histories) {
         my $msg = $line->{message};
-        out("<NOBR>${HtagNumber_}ターン@{[$line->{turn}]}${H_tagNumber}：@{[$msg]}</NOBR><BR>\n");
+        out("<NOBR>".Hako::Template::Function->wrap_number("ターン".$line->{turn})."：@{[$msg]}</NOBR><BR>\n");
     }
 }
 

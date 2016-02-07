@@ -164,7 +164,7 @@ sub get_commands {
     my $db = $class->connect;
     my $command_lists = $db->selectrow_hashref("SELECT lists FROM command_lists WHERE island_id = ?", {}, $island_id);
     my $ids = join(",", grep {$_ ne "-1"} split(",", $command_lists->{lists}));
-    my $commands = $db->selectall_arrayref("SELECT * FROM island_commands WHERE id IN (@{[$ids]})", {Slice => +{}});
+    my $commands = $ids ? $db->selectall_arrayref("SELECT * FROM island_commands WHERE id IN (@{[$ids]})", {Slice => +{}}) : [];
     my %id_map = map { $_->{id} => $_ } @$commands;
     my $sorted_commands = [map {
             if (exists($id_map{$_})) {

@@ -1,5 +1,7 @@
 # vim: set ft=perl:
 use utf8;
+use Hako::Config;
+use Hako::Template::Function;
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
 # ターン進行モジュール(ver1.02)
@@ -19,7 +21,7 @@ my(@ay) = (0,-1, 0, 1, 1, 0,-1,-2,-1, 0, 1, 2, 2, 2, 1, 0,-1,-2,-2);
 # メイン
 sub newIslandMain {
     # 島がいっぱいでないかチェック
-    if($HislandNumber >= $HmaxIsland) {
+    if($HislandNumber >= Hako::Config::MAX_ISLAND) {
         tempNewIslandFull();
         return;
     }
@@ -68,7 +70,7 @@ sub newIslandMain {
     $island->{'name'} = $HcurrentName;
     $island->{'id'} = $HislandNextID;
     $HislandNextID ++;
-    $island->{'absent'} = $HgiveupTurn - 3;
+    $island->{'absent'} = Hako::Config::GIVEUP_TURN - 3;
     $island->{'comment'} = '(未登録)';
     $island->{'password'} = encode($HinputPassword);
     
@@ -93,32 +95,32 @@ sub makeNewIsland {
 
     # 初期コマンドを生成
     my(@command, $i);
-    for($i = 0; $i < $HcommandMax; $i++) {
-	 $command[$i] = {
-	     'kind' => $HcomDoNothing,
-	     'target' => 0,
-	     'x' => 0,
-	     'y' => 0,
-	     'arg' => 0
-	 };
+    for($i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
+        $command[$i] = {
+            'kind' => $HcomDoNothing,
+            'target' => 0,
+            'x' => 0,
+            'y' => 0,
+            'arg' => 0
+        };
     }
 
     # 初期掲示板を作成
     my(@lbbs);
-    for($i = 0; $i < $HlbbsMax; $i++) {
-	 $lbbs[$i] = "0>>";
+    for($i = 0; $i < Hako::Config::LOCAL_BBS_MAX; $i++) {
+        $lbbs[$i] = "0>>";
     }
 
     # 島にして返す
-    return {
-	'land' => $land,
-	'landValue' => $landValue,
-	'command' => \@command,
-	'lbbs' => \@lbbs,
-	'money' => $HinitialMoney,
-	'food' => $HinitialFood,
-	'prize' => '0,0,',
-    };
+    return Hako::Model::Island->new({
+            land      => $land,
+            landValue => $landValue,
+            command   => \@command,
+            lbbs      => \@lbbs,
+            money     => Hako::Config::INITIAL_MONEY,
+            food      => Hako::Config::INITIAL_FOOD,
+            prize     => '0,0,',
+        });
 }
 
 # 新しい島の地形を作成する
@@ -127,59 +129,59 @@ sub makeNewLand {
     my(@land, @landValue, $x, $y, $i);
 
     # 海に初期化
-    for($y = 0; $y < $HislandSize; $y++) {
-	 for($x = 0; $x < $HislandSize; $x++) {
-	     $land[$x][$y] = $HlandSea;
-	     $landValue[$x][$y] = 0;
-	 }
+    for($y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
+        for($x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
+            $land[$x][$y] = $HlandSea;
+            $landValue[$x][$y] = 0;
+        }
     }
 
     # 中央の4*4に荒地を配置
-    my($center) = $HislandSize / 2 - 1;
+    my($center) = Hako::Config::ISLAND_SIZE / 2 - 1;
     for($y = $center - 1; $y < $center + 3; $y++) {
-	 for($x = $center - 1; $x < $center + 3; $x++) {
-	     $land[$x][$y] = $HlandWaste;
-	 }
+        for($x = $center - 1; $x < $center + 3; $x++) {
+            $land[$x][$y] = $HlandWaste;
+        }
     }
 
     # 8*8範囲内に陸地を増殖
     for($i = 0; $i < 120; $i++) {
-	 # ランダム座標
-	 $x = random(8) + $center - 3;
-	 $y = random(8) + $center - 3;
+        # ランダム座標
+        $x = random(8) + $center - 3;
+        $y = random(8) + $center - 3;
 
-	 my($tmp) = countAround(\@land, $x, $y, $HlandSea, 7);
-	 if(countAround(\@land, $x, $y, $HlandSea, 7) != 7){
-	     # 周りに陸地がある場合、浅瀬にする
-	     # 浅瀬は荒地にする
-	     # 荒地は平地にする
-	     if($land[$x][$y] == $HlandWaste) {
-		 $land[$x][$y] = $HlandPlains;
-		 $landValue[$x][$y] = 0;
-	     } else {
-		 if($landValue[$x][$y] == 1) {
-                     $land[$x][$y] = $HlandWaste;
-                     $landValue[$x][$y] = 0;
-		 } else {
-		     $landValue[$x][$y] = 1;
-		 }
-	     }
-	 }
+        my($tmp) = countAround(\@land, $x, $y, $HlandSea, 7);
+        if(countAround(\@land, $x, $y, $HlandSea, 7) != 7){
+            # 周りに陸地がある場合、浅瀬にする
+            # 浅瀬は荒地にする
+            # 荒地は平地にする
+            if($land[$x][$y] == $HlandWaste) {
+                $land[$x][$y] = $HlandPlains;
+                $landValue[$x][$y] = 0;
+            } else {
+                if($landValue[$x][$y] == 1) {
+                    $land[$x][$y] = $HlandWaste;
+                    $landValue[$x][$y] = 0;
+                } else {
+                    $landValue[$x][$y] = 1;
+                }
+            }
+        }
     }
 
     # 森を作る
     my($count) = 0;
     while($count < 4) {
-	 # ランダム座標
-	 $x = random(4) + $center - 1;
-	 $y = random(4) + $center - 1;
+        # ランダム座標
+        $x = random(4) + $center - 1;
+        $y = random(4) + $center - 1;
 
-	 # そこがすでに森でなければ、森を作る
-	 if($land[$x][$y] != $HlandForest) {
-	     $land[$x][$y] = $HlandForest;
-	     $landValue[$x][$y] = 5; # 最初は500本
-	     $count++;
-	 }
+        # そこがすでに森でなければ、森を作る
+        if($land[$x][$y] != $HlandForest) {
+            $land[$x][$y] = $HlandForest;
+            $landValue[$x][$y] = 5; # 最初は500本
+            $count++;
+        }
     }
 
     # 町を作る
@@ -245,14 +247,14 @@ sub changeMain {
     my($flag) = 0;
 
     # パスワードチェック
-    if($HoldPassword eq $HspecialPassword) {
-	# 特殊パスワード
-	$island->{'money'} = 9999;
-	$island->{'food'} = 9999;
+    if ($HoldPassword eq Hako::Config::SPECIAL_PASSWORD) {
+        # 特殊パスワード
+        $island->{'money'} = 9999;
+        $island->{'food'} = 9999;
     } elsif(!checkPassword($island->{'password'},$HoldPassword)) {
-	# password間違い
-	tempWrongPassword();
-	return;
+        # password間違い
+        tempWrongPassword();
+        return;
     }
 
     # 確認用パスワード
@@ -278,15 +280,15 @@ sub changeMain {
 	    return;
 	}
 
-	if($island->{'money'} < $HcostChangeName) {
+	if($island->{'money'} < Hako::Config::CHANGE_NAME_COST) {
 	    # 金が足りない
 	    tempChangeNoMoney();
 	    return;
 	}
 
 	# 代金
-	if($HoldPassword ne $HspecialPassword) {
-	    $island->{'money'} -= $HcostChangeName;
+	if($HoldPassword ne Hako::Config::SPECIAL_PASSWORD) {
+	    $island->{'money'} -= Hako::Config::CHANGE_NAME_COST;
 	}
 
 	# 名前を変更
@@ -302,10 +304,10 @@ sub changeMain {
 	$flag = 1;
     }
 
-    if(($flag == 0) && ($HoldPassword ne $HspecialPassword)) {
-	# どちらも変更されていない
-	tempChangeNothing();
-	return;
+    if(($flag == 0) && ($HoldPassword ne Hako::Config::SPECIAL_PASSWORD)) {
+        # どちらも変更されていない
+        tempChangeNothing();
+        return;
     }
 
     # データ書き出し
@@ -321,17 +323,7 @@ sub changeMain {
 # メイン
 sub turnMain {
     # 最終更新時間を更新
-    $HislandLastTime += $HunitTime;
-
-    # ログファイルを後ろにずらす
-    my($i, $j, $s, $d);
-    for($i = ($HlogMax - 1); $i >= 0; $i--) {
-	$j = $i + 1;
-	my($s) = "${HdirName}/hakojima.log$i";
-	my($d) = "${HdirName}/hakojima.log$j";
-	unlink($d);
-	rename($s, $d);
-    }
+    $HislandLastTime += Hako::Config::UNIT_TIME;
 
     # 座標配列を作る
     makeRandomPointArray();
@@ -389,33 +381,14 @@ sub turnMain {
 	
 
     # ターン杯対象ターンだったら、その処理
-    if(($HislandTurn % $HturnPrizeUnit) == 0) {
+    if(($HislandTurn % Hako::Config::TURN_PRIZE_UNIT) == 0) {
 	my($island) = $Hislands[0];
-	logPrize($island->{'id'}, $island->{'name'}, "$HislandTurn${Hprize[0]}");
+	logPrize($island->{'id'}, $island->{'name'}, "$HislandTurn" . ${Hako::Config::PRIZE()}[0]);
 	$island->{'prize'} .= "${HislandTurn},";
     }
 
     # 島数カット
     $HislandNumber = $remainNumber;
-
-    # バックアップターンであれば、書く前にrename
-    if(($HislandTurn % $HbackupTurn) == 0) {
-        my($i);
-        my($tmp) = $HbackupTimes - 1;
-        myrmtree("${HdirName}.bak$tmp");
-        for($i = ($HbackupTimes - 1); $i > 0; $i--) {
-            my($j) = $i - 1;
-            rename("${HdirName}.bak$j", "${HdirName}.bak$i");
-        }
-        rename("${HdirName}", "${HdirName}.bak0");
-        mkdir("${HdirName}", $HdirMode);
-
-        # ログファイルだけ戻す
-        for($i = 0; $i <= $HlogMax; $i++) {
-            rename("${HdirName}.bak0/hakojima.log$i",
-               "${HdirName}/hakojima.log$i");
-        }
-    }
 
     # ファイルに書き出し
     writeIslandsFile(-1);
@@ -460,7 +433,7 @@ sub income {
     }
 
     # 食料消費
-    $island->{'food'} = int(($island->{'food'}) - ($pop * $HeatenFood));
+    $island->{'food'} = int(($island->{'food'}) - ($pop * Hako::Config::EATEN_FOOD));
 }
 
 
@@ -503,7 +476,7 @@ sub doCommand {
 	$island->{'absent'} ++;
 	
 	# 自動放棄
-	if($island->{'absent'} >= $HgiveupTurn) {
+	if($island->{'absent'} >= Hako::Config::GIVEUP_TURN) {
 	    $comArray->[0] = {
 		'kind' => $HcomGiveup,
 		'target' => 0,
@@ -562,7 +535,7 @@ sub doCommand {
 	    return 0;
 	} else {
 	    # 整地なら、埋蔵金の可能性あり
-	    if(random(1000) < $HdisMaizo) {
+	    if(random(1000) < Hako::Config::DISASTER_MAIZO) {
 		my($v) = 100 + random(901);
 		$island->{'money'} += $v;
 		logMaizo($id, $name, $comName, $v);
@@ -612,8 +585,8 @@ sub doCommand {
 			$sx--;
 		    }
 
-		    if(($sx < 0) || ($sx >= $HislandSize) ||
-		       ($sy < 0) || ($sy >= $HislandSize)) {
+		    if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
+		       ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 		    } else {
 			# 範囲内の場合
 			if($land->[$sx][$sy] == $HlandSea) {
@@ -648,7 +621,7 @@ sub doCommand {
 	    if($arg == 0) { $arg = 1; }
 	    my($value, $str, $p);
 	    $value = min($arg * ($cost), $island->{'money'});
-	    $str = "$value$HunitMoney";
+	    $str = "$value" . Hako::Config::UNIT_MONEY;
 	    $p = int($value / $cost);
 	    $island->{'money'} -= $value;
 
@@ -695,7 +668,7 @@ sub doCommand {
 	logLandSuc($id, $name, $comName, $point);
 
 	# 売却金を得る
-	$island->{'money'} += $HtreeValue * $lv;
+	$island->{'money'} += Hako::Config::TREE_VALUE * $lv;
 	return 1;
     } elsif(($kind == $HcomPlant) ||
 	    ($kind == $HcomFarm) ||
@@ -795,7 +768,7 @@ sub doCommand {
 	    } else {
 		# 目的の場所を記念碑に
 		$land->[$x][$y] = $HlandMonument;
-		if($arg >= $HmonumentNumber) {
+		if($arg >= Hako::Config::MONUMENT_NUMBER) {
 		    $arg = 0;
 		}
 		$landValue->[$x][$y] = $arg;
@@ -942,8 +915,8 @@ sub doCommand {
 		}
 
 		# 着弾点範囲内外チェック
-		if(($tx < 0) || ($tx >= $HislandSize) ||
-		   ($ty < 0) || ($ty >= $HislandSize)) {
+		if(($tx < 0) || ($tx >= Hako::Config::ISLAND_SIZE) ||
+		   ($ty < 0) || ($ty >= Hako::Config::ISLAND_SIZE)) {
 		    # 範囲外
 		    if($kind == $HcomMissileST) {
 			# ステルス
@@ -983,8 +956,8 @@ sub doCommand {
 				$sx--;
 			    }
 
-			    if(($sx < 0) || ($sx >= $HislandSize) ||
-			       ($sy < 0) || ($sy >= $HislandSize)) {
+			    if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
+			       ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 				# 範囲外の場合何もしない
 			    } else {
 				# 範囲内の場合
@@ -1075,8 +1048,8 @@ sub doCommand {
 			   ($land->[$bx][$by] == $HlandSbase)) {
 			    # まだ基地の場合のみ
 			    $landValue->[$bx][$by] += int($tLv / 20);
-			    if($landValue->[$bx][$by] > $HmaxExpPoint) {
-				$landValue->[$bx][$by] = $HmaxExpPoint;
+			    if($landValue->[$bx][$by] > Hako::Config::MAX_EXP_POINT) {
+				$landValue->[$bx][$by] = Hako::Config::MAX_EXP_POINT;
 			    }
 			}
 		    }
@@ -1108,7 +1081,7 @@ sub doCommand {
 		    } elsif($tL == $HlandMonster) {
 			# 怪獣
 			my($mKind, $mName, $mHp) = monsterSpec($tLv);
-			my($special) = $HmonsterSpecial[$mKind];
+			my($special) = ${Hako::Config::MONSTER_SPECIAL()}[$mKind];
 
 			# 硬化中?
 			if((($special == 3) && (($HislandTurn % 2) == 1)) ||
@@ -1133,9 +1106,9 @@ sub doCommand {
 				if(($land->[$bx][$by] == $HlandBase) ||
 				   ($land->[$bx][$by] == $HlandSbase)) {
 				    # 経験値
-				    $landValue->[$bx][$by] += $HmonsterExp[$mKind];
-				    if($landValue->[$bx][$by] > $HmaxExpPoint) {
-					$landValue->[$bx][$by] = $HmaxExpPoint;
+				    $landValue->[$bx][$by] += ${Hako::Config::MONSTER_EXP()}[$mKind];
+				    if($landValue->[$bx][$by] > Hako::Config::MAX_EXP_POINT) {
+					$landValue->[$bx][$by] = Hako::Config::MAX_EXP_POINT;
 				    }
 				}
 
@@ -1152,7 +1125,7 @@ sub doCommand {
 				}
 
 				# 収入
-				my($value) = $HmonsterValue[$mKind];
+				my($value) = ${Hako::Config::MONSTER_VALUE()}[$mKind];
 				if($value > 0) {
 				    $tIsland->{'money'} += $value;
 				    logMsMonMoney($target, $mName, $value);
@@ -1206,8 +1179,8 @@ sub doCommand {
 			    ($land->[$bx][$by] == $HlandSbase)) {
 			    $landValue->[$bx][$by] += int($tLv / 20);
 			    $boat += $tLv; # 通常ミサイルなので難民にプラス
-			    if($landValue->[$bx][$by] > $HmaxExpPoint) {
-				$landValue->[$bx][$by] = $HmaxExpPoint;
+			    if($landValue->[$bx][$by] > Hako::Config::MAX_EXP_POINT) {
+				$landValue->[$bx][$by] = Hako::Config::MAX_EXP_POINT;
 			    }
 			}
 		    }
@@ -1293,13 +1266,13 @@ sub doCommand {
 
 		    if((!($flags & 8)) &&  $achive >= 200){
 			$flags |= 8;
-			logPrize($id, $name, $Hprize[4]);
+			logPrize($id, $name, ${Hako::Config::PRIZE()}[4]);
 		    } elsif((!($flags & 16)) &&  $achive > 500){
 			$flags |= 16;
-			logPrize($id, $name, $Hprize[5]);
+			logPrize($id, $name, ${Hako::Config::PRIZE()}[5]);
 		    } elsif((!($flags & 32)) &&  $achive > 800){
 			$flags |= 32;
-			logPrize($id, $name, $Hprize[6]);
+			logPrize($id, $name, ${Hako::Config::PRIZE()}[6]);
 		    }
 		    $island->{'prize'} = "$flags,$monsters,$turns";
 		}
@@ -1348,10 +1321,10 @@ sub doCommand {
 	my($value, $str);
 	if($cost < 0) {
 	    $value = min($arg * (-$cost), $island->{'food'});
-	    $str = "$value$HunitFood";
+	    $str = "$value" . Hako::Config::UNIT_FOOD;
 	} else {
 	    $value = min($arg * ($cost), $island->{'money'});
-	    $str = "$value$HunitMoney";
+	    $str = "$value" . Hako::Config::UNIT_MONEY;
 	}
 
 	# 援助ログ
@@ -1471,15 +1444,15 @@ sub doEachHex {
 	    # 海底油田
 	    my($value, $str, $lName);
 	    $lName = landName($landKind, $lv);
-	    $value = $HoilMoney;
+	    $value = Hako::Config::OIL_MONEY;
 	    $island->{'money'} += $value;
-	    $str = "$value$HunitMoney";
+	    $str = "$value" . Hako::Config::UNIT_MONEY;
 
 	    # 収入ログ
 	    logOilMoney($id, $name, $lName, "($x, $y)", $str);
 
 	    # 枯渇判定
-	    if(random(1000) < $HoilRatio) {
+	    if(random(1000) < Hako::Config::OIL_RAITO) {
 		# 枯渇
 		logOilEnd($id, $name, $lName, "($x, $y)");
 		$land->[$x][$y] = $HlandSea;
@@ -1495,7 +1468,7 @@ sub doEachHex {
 
 	    # 各要素の取り出し
 	    my($mKind, $mName, $mHp) = monsterSpec($landValue->[$x][$y]);
-	    my($special) = $HmonsterSpecial[$mKind];
+	    my($special) = ${Hako::Config::MONSTER_SPECIAL()}[$mKind];
 
 	    # 硬化中?
 	    if((($special == 3) && (($HislandTurn % 2) == 1)) ||
@@ -1518,8 +1491,8 @@ sub doEachHex {
 		}
 
 		# 範囲外判定
-		if(($sx < 0) || ($sx >= $HislandSize) ||
-		   ($sy < 0) || ($sy >= $HislandSize)) {
+		if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
+		   ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 		    next;
 		}
 
@@ -1554,9 +1527,9 @@ sub doEachHex {
 	    $landValue->[$x][$y] = 0;
 
 	    # 移動済みフラグ
-	    if($HmonsterSpecial[$mKind] == 2) {
+	    if(${Hako::Config::MONSTER_SPECIAL()}[$mKind] == 2) {
 		# 移動済みフラグは立てない
-	    } elsif($HmonsterSpecial[$mKind] == 1) {
+	    } elsif(${Hako::Config::MONSTER_SPECIAL()}[$mKind] == 1) {
 		# 速い怪獣
 		$monsterMove[$sx][$sy] = $monsterMove[$x][$y] + 1;
 	    } else {
@@ -1564,7 +1537,7 @@ sub doEachHex {
 		$monsterMove[$sx][$sy] = 2;
 	    }
 
-	    if(($l == $HlandDefence) && ($HdBaseAuto == 1)) {
+	    if(($l == $HlandDefence) && (Hako::Config::DEFENCE_BASE_AUTO == 1)) {
 		# 防衛施設を踏んだ
 		logMonsMoveDefence($id, $name, $lName, $point, $mName);
 
@@ -1580,7 +1553,7 @@ sub doEachHex {
 	if((($landKind == $HlandTown) && ($lv > 30)) ||
 	   ($landKind == $HlandHaribote) ||
 	   ($landKind == $HlandFactory)) {
-	    if(random(1000) < $HdisFire) {
+	    if(random(1000) < Hako::Config::DISASTER_FIRE) {
 		# 周囲の森と記念碑を数える
 		if((countAround($land, $x, $y, $HlandForest, 7) +
 		    countAround($land, $x, $y, $HlandMonument, 7)) == 0) {
@@ -1611,8 +1584,8 @@ sub countGrow {
 	     $sx--;
 	 }
 
-	 if(($sx < 0) || ($sx >= $HislandSize) ||
-	    ($sy < 0) || ($sy >= $HislandSize)) {
+	 if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
+	    ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 	 } else {
 	     # 範囲内の場合
 	     if(($land->[$sx][$sy] == $HlandTown) ||
@@ -1637,7 +1610,7 @@ sub doIslandProcess {
     my($landValue) = $island->{'landValue'};
 
     # 地震判定
-    if(random(1000) < (($island->{'prepare2'} + 1) * $HdisEarthquake)) {
+    if(random(1000) < (($island->{'prepare2'} + 1) * Hako::Config::DISASTER_EARTHQUAKE)) {
 	# 地震発生
 	logEarthquake($id, $name);
 
@@ -1692,7 +1665,7 @@ sub doIslandProcess {
     }
 
     # 津波判定
-    if(random(1000) < $HdisTsunami) {
+    if(random(1000) < Hako::Config::DISASTER_TSUNAMI) {
 	# 津波発生
 	logTsunami($id, $name);
 
@@ -1728,8 +1701,8 @@ sub doIslandProcess {
     my($r) = random(10000);
     my($pop) = $island->{'pop'};
     do{
-	if((($r < ($HdisMonster * $island->{'area'})) &&
-	    ($pop >= $HdisMonsBorder1)) ||
+	if((($r < (Hako::Config::DISASTER_MONSTER * $island->{'area'})) &&
+	    ($pop >= Hako::Config::DISASTER_MONSTER_BORDER1)) ||
 	   ($island->{'monstersend'} > 0)) {
 	    # 怪獣出現
 	    # 種類を決める
@@ -1738,20 +1711,19 @@ sub doIslandProcess {
 		# 人造
 		$kind = 0;
 		$island->{'monstersend'}--;
-	    } elsif($pop >= $HdisMonsBorder3) {
+	    } elsif($pop >= Hako::Config::DISASTER_MONSTER_BORDER3) {
 		# level3まで
-		$kind = random($HmonsterLevel3) + 1;
-	    } elsif($pop >= $HdisMonsBorder2) {
+		$kind = random(Hako::Config::MONSTER_LEVEL3) + 1;
+	    } elsif($pop >= Hako::Config::DISASTER_MONSTER_BORDER2) {
 		# level2まで
-		$kind = random($HmonsterLevel2) + 1;
+		$kind = random(Hako::Config::MONSTER_LEVEL2) + 1;
 	    } else {
 		# level1のみ
-		$kind = random($HmonsterLevel1) + 1;
+		$kind = random(Hako::Config::MONSTER_LEVEL1) + 1;
 	    }
 
 	    # lvの値を決める
-	    $lv = $kind * 10
-		+ $HmonsterBHP[$kind] + random($HmonsterDHP[$kind]);
+	    $lv = $kind * 10 + ${Hako::Config::MONSTER_BOTTOM_HP()}[$kind] + random(${Hako::Config::MONSTER_DHP()}[$kind]);
 
 	    # どこに現れるか決める
 	    my($bx, $by, $i);
@@ -1779,8 +1751,8 @@ sub doIslandProcess {
     } while($island->{'monstersend'} > 0);
 
     # 地盤沈下判定
-    if(($island->{'area'} > $HdisFallBorder) &&
-       (random(1000) < $HdisFalldown)) {
+    if(($island->{'area'} > Hako::Config::DISASTER_FALL_BORDER) &&
+       (random(1000) < Hako::Config::DISASTER_FALL_DOWN)) {
 	# 地盤沈下発生
 	logFalldown($id, $name);
 
@@ -1825,7 +1797,7 @@ sub doIslandProcess {
     }
 
     # 台風判定
-    if(random(1000) < $HdisTyphoon) {
+    if(random(1000) < Hako::Config::DISASTER_TYPHOON) {
 	# 台風発生
 	logTyphoon($id, $name);
 
@@ -1855,12 +1827,12 @@ sub doIslandProcess {
     }
 
     # 巨大隕石判定
-    if(random(1000) < $HdisHugeMeteo) {
+    if(random(1000) < Hako::Config::DISASTER_HUGE_METEO) {
 	my($x, $y, $landKind, $lv, $point);
 
 	# 落下
-	$x = random($HislandSize);
-	$y = random($HislandSize);
+	$x = random(Hako::Config::ISLAND_SIZE);
+	$y = random(Hako::Config::ISLAND_SIZE);
 	$landKind = $land->[$x][$y];
 	$lv = $landValue->[$x][$y];
 	$point = "($x, $y)";
@@ -1879,8 +1851,8 @@ sub doIslandProcess {
 	my($x, $y, $landKind, $lv, $point);
 
 	# 落下
-	$x = random($HislandSize);
-	$y = random($HislandSize);
+	$x = random(Hako::Config::ISLAND_SIZE);
+	$y = random(Hako::Config::ISLAND_SIZE);
 	$landKind = $land->[$x][$y];
 	$lv = $landValue->[$x][$y];
 	$point = "($x, $y)";
@@ -1893,15 +1865,15 @@ sub doIslandProcess {
     }
 
     # 隕石判定
-    if(random(1000) < $HdisMeteo) {
+    if(random(1000) < Hako::Config::DISASTER_METEO) {
 	my($x, $y, $landKind, $lv, $point, $first);
 	$first = 1;
 	while((random(2) == 0) || ($first == 1)) {
 	    $first = 0;
 	    
 	    # 落下
-	    $x = random($HislandSize);
-	    $y = random($HislandSize);
+	    $x = random(Hako::Config::ISLAND_SIZE);
+	    $y = random(Hako::Config::ISLAND_SIZE);
 	    $landKind = $land->[$x][$y];
 	    $lv = $landValue->[$x][$y];
 	    $point = "($x, $y)";
@@ -1937,10 +1909,10 @@ sub doIslandProcess {
     }
 
     # 噴火判定
-    if(random(1000) < $HdisEruption) {
+    if(random(1000) < Hako::Config::DISASTER_ERUPTION) {
 	my($x, $y, $sx, $sy, $i, $landKind, $lv, $point);
-	$x = random($HislandSize);
-	$y = random($HislandSize);
+	$x = random(Hako::Config::ISLAND_SIZE);
+	$y = random(Hako::Config::ISLAND_SIZE);
 	$landKind = $land->[$x][$y];
 	$lv = $landValue->[$x][$y];
 	$point = "($x, $y)";
@@ -1962,8 +1934,8 @@ sub doIslandProcess {
 	    $lv = $landValue->[$sx][$sy];
 	    $point = "($sx, $sy)";
 
-	    if(($sx < 0) || ($sx >= $HislandSize) ||
-	       ($sy < 0) || ($sy >= $HislandSize)) {
+	    if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
+	       ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 	    } else {
 		# 範囲内の場合
 		$landKind = $land->[$sx][$sy];
@@ -2025,25 +1997,25 @@ sub doIslandProcess {
     # 繁栄賞
     if((!($flags & 1)) &&  $pop >= 3000){
 	$flags |= 1;
-	logPrize($id, $name, $Hprize[1]);
+	logPrize($id, $name, ${Hako::Config::PRIZE()}[1]);
     } elsif((!($flags & 2)) &&  $pop >= 5000){
 	$flags |= 2;
-	logPrize($id, $name, $Hprize[2]);
+	logPrize($id, $name, ${Hako::Config::PRIZE()}[2]);
     } elsif((!($flags & 4)) &&  $pop >= 10000){
 	$flags |= 4;
-	logPrize($id, $name, $Hprize[3]);
+	logPrize($id, $name, ${Hako::Config::PRIZE()}[3]);
     }
 
     # 災難賞
     if((!($flags & 64)) &&  $damage >= 500){
 	$flags |= 64;
-	logPrize($id, $name, $Hprize[7]);
+	logPrize($id, $name, ${Hako::Config::PRIZE()}[7]);
     } elsif((!($flags & 128)) &&  $damage >= 1000){
 	$flags |= 128;
-	logPrize($id, $name, $Hprize[8]);
+	logPrize($id, $name, ${Hako::Config::PRIZE()}[8]);
     } elsif((!($flags & 256)) &&  $damage >= 2000){
 	$flags |= 256;
-	logPrize($id, $name, $Hprize[9]);
+	logPrize($id, $name, ${Hako::Config::PRIZE()}[9]);
     }
 
     $island->{'prize'} = "$flags,$monsters,$turns";
@@ -2079,8 +2051,8 @@ sub wideDamage {
 	$point = "($sx, $sy)";
 
 	# 範囲外判定
-	if(($sx < 0) || ($sx >= $HislandSize) ||
-	   ($sy < 0) || ($sy >= $HislandSize)) {
+	if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
+	   ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 	    next;
 	}
 
@@ -2167,103 +2139,103 @@ sub logHistory {
 # 資金足りない
 sub logNoMoney {
     my($id, $name, $comName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で予定されていた${HtagComName_}$comName${H_tagComName}は、資金不足のため中止されました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で予定されていた".Hako::Template::Function->wrap_command_name($comName)."は、資金不足のため中止されました。",$id);
 }
 
 # 食料足りない
 sub logNoFood {
     my($id, $name, $comName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で予定されていた${HtagComName_}$comName${H_tagComName}は、備蓄食料不足のため中止されました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で予定されていた".Hako::Template::Function->wrap_command_name($comName)."は、備蓄食料不足のため中止されました。",$id);
 }
 
 # 対象地形の種類による失敗
 sub logLandFail {
     my($id, $name, $comName, $kind, $point) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で予定されていた${HtagComName_}$comName${H_tagComName}は、予定地の${HtagName_}$point${H_tagName}が<B>$kind</B>だったため中止されました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で予定されていた".Hako::Template::Function->wrap_command_name($comName)."は、予定地の".Hako::Template::Function->wrap_name($point)."が<B>$kind</B>だったため中止されました。",$id);
 END
 }
 
 # 周りに陸がなくて埋め立て失敗
 sub logNoLandAround {
     my($id, $name, $comName, $point) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で予定されていた${HtagComName_}$comName${H_tagComName}は、予定地の${HtagName_}$point${H_tagName}の周辺に陸地がなかったため中止されました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で予定されていた".Hako::Template::Function->wrap_command_name($comName)."は、予定地の".Hako::Template::Function->wrap_name($point)."の周辺に陸地がなかったため中止されました。",$id);
 END
 }
 
 # 整地系成功
 sub logLandSuc {
     my($id, $name, $comName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}で${HtagComName_}${comName}${H_tagComName}が行われました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で".Hako::Template::Function->wrap_command_name($comName)."が行われました。",$id);
 END
 }
 
 # 油田発見
 sub logOilFound {
     my($id, $name, $point, $comName, $str) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}で<B>$str</B>の予算をつぎ込んだ${HtagComName_}${comName}${H_tagComName}が行われ、<B>油田が掘り当てられました</B>。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."で<B>$str</B>の予算をつぎ込んだ@{[Hako::Template::Function->wrap_command_name($comName)]}が行われ、<B>油田が掘り当てられました</B>。",$id);
 END
 }
 
 # 油田発見ならず
 sub logOilFail {
     my($id, $name, $point, $comName, $str) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}で<B>$str</B>の予算をつぎ込んだ${HtagComName_}${comName}${H_tagComName}が行われましたが、油田は見つかりませんでした。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."で<B>$str</B>の予算をつぎ込んだ@{[Hako::Template::Function->wrap_command_name($comName)]}が行われましたが、油田は見つかりませんでした。",$id);
 END
 }
 
 # 油田からの収入
 sub logOilMoney {
     my($id, $name, $lName, $point, $str) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>から、<B>$str</B>の収益が上がりました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>から、<B>$str</B>の収益が上がりました。",$id);
 END
 }
 
 # 油田枯渇
 sub logOilEnd {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は枯渇したようです。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は枯渇したようです。",$id);
 END
 }
 
 # 防衛施設、自爆セット
 sub logBombSet {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>の<B>自爆装置がセット</B>されました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>の<B>自爆装置がセット</B>されました。",$id);
 END
 }
 
 # 防衛施設、自爆作動
 sub logBombFire {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>、${HtagDisaster_}自爆装置作動！！${H_tagDisaster}",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>、".Hako::Template::Function->wrap_disaster("自爆装置作動！！"),$id);
 END
 }
 
 # 記念碑、発射
 sub logMonFly {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>が<B>轟音とともに飛び立ちました</B>。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>が<B>轟音とともに飛び立ちました</B>。",$id);
 END
 }
 
 # 記念碑、落下
 sub logMonDamage {
     my($id, $name, $point) = @_;
-    logOut("<B>何かとてつもないもの</B>が${HtagName_}${name}島$point${H_tagName}地点に落下しました！！",$id);
+    logOut("<B>何かとてつもないもの</B>が".Hako::Template::Function->wrap_name($name."島".$point)."地点に落下しました！！",$id);
 }
 
 # 植林orミサイル基地
 sub logPBSuc {
     my($id, $name, $comName, $point) = @_;
-    logSecret("${HtagName_}${name}島$point${H_tagName}で${HtagComName_}${comName}${H_tagComName}が行われました。",$id);
-    logOut("こころなしか、${HtagName_}${name}島${H_tagName}の<B>森</B>が増えたようです。",$id);
+    logSecret(Hako::Template::Function->wrap_name($name."島".$point)."で".Hako::Template::Function->wrap_command_name($comName)."が行われました。",$id);
+    logOut("こころなしか、".Hako::Template::Function->wrap_name($name."島")."の<B>森</B>が増えたようです。",$id);
 END
 }
 
 # ハリボテ
 sub logHariSuc {
     my($id, $name, $comName, $comName2, $point) = @_;
-    logSecret("${HtagName_}${name}島$point${H_tagName}で${HtagComName_}${comName}${H_tagComName}が行われました。",$id);
+    logSecret(Hako::Template::Function->wrap_name($name."島".$point)."で".Hako::Template::Function->wrap_command_name($comName)."が行われました。",$id);
     logLandSuc($id, $name, $comName2, $point);
 END
 }
@@ -2271,445 +2243,445 @@ END
 # ミサイル撃とうとした(or 怪獣派遣しようとした)がターゲットがいない
 sub logMsNoTarget {
     my($id, $name, $comName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で予定されていた${HtagComName_}${comName}${H_tagComName}は、目標の島に人が見当たらないため中止されました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で予定されていた".Hako::Template::Function->wrap_command_name($comName)."は、目標の島に人が見当たらないため中止されました。",$id);
 END
 }
 
 # ミサイル撃とうとしたが基地がない
 sub logMsNoBase {
     my($id, $name, $comName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で予定されていた${HtagComName_}${comName}${H_tagComName}は、<B>ミサイル設備を保有していない</B>ために実行できませんでした。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."で予定されていた@{[Hako::Template::Function->wrap_command_name($comName)]}は、<B>ミサイル設備を保有していない</B>ために実行できませんでした。",$id);
 END
 }
 
 # ミサイル撃ったが範囲外
 sub logMsOut {
     my($id, $tId, $name, $tName, $comName, $point) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、<B>領域外の海</B>に落ちた模様です。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、<B>領域外の海</B>に落ちた模様です。",$id, $tId);
 }
 
 # ステルスミサイル撃ったが範囲外
 sub logMsOutS {
     my($id, $tId, $name, $tName, $comName, $point) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、<B>領域外の海</B>に落ちた模様です。",$id, $tId);
-    logLate("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}へ向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、<B>領域外の海</B>に落ちた模様です。",$tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、<B>領域外の海</B>に落ちた模様です。",$id, $tId);
+    logLate("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."へ向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、<B>領域外の海</B>に落ちた模様です。",$tId);
 }
 
 # ミサイル撃ったが防衛施設でキャッチ
 sub logMsCaught {
     my($id, $tId, $name, $tName, $comName, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}地点上空にて力場に捉えられ、<B>空中爆発</B>しました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}地点上空にて力場に捉えられ、<B>空中爆発</B>しました。",$id, $tId);
 }
 
 # ステルスミサイル撃ったが防衛施設でキャッチ
 sub logMsCaughtS {
     my($id, $tId, $name, $tName, $comName, $point, $tPoint) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}地点上空にて力場に捉えられ、<B>空中爆発</B>しました。",$id, $tId);
-    logLate("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}へ向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}地点上空にて力場に捉えられ、<B>空中爆発</B>しました。",$tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}地点上空にて力場に捉えられ、<B>空中爆発</B>しました。",$id, $tId);
+    logLate("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."へ向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}地点上空にて力場に捉えられ、<B>空中爆発</B>しました。",$tId);
 }
 
 # ミサイル撃ったが効果なし
 sub logMsNoDamage {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に落ちたので被害がありませんでした。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に落ちたので被害がありませんでした。",$id, $tId);
 }
 
 # ステルスミサイル撃ったが効果なし
 sub logMsNoDamageS {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に落ちたので被害がありませんでした。",$id, $tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($point)]}の<B>$tLname</B>に落ちたので被害がありませんでした。",$id, $tId);
 
-    logLate("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に落ちたので被害がありませんでした。",$tId);
+    logLate("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に落ちたので被害がありませんでした。",$tId);
 }
 
 # 陸地破壊弾、山に命中
 sub logMsLDMountain {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に命中。<B>$tLname</B>は消し飛び、荒地と化しました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に命中。<B>$tLname</B>は消し飛び、荒地と化しました。",$id, $tId);
 }
 
 # 陸地破壊弾、海底基地に命中
 sub logMsLDSbase {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}に着水後爆発、同地点にあった<B>$tLname</B>は跡形もなく吹き飛びました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}に着水後爆発、同地点にあった<B>$tLname</B>は跡形もなく吹き飛びました。",$id, $tId);
 }
 
 # 陸地破壊弾、怪獣に命中
 sub logMsLDMonster {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}に着弾し爆発。陸地は<B>怪獣$tLname</B>もろとも水没しました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、".Hako::Template::Function->wrap_name($name."島")."に着弾し爆発。陸地は<B>怪獣$tLname</B>もろとも水没しました。",$id, $tId);
 }
 
 # 陸地破壊弾、浅瀬に命中
 sub logMsLDSea1 {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に着弾。海底がえぐられました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に着弾。海底がえぐられました。",$id, $tId);
 }
 
 # 陸地破壊弾、その他の地形に命中
 sub logMsLDLand {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に着弾。陸地は水没しました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に着弾。陸地は水没しました。",$id, $tId);
 }
 
 # 通常ミサイル、荒地に着弾
 sub logMsWaste {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に落ちました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に落ちました。",$id, $tId);
 }
 
 # ステルスミサイル、荒地に着弾
 sub logMsWasteS {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に落ちました。",$id, $tId);
-    logLate("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行いましたが、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に落ちました。",$tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に落ちました。",$id, $tId);
+    logLate("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行いましたが、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に落ちました。",$tId);
 }
 
 # 通常ミサイル、怪獣に命中、硬化中にて無傷
 sub logMsMonNoDamage {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中、しかし硬化状態だったため効果がありませんでした。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中、しかし硬化状態だったため効果がありませんでした。",$id, $tId);
 }
 
 # ステルスミサイル、怪獣に命中、硬化中にて無傷
 sub logMsMonNoDamageS {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中、しかし硬化状態だったため効果がありませんでした。",$id, $tId);
-    logOut("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中、しかし硬化状態だったため効果がありませんでした。",$tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中、しかし硬化状態だったため効果がありませんでした。",$id, $tId);
+    logOut("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中、しかし硬化状態だったため効果がありませんでした。",$tId);
 }
 
 # 通常ミサイル、怪獣に命中、殺傷
 sub logMsMonKill {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は力尽き、倒れました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は力尽き、倒れました。",$id, $tId);
 }
 
 # ステルスミサイル、怪獣に命中、殺傷
 sub logMsMonKillS {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は力尽き、倒れました。",$id, $tId);
-    logLate("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は力尽き、倒れました。", $tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は力尽き、倒れました。",$id, $tId);
+    logLate("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は力尽き、倒れました。", $tId);
 }
 
 # 通常ミサイル、怪獣に命中、ダメージ
 sub logMsMonster {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は苦しそうに咆哮しました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は苦しそうに咆哮しました。",$id, $tId);
 }
 
 # ステルスミサイル、怪獣に命中、ダメージ
 sub logMsMonsterS {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は苦しそうに咆哮しました。",$id, $tId);
-    logLate("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は苦しそうに咆哮しました。",$tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は苦しそうに咆哮しました。",$id, $tId);
+    logLate("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>怪獣$tLname</B>に命中。<B>怪獣$tLname</B>は苦しそうに咆哮しました。",$tId);
 }
 
 # 怪獣の死体
 sub logMsMonMoney {
     my($tId, $mName, $value) = @_;
-    logOut("<B>怪獣$mName</B>の残骸には、<B>$value$HunitMoney</B>の値が付きました。",$tId);
+    logOut("<B>怪獣$mName</B>の残骸には、<B>$value@{[Hako::Config::UNIT_MONEY]}</B>の値が付きました。",$tId);
 }
 
 # 通常ミサイル通常地形に命中
 sub logMsNormal {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に命中、一帯が壊滅しました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に命中、一帯が壊滅しました。",$id, $tId);
 }
 
 # ステルスミサイル通常地形に命中
 sub logMsNormalS {
     my($id, $tId, $name, $tName, $comName, $tLname, $point, $tPoint) = @_;
-    logSecret("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に命中、一帯が壊滅しました。",$id, $tId);
-    logLate("<B>何者か</B>が${HtagName_}${tName}島$point${H_tagName}地点に向けて${HtagComName_}${comName}${H_tagComName}を行い、${HtagName_}$tPoint${H_tagName}の<B>$tLname</B>に命中、一帯が壊滅しました。",$tId);
+    logSecret(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に命中、一帯が壊滅しました。",$id, $tId);
+    logLate("<B>何者か</B>が".Hako::Template::Function->wrap_name($tName."島".$point)."地点に向けて@{[Hako::Template::Function->wrap_command_name($comName)]}を行い、@{[Hako::Template::Function->wrap_name($tPoint)]}の<B>$tLname</B>に命中、一帯が壊滅しました。",$tId);
 }
 
 # ミサイル難民到着
 sub logMsBoatPeople {
     my($id, $name, $achive) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}にどこからともなく<B>$achive${HunitPop}もの難民</B>が漂着しました。${HtagName_}${name}島${H_tagName}は快く受け入れたようです。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."にどこからともなく<B>$achive@{[Hako::Config::UNIT_POPULATION]}もの難民</B>が漂着しました。".Hako::Template::Function->wrap_name($name."島")."は快く受け入れたようです。",$id);
 }
 
 # 怪獣派遣
 sub logMonsSend {
     my($id, $tId, $name, $tName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が<B>人造怪獣</B>を建造。${HtagName_}${tName}島${H_tagName}へ送りこみました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が<B>人造怪獣</B>を建造。".Hako::Template::Function->wrap_name($tName."島")."へ送りこみました。",$id, $tId);
 }
 
 # 資金繰り
 sub logDoNothing {
     my($id, $name, $comName) = @_;
-#    logOut("${HtagName_}${name}島${H_tagName}で${HtagComName_}${comName}${H_tagComName}が行われました。",$id);
+#    logOut("@{[Hako::Template::Function->wrap_name($name."島")]}で@{[Hako::Template::Function->wrap_command_name($comName)]}が行われました。",$id);
 }
 
 # 輸出
 sub logSell {
     my($id, $name, $comName, $value) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が<B>$value$HunitFood</B>の${HtagComName_}${comName}${H_tagComName}を行いました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が<B>$value@{[Hako::Config::UNIT_FOOD]}</B>の@{[Hako::Template::Function->wrap_command_name($comName)]}を行いました。",$id);
 }
 
 # 援助
 sub logAid {
     my($id, $tId, $name, $tName, $comName, $str) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が${HtagName_}${tName}島${H_tagName}へ<B>$str</B>の${HtagComName_}${comName}${H_tagComName}を行いました。",$id, $tId);
+    logOut(Hako::Template::Function->wrap_name($name."島")."が".Hako::Template::Function->wrap_name($tName."島")."へ<B>$str</B>の@{[Hako::Template::Function->wrap_command_name($comName)]}を行いました。",$id, $tId);
 }
 
 # 誘致活動
 sub logPropaganda {
     my($id, $name, $comName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で${HtagComName_}${comName}${H_tagComName}が行われました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で@{[Hako::Template::Function->wrap_command_name($comName)]}が行われました。",$id);
 }
 
 # 放棄
 sub logGiveup {
     my($id, $name) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}は放棄され、<B>無人島</B>になりました。",$id);
-    logHistory("${HtagName_}${name}島${H_tagName}、放棄され<B>無人島</B>となる。");
+    logOut(Hako::Template::Function->wrap_name($name."島")."は放棄され、<B>無人島</B>になりました。",$id);
+    logHistory(Hako::Template::Function->wrap_name($name."島")."、放棄され<B>無人島</B>となる。");
 }
 
 # 死滅
 sub logDead {
     my($id, $name) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}から人がいなくなり、<B>無人島</B>になりました。",$id);
-    logHistory("${HtagName_}${name}島${H_tagName}、人がいなくなり<B>無人島</B>となる。");
+    logOut(Hako::Template::Function->wrap_name($name."島")."から人がいなくなり、<B>無人島</B>になりました。",$id);
+    logHistory(Hako::Template::Function->wrap_name($name."島")."、人がいなくなり<B>無人島</B>となる。");
 }
 
 # 発見
 sub logDiscover {
     my($name) = @_;
-    logHistory("${HtagName_}${name}島${H_tagName}が発見される。");
+    logHistory(Hako::Template::Function->wrap_name($name."島")."が発見される。");
 }
 
 # 名前の変更
 sub logChangeName {
     my($name1, $name2) = @_;
-    logHistory("${HtagName_}${name1}島${H_tagName}、名称を${HtagName_}${name2}島${H_tagName}に変更する。");
+    logHistory(Hako::Template::Function->wrap_name($name1."島")."、名称を".Hako::Template::Function->wrap_name($name2."島")."に変更する。");
 }
 
 # 飢餓
 sub logStarve {
     my($id, $name) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}の${HtagDisaster_}食料が不足${H_tagDisaster}しています！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."の@{[Hako::Template::Function->wrap_disaster("食料が不足")]}しています！！",$id);
 }
 
 # 怪獣現る
 sub logMonsCome {
     my($id, $name, $mName, $point, $lName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}に<B>怪獣$mName</B>出現！！${HtagName_}$point${H_tagName}の<B>$lName</B>が踏み荒らされました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."に<B>怪獣$mName</B>出現！！@{[Hako::Template::Function->wrap_name($point)]}の<B>$lName</B>が踏み荒らされました。",$id);
 }
 
 # 怪獣動く
 sub logMonsMove {
     my($id, $name, $lName, $point, $mName) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>が<B>怪獣$mName</B>に踏み荒らされました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>が<B>怪獣$mName</B>に踏み荒らされました。",$id);
 }
 
 # 怪獣、防衛施設を踏む
 sub logMonsMoveDefence {
     my($id, $name, $lName, $point, $mName) = @_;
-    logOut("<B>怪獣$mName</B>が${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>へ到達、<B>${lName}の自爆装置が作動！！</B>",$id);
+    logOut("<B>怪獣$mName</B>が".Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>へ到達、<B>${lName}の自爆装置が作動！！</B>",$id);
 }
 
 # 火災
 sub logFire {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>が${HtagDisaster_}火災${H_tagDisaster}により壊滅しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>が@{[Hako::Template::Function->wrap_disaster("火災")]}により壊滅しました。",$id);
 }
 
 # 埋蔵金
 sub logMaizo {
     my($id, $name, $comName, $value) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}での${HtagComName_}$comName${H_tagComName}中に、<B>$value$HunitMoneyもの埋蔵金</B>が発見されました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."での@{[Hako::Template::Function->wrap_command_name($comName)]}中に、<B>$value@{[Hako::Config::UNIT_MONEY]}もの埋蔵金</B>が発見されました。",$id);
 }
 
 # 地震発生
 sub logEarthquake {
     my($id, $name) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で大規模な${HtagDisaster_}地震${H_tagDisaster}が発生！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で大規模な@{[Hako::Template::Function->wrap_disaster("地震")]}が発生！！",$id);
 }
 
 # 地震被害
 sub logEQDamage {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は${HtagDisaster_}地震${H_tagDisaster}により壊滅しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は@{[Hako::Template::Function->wrap_disaster("地震")]}により壊滅しました。",$id);
 }
 
 # 食料不足被害
 sub logSvDamage {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>に<B>食料を求めて住民が殺到</B>。<B>$lName</B>は壊滅しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に<B>食料を求めて住民が殺到</B>。<B>$lName</B>は壊滅しました。",$id);
 }
 
 # 津波発生
 sub logTsunami {
     my($id, $name) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}付近で${HtagDisaster_}津波${H_tagDisaster}発生！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."付近で@{[Hako::Template::Function->wrap_disaster("津波")]}発生！！",$id);
 }
 
 # 津波被害
 sub logTsunamiDamage {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は${HtagDisaster_}津波${H_tagDisaster}により崩壊しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は@{[Hako::Template::Function->wrap_disaster("津波")]}により崩壊しました。",$id);
 }
 
 # 台風発生
 sub logTyphoon {
     my($id, $name) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}に${HtagDisaster_}台風${H_tagDisaster}上陸！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."に@{[Hako::Template::Function->wrap_disaster("台風")]}上陸！！",$id);
 }
 
 # 台風被害
 sub logTyphoonDamage {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は${HtagDisaster_}台風${H_tagDisaster}で飛ばされました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は@{[Hako::Template::Function->wrap_disaster("台風")]}で飛ばされました。",$id);
 }
 
 # 隕石、海
 sub logMeteoSea {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>に${HtagDisaster_}隕石${H_tagDisaster}が落下しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下しました。",$id);
 }
 
 # 隕石、山
 sub logMeteoMountain {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>に${HtagDisaster_}隕石${H_tagDisaster}が落下、<B>$lName</B>は消し飛びました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、<B>$lName</B>は消し飛びました。",$id);
 }
 
 # 隕石、海底基地
 sub logMeteoSbase {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>に${HtagDisaster_}隕石${H_tagDisaster}が落下、<B>$lName</B>は崩壊しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、<B>$lName</B>は崩壊しました。",$id);
 }
 
 # 隕石、怪獣
 sub logMeteoMonster {
     my($id, $name, $lName, $point) = @_;
-    logOut("<B>怪獣$lName</B>がいた${HtagName_}${name}島$point${H_tagName}地点に${HtagDisaster_}隕石${H_tagDisaster}が落下、陸地は<B>怪獣$lName</B>もろとも水没しました。",$id);
+    logOut("<B>怪獣$lName</B>がいた".Hako::Template::Function->wrap_name($name."島".$point)."地点に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、陸地は<B>怪獣$lName</B>もろとも水没しました。",$id);
 }
 
 # 隕石、浅瀬
 sub logMeteoSea1 {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}地点に${HtagDisaster_}隕石${H_tagDisaster}が落下、海底がえぐられました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、海底がえぐられました。",$id);
 }
 
 # 隕石、その他
 sub logMeteoNormal {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}地点の<B>$lName</B>に${HtagDisaster_}隕石${H_tagDisaster}が落下、一帯が水没しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、一帯が水没しました。",$id);
 }
 
 # 隕石、その他
 sub logHugeMeteo {
     my($id, $name, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}地点に${HtagDisaster_}巨大隕石${H_tagDisaster}が落下！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点に@{[Hako::Template::Function->wrap_disaster("巨大隕石")]}が落下！！",$id);
 }
 
 # 噴火
 sub logEruption {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}地点で${HtagDisaster_}火山が噴火${H_tagDisaster}、<B>山</B>が出来ました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点で@{[Hako::Template::Function->wrap_disaster("火山が噴火")]}、<B>山</B>が出来ました。",$id);
 }
 
 # 噴火、浅瀬
 sub logEruptionSea1 {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}地点の<B>$lName</B>は、${HtagDisaster_}噴火${H_tagDisaster}の影響で陸地になりました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、@{[Hako::Template::Function->wrap_disaster("噴火")]}の影響で陸地になりました。",$id);
 }
 
 # 噴火、海or海基
 sub logEruptionSea {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}地点の<B>$lName</B>は、${HtagDisaster_}噴火${H_tagDisaster}の影響で海底が隆起、浅瀬になりました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、@{[Hako::Template::Function->wrap_disaster("噴火")]}の影響で海底が隆起、浅瀬になりました。",$id);
 }
 
 # 噴火、その他
 sub logEruptionNormal {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}地点の<B>$lName</B>は、${HtagDisaster_}噴火${H_tagDisaster}の影響で壊滅しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、@{[Hako::Template::Function->wrap_disaster("噴火")]}の影響で壊滅しました。",$id);
 }
 
 # 地盤沈下発生
 sub logFalldown {
     my($id, $name) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}で${HtagDisaster_}地盤沈下${H_tagDisaster}が発生しました！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で@{[Hako::Template::Function->wrap_disaster("地盤沈下")]}が発生しました！！",$id);
 }
 
 # 地盤沈下被害
 sub logFalldownLand {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は海の中へ沈みました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は海の中へ沈みました。",$id);
 }
 
 # 広域被害、水没
 sub logWideDamageSea {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は<B>水没</B>しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は<B>水没</B>しました。",$id);
 }
 
 # 広域被害、海の建設
 sub logWideDamageSea2 {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は跡形もなくなりました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は跡形もなくなりました。",$id);
 }
 
 # 広域被害、怪獣水没
 sub logWideDamageMonsterSea {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の陸地は<B>怪獣$lName</B>もろとも水没しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の陸地は<B>怪獣$lName</B>もろとも水没しました。",$id);
 }
 
 # 広域被害、怪獣
 sub logWideDamageMonster {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>怪獣$lName</B>は消し飛びました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>怪獣$lName</B>は消し飛びました。",$id);
 }
 
 # 広域被害、荒地
 sub logWideDamageWaste {
     my($id, $name, $lName, $point) = @_;
-    logOut("${HtagName_}${name}島$point${H_tagName}の<B>$lName</B>は一瞬にして<B>荒地</B>と化しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は一瞬にして<B>荒地</B>と化しました。",$id);
 }
 
 # 受賞
 sub logPrize {
     my($id, $name, $pName) = @_;
-    logOut("${HtagName_}${name}島${H_tagName}が<B>$pName</B>を受賞しました。",$id);
-    logHistory("${HtagName_}${name}島${H_tagName}、<B>$pName</B>を受賞");
+    logOut(Hako::Template::Function->wrap_name($name."島")."が<B>$pName</B>を受賞しました。",$id);
+    logHistory(Hako::Template::Function->wrap_name($name."島")."、<B>$pName</B>を受賞");
 }
 
 # 島がいっぱいな場合
 sub tempNewIslandFull {
     out(<<END);
-${HtagBig_}申し訳ありません、島が一杯で登録できません！！${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}申し訳ありません、島が一杯で登録できません！！@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 
 # 新規で名前がない場合
 sub tempNewIslandNoName {
     out(<<END);
-${HtagBig_}島につける名前が必要です。${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}島につける名前が必要です。@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 
 # 新規で名前が不正な場合
 sub tempNewIslandBadName {
     out(<<END);
-${HtagBig_}',?()<>\$'とか入ってたり、「無人島」とかいった変な名前はやめましょうよ〜${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}',?()<>\$'とか入ってたり、「無人島」とかいった変な名前はやめましょうよ〜@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 
 # すでにその名前の島がある場合
 sub tempNewIslandAlready {
     out(<<END);
-${HtagBig_}その島ならすでに発見されています。${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}その島ならすでに発見されています。@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 
 # パスワードがない場合
 sub tempNewIslandNoPassword {
     out(<<END);
-${HtagBig_}パスワードが必要です。${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}パスワードが必要です。@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 
@@ -2717,8 +2689,8 @@ END
 sub tempNewIslandHead {
     out(<<END);
 <CENTER>
-${HtagBig_}島を発見しました！！${H_tagBig}<BR>
-${HtagBig_}${HtagName_}「${HcurrentName}島」${H_tagName}と命名します。${H_tagBig}<BR>
+@{[Hako::Config::TAG_BIG_]}島を発見しました！！@{[Hako::Config::_TAG_BIG]}<BR>
+@{[Hako::Config::TAG_BIG_]}@{[Hako::Config::TAG_NAME_]}「${HcurrentName}島」@{[Hako::Config::_TAG_NAME]}と命名します。@{[Hako::Config::_TAG_BIG]}<BR>
 $HtempBack<BR>
 </CENTER>
 END
@@ -2765,7 +2737,7 @@ sub landName {
     } elsif($land == $HlandOil) {
 	return '海底油田';
     } elsif($land == $HlandMonument) {
-	return $HmonumentName[$lv];
+	return ${Hako::Config::MONUMEBT_NAME()}[$lv];
     } elsif($land == $HlandHaribote) {
 	return 'ハリボテ';
     }
@@ -2784,8 +2756,8 @@ sub estimate {
 
     # 数える
     my($x, $y, $kind, $value);
-    for($y = 0; $y < $HislandSize; $y++) {
-	for($x = 0; $x < $HislandSize; $x++) {
+    for($y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
+	for($x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
 	    $kind = $land->[$x][$y];
 	    $value = $landValue->[$x][$y];
 	    if(($kind != $HlandSea) &&
@@ -2832,8 +2804,8 @@ sub countAround {
 	     $sx--;
 	 }
 
-	 if(($sx < 0) || ($sx >= $HislandSize) ||
-	    ($sy < 0) || ($sy >= $HislandSize)) {
+	 if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
+	    ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 	     # 範囲外の場合
 	     if($kind == $HlandSea) {
 		 # 海なら加算
@@ -2873,21 +2845,21 @@ sub randomArray {
 # 名前変更失敗
 sub tempChangeNothing {
     out(<<END);
-${HtagBig_}名前、パスワードともに空欄です${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}名前、パスワードともに空欄です@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 
 # 名前変更資金足りず
 sub tempChangeNoMoney {
     out(<<END);
-${HtagBig_}資金不足のため変更できません${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}資金不足のため変更できません@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 
 # 名前変更成功
 sub tempChange {
     out(<<END);
-${HtagBig_}変更完了しました${H_tagBig}$HtempBack
+@{[Hako::Config::TAG_BIG_]}変更完了しました@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
 }
 

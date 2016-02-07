@@ -6,15 +6,12 @@ admin_name: 管理者の名前
 admin_email: root@localhost.localdomain
 bbs_url: http://localhost/bbs.cgi
 toppage_url: http://localhost/index.html
-data_dir: data
-lock_mode: 2
 
+data_dir: hoge # あとで消す
 unit_time: 43200
 max_island: 30
 top_log_turn: 1
 log_max: 8
-backup_turn: 12
-backup_times: 4
 history_max: 10
 giveup_turn: 28
 command_max: 20

@@ -10,6 +10,7 @@ use Plack::Request;
 use List::MoreUtils qw();
 use Text::Xslate qw(mark_raw);
 use Hako::Config;
+use Hako::Constants;
 use Hako::DB;
 use Hako::Model::Island;
 
@@ -40,39 +41,39 @@ my($baseDir) = Hako::Config::BASE_DIR;
 
 # 画像ファイルを置くディレクトリ
 # my($imageDir) = 'http://サーバー/ディレクトリ';
-my($imageDir) = Hako::Config::IMAGE_DIR;
+#my($imageDir) = Hako::Config::IMAGE_DIR;
 
 # マスターパスワード
 # このパスワードは、すべての島のパスワードを代用できます。
 # 例えば、「他の島のパスワード変更」等もできます。
-my($masterPassword) = Hako::Config::MASTER_PASSWORD;
+#my($masterPassword) = Hako::Config::MASTER_PASSWORD;
 
 # 特殊パスワード
 # このパスワードで「名前変更」を行うと、その島の資金、食料が最大値になります。
 # (実際に名前を変える必要はありません。)
-$HspecialPassword = Hako::Config::SPECIAL_PASSWORD;
+#$HspecialPassword = Hako::Config::SPECIAL_PASSWORD;
 
 # 管理者名
-my($adminName) = Hako::Config::ADMIN_NAME;
+#my($adminName) = Hako::Config::ADMIN_NAME;
 
 # 管理者のメールアドレス
-my($email) = Hako::Config::ADMIN_EMAIL;
+#my($email) = Hako::Config::ADMIN_EMAIL;
 
 # 掲示板アドレス
-my($bbs) = Hako::Config::BBS_URL();
+#my($bbs) = Hako::Config::BBS_URL();
 
 # ホームページのアドレス
-my($toppage) = Hako::Config::TOPPAGE_URL;
+#my($toppage) = Hako::Config::TOPPAGE_URL;
 
 # ディレクトリのパーミッション
 # 通常は0755でよいが、0777、0705、0704等でないとできないサーバーもあるらしい
-$HdirMode = 0755;
+#$HdirMode = 0755;
 
 # データディレクトリの名前
 # ここで設定した名前のディレクトリ以下にデータが格納されます。
 # デフォルトでは'data'となっていますが、セキュリティのため
 # なるべく違う名前に変更してください。
-$HdirName = Hako::Config::DATA_DIR;
+#$HdirName = Hako::Config::DATA_DIR;
 
 # データの書き込み方
 
@@ -81,7 +82,7 @@ $HdirName = Hako::Config::DATA_DIR;
 # 2 システムコール(可能ならば最も望ましい)
 # 3 シンボリックリンク
 # 4 通常ファイル(あまりお勧めでない)
-my($lockMode) = Hako::Config::LOCK_MODE;
+#my($lockMode) = Hako::Config::LOCK_MODE;
 
 # (注)
 # 4を選択する場合には、'key-free'という、パーミション666の空のファイルを、
@@ -98,149 +99,149 @@ my($lockMode) = Hako::Config::LOCK_MODE;
 # ゲームの進行やファイルなど
 #----------------------------------------
 # 1ターンが何秒か
-$HunitTime = Hako::Config::UNIT_TIME; # 6時間
+#$HunitTime = Hako::Config::UNIT_TIME; # 6時間
 
 # 島の最大数
-$HmaxIsland = Hako::Config::MAX_ISLAND;
+#$HmaxIsland = Hako::Config::MAX_ISLAND;
 
 # トップページに表示するログのターン数
-$HtopLogTurn = Hako::Config::TOP_LOG_TURN;
+#$HtopLogTurn = Hako::Config::TOP_LOG_TURN;
 
 # ログファイル保持ターン数
-$HlogMax = Hako::Config::LOG_MAX;
+#$HlogMax = Hako::Config::LOG_MAX;
 
 # バックアップを何ターンおきに取るか
-$HbackupTurn = Hako::Config::BACKUP_TURN;
+#$HbackupTurn = Hako::Config::BACKUP_TURN;
 
 # バックアップを何回分残すか
-$HbackupTimes = Hako::Config::BACKUP_TIMES;
+#$HbackupTimes = Hako::Config::BACKUP_TIMES;
 
 # 発見ログ保持行数
-$HhistoryMax = Hako::Config::HISTORY_MAX;
+#$HhistoryMax = Hako::Config::HISTORY_MAX;
 
 # 放棄コマンド自動入力ターン数
-$HgiveupTurn = Hako::Config::GIVEUP_TURN;
+#$HgiveupTurn = Hako::Config::GIVEUP_TURN;
 
 # コマンド入力限界数
 # (ゲームが始まってから変更すると、データファイルの互換性が無くなります。)
-$HcommandMax = Hako::Config::COMMAND_MAX;
+#$HcommandMax = Hako::Config::COMMAND_MAX;
 
 # ローカル掲示板行数を使用するかどうか(0:使用しない、1:使用する)
-$HuseLbbs = Hako::Config::USE_LOCAL_BBS;
+#$HuseLbbs = Hako::Config::USE_LOCAL_BBS;
 
 # ローカル掲示板行数
-$HlbbsMax = Hako::Config::LOCAL_BBS_MAX;
+#$HlbbsMax = Hako::Config::LOCAL_BBS_MAX;
 
 # 島の大きさ
 # (変更できないかも)
-$HislandSize = Hako::Config::ISLAND_SIZE;
+#$HislandSize = Hako::Config::ISLAND_SIZE;
 
 # 他人から資金を見えなくするか
 # 0 見えない
 # 1 見える
 # 2 100の位で四捨五入
-$HhideMoneyMode = Hako::Config::HIDE_MONEY_MODE;
+#$HhideMoneyMode = Hako::Config::HIDE_MONEY_MODE;
 
 # パスワードの暗号化(0だと暗号化しない、1だと暗号化する)
-my($cryptOn) = Hako::Config::CRYPT;
+#my($cryptOn) = Hako::Config::CRYPT;
 
 # デバッグモード(1だと、「ターンを進める」ボタンが使用できる)
-$Hdebug = Hako::Config::DEBUG;
+#$Hdebug = Hako::Config::DEBUG;
 
 #----------------------------------------
 # 資金、食料などの設定値と単位
 #----------------------------------------
 # 初期資金
-$HinitialMoney = Hako::Config::INITIAL_MONEY;
+#$HinitialMoney = Hako::Config::INITIAL_MONEY;
 
 # 初期食料
-$HinitialFood = Hako::Config::INITIAL_FOOD;
+#$HinitialFood = Hako::Config::INITIAL_FOOD;
 
 # お金の単位
-$HunitMoney = Hako::Config::UNIT_MONEY;
+#$HunitMoney = Hako::Config::UNIT_MONEY;
 
 # 食料の単位
-$HunitFood = Hako::Config::UNIT_FOOD;
+#$HunitFood = Hako::Config::UNIT_FOOD;
 
 # 人口の単位
-$HunitPop = Hako::Config::UNIT_POPULATION;
+#$HunitPop = Hako::Config::UNIT_POPULATION;
 
 # 広さの単位
-$HunitArea = Hako::Config::UNIT_AREA;
+#$HunitArea = Hako::Config::UNIT_AREA;
 
 # 木の数の単位
-$HunitTree = Hako::Config::UNIT_TREE;
+#$HunitTree = Hako::Config::UNIT_TREE;
 
 # 木の単位当たりの売値
-$HtreeValue = Hako::Config::TREE_VALUE;
+#$HtreeValue = Hako::Config::TREE_VALUE;
 
 # 名前変更のコスト
-$HcostChangeName = Hako::Config::CHANGE_NAME_COST;
+#$HcostChangeName = Hako::Config::CHANGE_NAME_COST;
 
 # 人口1単位あたりの食料消費料
-$HeatenFood = Hako::Config::EATEN_FOOD;
+#$HeatenFood = Hako::Config::EATEN_FOOD;
 
 #----------------------------------------
 # 基地の経験値
 #----------------------------------------
 # 経験値の最大値
-$HmaxExpPoint = Hako::Config::MAX_EXP_POINT; # ただし、最大でも255まで
+#$HmaxExpPoint = Hako::Config::MAX_EXP_POINT; # ただし、最大でも255まで
 
 # レベルの最大値
-my($maxBaseLevel) = Hako::Config::MAX_BASE_LEVEL;  # ミサイル基地
-my($maxSBaseLevel) = Hako::Config::MAX_SEA_BASE_LEVEL; # 海底基地
+#my($maxBaseLevel) = Hako::Config::MAX_BASE_LEVEL;  # ミサイル基地
+#my($maxSBaseLevel) = Hako::Config::MAX_SEA_BASE_LEVEL; # 海底基地
 
 # 経験値がいくつでレベルアップか
-my(@baseLevelUp, @sBaseLevelUp);
-@baseLevelUp = @{Hako::Config::BASE_LEVEL_UP()}; # ミサイル基地
-@sBaseLevelUp = @{Hako::Config::SEA_BASE_LEVEL_UP()};         # 海底基地
+#my(@baseLevelUp, @sBaseLevelUp);
+#@baseLevelUp = @{Hako::Config::BASE_LEVEL_UP()}; # ミサイル基地
+#@sBaseLevelUp = @{Hako::Config::SEA_BASE_LEVEL_UP()};         # 海底基地
 
 #----------------------------------------
 # 防衛施設の自爆
 #----------------------------------------
 # 怪獣に踏まれた時自爆するなら1、しないなら0
-$HdBaseAuto = Hako::Config::DEFENCE_BASE_AUTO;
+#$HdBaseAuto = Hako::Config::DEFENCE_BASE_AUTO;
 
 #----------------------------------------
 # 災害
 #----------------------------------------
 # 通常災害発生率(確率は0.1%単位)
-$HdisEarthquake = Hako::Config::DISASTER_EARTHQUAKE;  # 地震
-$HdisTsunami    = Hako::Config::DISASTER_TSUNAMI; # 津波
-$HdisTyphoon    = Hako::Config::DISASTER_TYPHOON; # 台風
-$HdisMeteo      = Hako::Config::DISASTER_METEO; # 隕石
-$HdisHugeMeteo  = Hako::Config::DISASTER_HUGE_METEO;  # 巨大隕石
-$HdisEruption   = Hako::Config::DISASTER_ERUPTION; # 噴火
-$HdisFire       = Hako::Config::DISASTER_FIRE; # 火災
-$HdisMaizo      = Hako::Config::DISASTER_MAIZO; # 埋蔵金
+#$HdisEarthquake = Hako::Config::DISASTER_EARTHQUAKE;  # 地震
+#$HdisTsunami    = Hako::Config::DISASTER_TSUNAMI; # 津波
+#$HdisTyphoon    = Hako::Config::DISASTER_TYPHOON; # 台風
+#$HdisMeteo      = Hako::Config::DISASTER_METEO; # 隕石
+#$HdisHugeMeteo  = Hako::Config::DISASTER_HUGE_METEO;  # 巨大隕石
+#$HdisEruption   = Hako::Config::DISASTER_ERUPTION; # 噴火
+#$HdisFire       = Hako::Config::DISASTER_FIRE; # 火災
+#$HdisMaizo      = Hako::Config::DISASTER_MAIZO; # 埋蔵金
 
 # 地盤沈下
-$HdisFallBorder = Hako::Config::DISASTER_FALL_BORDER; # 安全限界の広さ(Hex数)
-$HdisFalldown   = Hako::Config::DISASTER_FALL_DOWN; # その広さを超えた場合の確率
+#$HdisFallBorder = Hako::Config::DISASTER_FALL_BORDER; # 安全限界の広さ(Hex数)
+#$HdisFalldown   = Hako::Config::DISASTER_FALL_DOWN; # その広さを超えた場合の確率
 
 # 怪獣
-$HdisMonsBorder1 = Hako::Config::DISASTER_MONSTER_BORDER1; # 人口基準1(怪獣レベル1)
-$HdisMonsBorder2 = Hako::Config::DISASTER_MONSTER_BORDER2; # 人口基準2(怪獣レベル2)
-$HdisMonsBorder3 = Hako::Config::DISASTER_MONSTER_BORDER3; # 人口基準3(怪獣レベル3)
-$HdisMonster     = Hako::Config::DISASTER_MONSTER;    # 単位面積あたりの出現率(0.01%単位)
+#$HdisMonsBorder1 = Hako::Config::DISASTER_MONSTER_BORDER1; # 人口基準1(怪獣レベル1)
+#$HdisMonsBorder2 = Hako::Config::DISASTER_MONSTER_BORDER2; # 人口基準2(怪獣レベル2)
+#$HdisMonsBorder3 = Hako::Config::DISASTER_MONSTER_BORDER3; # 人口基準3(怪獣レベル3)
+#$HdisMonster     = Hako::Config::DISASTER_MONSTER;    # 単位面積あたりの出現率(0.01%単位)
 
 # 種類
-$HmonsterNumber  = Hako::Config::MONSTER_NUMBER;
+#$HmonsterNumber  = Hako::Config::MONSTER_NUMBER;
 
 # 各基準において出てくる怪獣の番号の最大値
-$HmonsterLevel1  = Hako::Config::MONSTER_LEVEL1; # サンジラまで
-$HmonsterLevel2  = Hako::Config::MONSTER_LEVEL2; # いのらゴーストまで
-$HmonsterLevel3  = Hako::Config::MONSTER_LEVEL3; # キングいのらまで(全部)
+#$HmonsterLevel1  = Hako::Config::MONSTER_LEVEL1; # サンジラまで
+#$HmonsterLevel2  = Hako::Config::MONSTER_LEVEL2; # いのらゴーストまで
+#$HmonsterLevel3  = Hako::Config::MONSTER_LEVEL3; # キングいのらまで(全部)
 
 # 名前
-@HmonsterName = map { $_ } @{Hako::Config::MONSTER_NAME()};
+#@HmonsterName = map { $_ } @{Hako::Config::MONSTER_NAME()};
 
 # 最低体力、体力の幅、特殊能力、経験値、死体の値段
-@HmonsterBHP     = @{Hako::Config::MONSTER_BOTTOM_HP};
-@HmonsterDHP     = @{Hako::Config::MONSTER_DHP};
-@HmonsterSpecial = @{Hako::Config::MONSTER_SPECIAL};
-@HmonsterExp     = @{Hako::Config::MONSTER_EXP};
-@HmonsterValue   = @{Hako::Config::MONSTER_VALUE};
+#@HmonsterBHP     = @{Hako::Config::MONSTER_BOTTOM_HP};
+#@HmonsterDHP     = @{Hako::Config::MONSTER_DHP};
+#@HmonsterSpecial = @{Hako::Config::MONSTER_SPECIAL};
+#@HmonsterExp     = @{Hako::Config::MONSTER_EXP};
+#@HmonsterValue   = @{Hako::Config::MONSTER_VALUE};
 
 # 特殊能力の内容は、
 # 0 特になし
@@ -250,110 +251,108 @@ $HmonsterLevel3  = Hako::Config::MONSTER_LEVEL3; # キングいのらまで(全�
 # 4 偶数ターンは硬化
 
 # 画像ファイル
-$monsterImage = Hako::Config::MONSTER_IMAGE;
-@HmonsterImage = @$monsterImage;
+#@HmonsterImage = @{Hako::Config::MONSTER_IMAGE()};
 
 # 画像ファイルその2(硬化中)
-$monsterImage2 = Hako::Config::MONSTER_IMAGE2;
-@HmonsterImage2 = @$monsterImage2;
+#@HmonsterImage2 = @{Hako::Config::MONSTER_IMAGE2()};
 
 
 #----------------------------------------
 # 油田
 #----------------------------------------
 # 油田の収入
-$HoilMoney = Hako::Config::OIL_MONEY;
+#$HoilMoney = Hako::Config::OIL_MONEY;
 
 # 油田の枯渇確率
-$HoilRatio = Hako::Config::OIL_RAITO;
+#$HoilRatio = Hako::Config::OIL_RAITO;
 
 #----------------------------------------
 # 記念碑
 #----------------------------------------
 # 何種類あるか
-$HmonumentNumber = Hako::Config::MONUMENT_NUMBER;
+#$HmonumentNumber = Hako::Config::MONUMENT_NUMBER;
 
 # 名前
-@HmonumentName = map { $_ } @{Hako::Config::MONUMEBT_NAME};
+#@HmonumentName = map { $_ } @{Hako::Config::MONUMEBT_NAME};
 
 # 画像ファイル
-@HmonumentImage = @{Hako::Config::MONUMENT_IMAGE};
+#@HmonumentImage = @{Hako::Config::MONUMENT_IMAGE};
 
 #----------------------------------------
 # 賞関係
 #----------------------------------------
 # ターン杯を何ターン毎に出すか
-$HturnPrizeUnit = Hako::Config::TURN_PRIZE_UNIT;
+#$HturnPrizeUnit = Hako::Config::TURN_PRIZE_UNIT;
 
 # 賞の名前
-@Hprize = map { $_  } @{Hako::Config::PRIZE};
+#@Hprize = map { $_  } @{Hako::Config::PRIZE};
 
 #----------------------------------------
 # 外見関係
 #----------------------------------------
 # <BODY>タグのオプション
-my($htmlBody) = Hako::Config::HTML_BODY;
+#my($htmlBody) = Hako::Config::HTML_BODY;
 
 # ゲームのタイトル文字
-$Htitle = Hako::Config::TITLE;
+#$Htitle = Hako::Config::TITLE;
 
 # タグ
 # タイトル文字
-$HtagTitle_ = Hako::Config::TAG_TITLE_;
-$H_tagTitle = Hako::Config::_TAG_TITLE;
+#$HtagTitle_ = Hako::Config::TAG_TITLE_;
+#$H_tagTitle = Hako::Config::_TAG_TITLE;
 
 # H1タグ用
-$HtagHeader_ = Hako::Config::TAG_HEADER_;
-$H_tagHeader = Hako::Config::_TAG_HEADER;
+#$HtagHeader_ = Hako::Config::TAG_HEADER_;
+#$H_tagHeader = Hako::Config::_TAG_HEADER;
 
 # 大きい文字
-$HtagBig_ = Hako::Config::TAG_BIG_;
-$H_tagBig = Hako::Config::_TAG_BIG;
+#$HtagBig_ = Hako::Config::TAG_BIG_;
+#$H_tagBig = Hako::Config::_TAG_BIG;
 
 # 島の名前など
-$HtagName_ = Hako::Config::TAG_NAME_;
-$H_tagName = Hako::Config::_TAG_NAME;
+#$HtagName_ = Hako::Config::TAG_NAME_;
+#$H_tagName = Hako::Config::_TAG_NAME;
 
 # 薄くなった島の名前
-$HtagName2_ = Hako::Config::TAG_NAME2_;
-$H_tagName2 = Hako::Config::_TAG_NAME2;
+#$HtagName2_ = Hako::Config::TAG_NAME2_;
+#$H_tagName2 = Hako::Config::_TAG_NAME2;
 
 # 順位の番号など
-$HtagNumber_ = Hako::Config::TAG_NUMBER_;
-$H_tagNumber = Hako::Config::_TAG_NUMBER;
+#$HtagNumber_ = Hako::Config::TAG_NUMBER_;
+#$H_tagNumber = Hako::Config::_TAG_NUMBER;
 
 # 順位表における見だし
-$HtagTH_ = Hako::Config::TAG_TH_;
-$H_tagTH = Hako::Config::_TAG_TH;
+#$HtagTH_ = Hako::Config::TAG_TH_;
+#$H_tagTH = Hako::Config::_TAG_TH;
 
 # 開発計画の名前
-$HtagComName_ = Hako::Config::TAG_COM_NAME_;
-$H_tagComName = Hako::Config::_TAG_COM_NAME;
+#$HtagComName_ = Hako::Config::TAG_COM_NAME_;
+#$H_tagComName = Hako::Config::_TAG_COM_NAME;
 
 # 災害
-$HtagDisaster_ = Hako::Config::TAG_DISASTER_;
-$H_tagDisaster = Hako::Config::_TAG_DISASTER;
+#$HtagDisaster_ = Hako::Config::TAG_DISASTER_;
+#$H_tagDisaster = Hako::Config::_TAG_DISASTER;
 
 # ローカル掲示板、観光者の書いた文字
-$HtagLbbsSS_ = Hako::Config::TAG_LOCAL_BBS_SS_;
-$H_tagLbbsSS = Hako::Config::_TAG_LOCAL_BBS_SS;
+#$HtagLbbsSS_ = Hako::Config::TAG_LOCAL_BBS_SS_;
+#$H_tagLbbsSS = Hako::Config::_TAG_LOCAL_BBS_SS;
 
 # ローカル掲示板、島主の書いた文字
-$HtagLbbsOW_ = Hako::Config::TAG_LOCAL_BBS_OW_;
-$H_tagLbbsOW = Hako::Config::_TAG_LOCAL_BBS_OW;
+#$HtagLbbsOW_ = Hako::Config::TAG_LOCAL_BBS_OW_;
+#$H_tagLbbsOW = Hako::Config::_TAG_LOCAL_BBS_OW;
 
 # 通常の文字色(これだけでなく、BODYタグのオプションもちゃんと変更すべし
-$HnormalColor = Hako::Config::NORMAL_COLOR;
+#$HnormalColor = Hako::Config::NORMAL_COLOR;
 
 # 順位表、セルの属性
-$HbgTitleCell   = Hako::Config::BG_TITLE_CELL; # 順位表見出し
-$HbgNumberCell  = Hako::Config::BG_NUMBER_CELL; # 順位表順位
-$HbgNameCell    = Hako::Config::BG_NAME_CELL; # 順位表島の名前
-$HbgInfoCell    = Hako::Config::BG_INFO_CELL; # 順位表島の情報
-$HbgCommentCell = Hako::Config::BG_COMMENT_CELL; # 順位表コメント欄
-$HbgInputCell   = Hako::Config::BG_INPUT_CELL; # 開発計画フォーム
-$HbgMapCell     = Hako::Config::BG_MAP_CELL; # 開発計画地図
-$HbgCommandCell = Hako::Config::BG_COMMAND_CELL; # 開発計画入力済み計画
+#$HbgTitleCell   = Hako::Config::BG_TITLE_CELL; # 順位表見出し
+#$HbgNumberCell  = Hako::Config::BG_NUMBER_CELL; # 順位表順位
+#$HbgNameCell    = Hako::Config::BG_NAME_CELL; # 順位表島の名前
+#$HbgInfoCell    = Hako::Config::BG_INFO_CELL; # 順位表島の情報
+#$HbgCommentCell = Hako::Config::BG_COMMENT_CELL; # 順位表コメント欄
+#$HbgInputCell   = Hako::Config::BG_INPUT_CELL; # 開発計画フォーム
+#$HbgMapCell     = Hako::Config::BG_MAP_CELL; # 開発計画地図
+#$HbgCommandCell = Hako::Config::BG_COMMAND_CELL; # 開発計画入力済み計画
 
 #----------------------------------------------------------------------
 # 好みによって設定する部分は以上
@@ -508,14 +507,14 @@ my($defaultTarget);   # ターゲットの名前
 
 
 # 島の座標数
-$HpointNumber = $HislandSize * $HislandSize;
+$HpointNumber = Hako::Config::ISLAND_SIZE * Hako::Config::ISLAND_SIZE;
 
 #----------------------------------------------------------------------
 # メイン
 #----------------------------------------------------------------------
 
 # 「戻る」リンク
-$HtempBack = "<A HREF=\"$HthisFile\">${HtagBig_}トップへ戻る${H_tagBig}</A>";
+$HtempBack = "<A HREF=\"$HthisFile\">@{[Hako::Config::TAG_BIG_]}トップへ戻る@{[Hako::Config::_TAG_BIG]}</A>";
 
 sub to_app {
     my $out_buffer = "";
@@ -546,7 +545,7 @@ sub to_app {
 
         # ターン処理判定
         my($now) = time;
-        if ((($Hdebug == 1) && ($HmainMode eq 'Hdebugturn')) || (($now - $HislandLastTime) >= $HunitTime)) {
+        if (((Hako::Config::DEBUG == 1) && ($HmainMode eq 'Hdebugturn')) || (($now - $HislandLastTime) >= Hako::Config::UNIT_TIME)) {
             $HmainMode = 'turn';
             $num = -1; # 全島読みこむ
         }
@@ -591,9 +590,9 @@ sub to_app {
         if(($num == -1) || ($num == $id)) {
             my ($x, $y);
             my @land_str = split(/\n/, $island_from_db->{map});
-            for($y = 0; $y < $HislandSize; $y++) {
+            for($y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
                 $line = $land_str[$y];
-                for($x = 0; $x < $HislandSize; $x++) {
+                for($x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
                     $line =~ s/^(.)(..)//;
                     $land[$x][$y] = hex($1);
                     $landValue[$x][$y] = hex($2);
@@ -663,8 +662,8 @@ sub to_app {
             $landValue = $island->{'landValue'};
             my $land_str = "";
             my($x, $y);
-            for($y = 0; $y < $HislandSize; $y++) {
-                for($x = 0; $x < $HislandSize; $x++) {
+            for($y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
+                for($x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
                     $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
                 }
                 $land_str .= "\n";
@@ -744,7 +743,7 @@ sub to_app {
         # main modeの取得
         $HmainMode = "top";
         if(List::MoreUtils::any {$_ eq "TurnButton"} $params->keys) {
-            if($Hdebug == 1) {
+            if(Hako::Config::DEBUG == 1) {
                 $HmainMode = 'Hdebugturn';
             }
         } elsif (List::MoreUtils::any {$_ eq "OwnerButton"} $params->keys) {
@@ -889,7 +888,7 @@ sub to_app {
 
 # パスワードエンコード
     sub encode {
-        if($cryptOn == 1) {
+        if(Hako::Config::CRYPT == 1) {
         return crypt($_[0], 'h2');
         } else {
         return $_[0];
@@ -902,17 +901,17 @@ sub to_app {
 
         # nullチェック
         if($p2 eq '') {
-        return 0;
+            return 0;
         }
 
         # マスターパスワードチェック
-        if($masterPassword eq $p2) {
-        return 1;
+        if(Hako::Config::MASTER_PASSWORD eq $p2) {
+            return 1;
         }
 
         # 本来のチェック
         if($p1 eq encode($p2)) {
-        return 1;
+            return 1;
         }
 
         return 0;
@@ -922,10 +921,10 @@ sub to_app {
     sub aboutMoney {
         my($m) = @_;
         if($m < 500) {
-        return "推定500${HunitMoney}未満";
+            return "推定500@{[Hako::Config::UNIT_MONEY]}未満";
         } else {
-        $m = int(($m + 500) / 1000);
-        return "推定${m}000${HunitMoney}";
+            $m = int(($m + 500) / 1000);
+            return "推定${m}000@{[Hako::Config::UNIT_MONEY]}";
         }
     }
 
@@ -987,7 +986,7 @@ sub to_app {
 
         # 名前
         my($name);
-        $name = $HmonsterName[$kind];
+        $name = ${Hako::Config::MONSTER_NAME()}[$kind];
 
         # 体力
         my($hp) = $lv - ($kind * 10);
@@ -1001,16 +1000,16 @@ sub to_app {
         my($i);
         if($kind == $HlandBase) {
         # ミサイル基地
-        for($i = $maxBaseLevel; $i > 1; $i--) {
-            if($exp >= $baseLevelUp[$i - 2]) {
+        for($i = Hako::Config::MAX_BASE_LEVEL; $i > 1; $i--) {
+            if($exp >= ${Hako::Config::BASE_LEVEL_UP()}[$i - 2]) {
             return $i;
             }
         }
         return 1;
         } else {
         # 海底基地
-        for($i = $maxSBaseLevel; $i > 1; $i--) {
-            if($exp >= $sBaseLevelUp[$i - 2]) {
+        for($i = Hako::Config::MAX_SEA_BASE_LEVEL; $i > 1; $i--) {
+            if($exp >= ${Hako::Config::SEA_BASE_LEVEL_UP()}[$i - 2]) {
             return $i;
             }
         }
@@ -1024,9 +1023,9 @@ sub to_app {
     sub makeRandomPointArray {
         # 初期値
         my($y);
-        @Hrpx = (0..$HislandSize-1) x $HislandSize;
-        for($y = 0; $y < $HislandSize; $y++) {
-        push(@Hrpy, ($y) x $HislandSize);
+        @Hrpx = (0..Hako::Config::ISLAND_SIZE()-1) x Hako::Config::ISLAND_SIZE;
+        for($y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
+        push(@Hrpy, ($y) x Hako::Config::ISLAND_SIZE);
         }
 
         # シャッフル
@@ -1079,9 +1078,9 @@ sub to_app {
     sub tempHeader {
         my $xslate = Text::Xslate->new(syntax => 'TTerse');
         my %vars = (
-            title => $Htitle,
-            image_dir => mark_raw($imageDir),
-            html_body => mark_raw($htmlBody),
+            title     => Hako::Config::TITLE,
+            image_dir => mark_raw(Hako::Config::IMAGE_DIR),
+            html_body => mark_raw(Hako::Config::HTML_BODY),
         );
         out($xslate->render("tmpl/header.tt", \%vars));
     }
@@ -1090,10 +1089,10 @@ sub to_app {
     sub tempFooter {
         my $xslate = Text::Xslate->new(syntax => 'TTerse');
         my %vars = (
-            admin_name => $adminName,
-            email => $email,
-            bbs => $bbs,
-            toppage => $toppage,
+            admin_name => Hako::Config::ADMIN_NAME,
+            email      => Hako::Config::ADMIN_EMAIL,
+            bbs        => Hako::Config::BBS_URL,
+            toppage    => Hako::Config::TOPPAGE_URL,
         );
         out($xslate->render("tmpl/footer.tt", \%vars));
     }
@@ -1102,30 +1101,30 @@ sub to_app {
     sub tempLockFail {
         # タイトル
         out(<<END);
-    ${HtagBig_}同時アクセスエラーです。<BR>
+    @{[Hako::Config::TAG_BIG_]}同時アクセスエラーです。<BR>
     ブラウザの「戻る」ボタンを押し、<BR>
-    しばらく待ってから再度お試し下さい。${H_tagBig}$HtempBack
+    しばらく待ってから再度お試し下さい。@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
     }
 
 # hakojima.datがない
     sub tempNoDataFile {
         out(<<END);
-    ${HtagBig_}データファイルが開けません。${H_tagBig}$HtempBack
+    @{[Hako::Config::TAG_BIG_]}データファイルが開けません。@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
     }
 
 # パスワード間違い
     sub tempWrongPassword {
         out(<<END);
-    ${HtagBig_}パスワードが違います。${H_tagBig}$HtempBack
+    @{[Hako::Config::TAG_BIG_]}パスワードが違います。@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
     }
 
 # 何か問題発生
     sub tempProblem {
         out(<<END);
-    ${HtagBig_}問題発生、とりあえず戻ってください。${H_tagBig}$HtempBack
+    @{[Hako::Config::TAG_BIG_]}問題発生、とりあえず戻ってください。@{[Hako::Config::_TAG_BIG]}$HtempBack
 END
     }
 
