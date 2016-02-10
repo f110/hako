@@ -1,6 +1,8 @@
 # vim: set ft=perl:
 use utf8;
 use Hako::Config;
+use Hako::Constants;
+use Hako::Command;
 use Hako::Template::Function;
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -97,7 +99,7 @@ sub makeNewIsland {
     my(@command, $i);
     for($i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
         $command[$i] = {
-            'kind' => $HcomDoNothing,
+            'kind' => Hako::Constants::COMMAND_DO_NOTHING,
             'target' => 0,
             'x' => 0,
             'y' => 0,
@@ -131,7 +133,7 @@ sub makeNewLand {
     # 海に初期化
     for($y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
         for($x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
-            $land[$x][$y] = $HlandSea;
+            $land[$x][$y] = Hako::Constants::LAND_SEA;
             $landValue[$x][$y] = 0;
         }
     }
@@ -140,7 +142,7 @@ sub makeNewLand {
     my($center) = Hako::Config::ISLAND_SIZE / 2 - 1;
     for($y = $center - 1; $y < $center + 3; $y++) {
         for($x = $center - 1; $x < $center + 3; $x++) {
-            $land[$x][$y] = $HlandWaste;
+            $land[$x][$y] = Hako::Constants::LAND_WASTE;
         }
     }
 
@@ -150,17 +152,17 @@ sub makeNewLand {
         $x = random(8) + $center - 3;
         $y = random(8) + $center - 3;
 
-        my($tmp) = countAround(\@land, $x, $y, $HlandSea, 7);
-        if(countAround(\@land, $x, $y, $HlandSea, 7) != 7){
+        my($tmp) = countAround(\@land, $x, $y, Hako::Constants::LAND_SEA, 7);
+        if(countAround(\@land, $x, $y, Hako::Constants::LAND_SEA, 7) != 7){
             # 周りに陸地がある場合、浅瀬にする
             # 浅瀬は荒地にする
             # 荒地は平地にする
-            if($land[$x][$y] == $HlandWaste) {
-                $land[$x][$y] = $HlandPlains;
+            if($land[$x][$y] == Hako::Constants::LAND_WASTE) {
+                $land[$x][$y] = Hako::Constants::LAND_PLAINS;
                 $landValue[$x][$y] = 0;
             } else {
                 if($landValue[$x][$y] == 1) {
-                    $land[$x][$y] = $HlandWaste;
+                    $land[$x][$y] = Hako::Constants::LAND_WASTE;
                     $landValue[$x][$y] = 0;
                 } else {
                     $landValue[$x][$y] = 1;
@@ -177,8 +179,8 @@ sub makeNewLand {
         $y = random(4) + $center - 1;
 
         # そこがすでに森でなければ、森を作る
-        if($land[$x][$y] != $HlandForest) {
-            $land[$x][$y] = $HlandForest;
+        if($land[$x][$y] != Hako::Constants::LAND_FOREST) {
+            $land[$x][$y] = Hako::Constants::LAND_FOREST;
             $landValue[$x][$y] = 5; # 最初は500本
             $count++;
         }
@@ -192,9 +194,9 @@ sub makeNewLand {
 	 $y = random(4) + $center - 1;
 
 	 # そこが森か町でなければ、町を作る
-	 if(($land[$x][$y] != $HlandTown) &&
-	    ($land[$x][$y] != $HlandForest)) {
-	     $land[$x][$y] = $HlandTown;
+	 if(($land[$x][$y] != Hako::Constants::LAND_TOWN) &&
+	    ($land[$x][$y] != Hako::Constants::LAND_FOREST)) {
+	     $land[$x][$y] = Hako::Constants::LAND_TOWN;
 	     $landValue[$x][$y] = 5; # 最初は500人
 	     $count++;
 	 }
@@ -208,9 +210,9 @@ sub makeNewLand {
 	 $y = random(4) + $center - 1;
 
 	 # そこが森か町でなければ、町を作る
-	 if(($land[$x][$y] != $HlandTown) &&
-	    ($land[$x][$y] != $HlandForest)) {
-	     $land[$x][$y] = $HlandMountain;
+	 if(($land[$x][$y] != Hako::Constants::LAND_TOWN) &&
+	    ($land[$x][$y] != Hako::Constants::LAND_FOREST)) {
+	     $land[$x][$y] = Hako::Constants::LAND_MOUNTAIN;
 	     $landValue[$x][$y] = 0; # 最初は採掘場なし
 	     $count++;
 	 }
@@ -224,10 +226,10 @@ sub makeNewLand {
 	 $y = random(4) + $center - 1;
 
 	 # そこが森か町か山でなければ、基地
-	 if(($land[$x][$y] != $HlandTown) &&
-	    ($land[$x][$y] != $HlandForest) &&
-	    ($land[$x][$y] != $HlandMountain)) {
-	     $land[$x][$y] = $HlandBase;
+	 if(($land[$x][$y] != Hako::Constants::LAND_TOWN) &&
+	    ($land[$x][$y] != Hako::Constants::LAND_FOREST) &&
+	    ($land[$x][$y] != Hako::Constants::LAND_MOUNTAIN)) {
+	     $land[$x][$y] = Hako::Constants::LAND_BASE;
 	     $landValue[$x][$y] = 0;
 	     $count++;
 	 }
@@ -464,12 +466,12 @@ sub doCommand {
     my($landValue) = $island->{'landValue'};
     my($landKind) = $land->[$x][$y];
     my($lv) = $landValue->[$x][$y];
-    my($cost) = $HcomCost[$kind];
-    my($comName) = $HcomName[$kind];
+    my($cost) = Hako::Command->id_to_cost($kind);
+    my($comName) = Hako::Command->id_to_name($kind);
     my($point) = "($x, $y)";
     my($landName) = landName($landKind, $lv);
 
-    if($kind == $HcomDoNothing) {
+    if($kind == Hako::Constants::COMMAND_DO_NOTHING) {
 	# 資金繰り
 	logDoNothing($id, $name, $comName);
 	$island->{'money'} += 10;
@@ -478,7 +480,7 @@ sub doCommand {
 	# 自動放棄
 	if($island->{'absent'} >= Hako::Config::GIVEUP_TURN) {
 	    $comArray->[0] = {
-		'kind' => $HcomGiveup,
+		'kind' => Hako::Constants::COMMAND_GIVE_UP,
 		'target' => 0,
 		'x' => 0,
 		'y' => 0,
@@ -506,28 +508,28 @@ sub doCommand {
     }
 
     # コマンドで分岐
-    if(($kind == $HcomPrepare) ||
-       ($kind == $HcomPrepare2)) {
+    if(($kind == Hako::Constants::COMMAND_PREPARE) ||
+       ($kind == Hako::Constants::COMMAND_PREPARE2)) {
 	# 整地、地ならし
-	if(($landKind == $HlandSea) || 
-	   ($landKind == $HlandSbase) ||
-	   ($landKind == $HlandOil) ||
-	   ($landKind == $HlandMountain) ||
-	   ($landKind == $HlandMonster)) {
+	if(($landKind == Hako::Constants::LAND_SEA) || 
+	   ($landKind == Hako::Constants::LAND_SEA_BASE) ||
+	   ($landKind == Hako::Constants::LAND_OIL) ||
+	   ($landKind == Hako::Constants::LAND_MOUNTAIN) ||
+	   ($landKind == Hako::Constants::LAND_MONSTER)) {
 	    # 海、海底基地、油田、山、怪獣は整地できない
 	    logLandFail($id, $name, $comName, $landName, $point);
 	    return 0;
 	}
 
 	# 目的の場所を平地にする
-	$land->[$x][$y] = $HlandPlains;
+	$land->[$x][$y] = Hako::Constants::LAND_PLAINS;
 	$landValue->[$x][$y] = 0;
 	logLandSuc($id, $name, '整地', $point);
 
 	# 金を差し引く
 	$island->{'money'} -= $cost;
 
-	if($kind == $HcomPrepare2) {
+	if($kind == Hako::Constants::COMMAND_PREPARE2) {
 	    # 地ならし
 	    $island->{'prepare2'}++;
 	    
@@ -542,11 +544,11 @@ sub doCommand {
 	    }
 	    return 1;
 	}
-    } elsif($kind == $HcomReclaim) {
+    } elsif($kind == Hako::Constants::COMMAND_RECLAIM) {
 	# 埋め立て
-	if(($landKind != $HlandSea) &&
-	   ($landKind != $HlandOil) &&
-	   ($landKind != $HlandSbase)) {
+	if(($landKind != Hako::Constants::LAND_SEA) &&
+	   ($landKind != Hako::Constants::LAND_OIL) &&
+	   ($landKind != Hako::Constants::LAND_SEA_BASE)) {
 	    # 海、海底基地、油田しか埋め立てできない
 	    logLandFail($id, $name, $comName, $landName, $point);
 	    return 0;
@@ -554,9 +556,9 @@ sub doCommand {
 
 	# 周りに陸があるかチェック
 	my($seaCount) =
-	    countAround($land, $x, $y, $HlandSea, 7) +
-	    countAround($land, $x, $y, $HlandOil, 7) +
-            countAround($land, $x, $y, $HlandSbase, 7);
+	    countAround($land, $x, $y, Hako::Constants::LAND_SEA, 7) +
+	    countAround($land, $x, $y, Hako::Constants::LAND_OIL, 7) +
+            countAround($land, $x, $y, Hako::Constants::LAND_SEA_BASE, 7);
 
         if($seaCount == 7) {
 	    # 全部海だから埋め立て不能
@@ -564,10 +566,10 @@ sub doCommand {
 	    return 0;
 	}
 
-	if(($landKind == $HlandSea) && ($lv == 1)) {
+	if(($landKind == Hako::Constants::LAND_SEA) && ($lv == 1)) {
 	    # 浅瀬の場合
 	    # 目的の場所を荒地にする
-	    $land->[$x][$y] = $HlandWaste;
+	    $land->[$x][$y] = Hako::Constants::LAND_WASTE;
 	    $landValue->[$x][$y] = 0;
 	    logLandSuc($id, $name, $comName, $point);
 	    $island->{'area'}++;
@@ -589,7 +591,7 @@ sub doCommand {
 		       ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 		    } else {
 			# 範囲内の場合
-			if($land->[$sx][$sy] == $HlandSea) {
+			if($land->[$sx][$sy] == Hako::Constants::LAND_SEA) {
 			    $landValue->[$sx][$sy] = 1;
 			}
 		    }
@@ -597,7 +599,7 @@ sub doCommand {
 	    }
 	} else {
 	    # 海なら、目的の場所を浅瀬にする
-	    $land->[$x][$y] = $HlandSea;
+	    $land->[$x][$y] = Hako::Constants::LAND_SEA;
 	    $landValue->[$x][$y] = 1;
 	    logLandSuc($id, $name, $comName, $point);
 	}
@@ -605,17 +607,17 @@ sub doCommand {
 	# 金を差し引く
 	$island->{'money'} -= $cost;
 	return 1;
-    } elsif($kind == $HcomDestroy) {
+    } elsif($kind == Hako::Constants::COMMAND_DESTROY) {
 	# 掘削
-	if(($landKind == $HlandSbase) ||
-	   ($landKind == $HlandOil) ||
-	   ($landKind == $HlandMonster)) {
+	if(($landKind == Hako::Constants::LAND_SEA_BASE) ||
+	   ($landKind == Hako::Constants::LAND_OIL) ||
+	   ($landKind == Hako::Constants::LAND_MONSTER)) {
 	    # 海底基地、油田、怪獣は掘削できない
 	    logLandFail($id, $name, $comName, $landName, $point);
 	    return 0;
 	}
 
-	if(($landKind == $HlandSea) && ($lv == 0)) {
+	if(($landKind == Hako::Constants::LAND_SEA) && ($lv == 0)) {
 	    # 海なら、油田探し
 	    # 投資額決定
 	    if($arg == 0) { $arg = 1; }
@@ -629,7 +631,7 @@ sub doCommand {
 	    if($p > random(100)) {
 		# 油田見つかる
 		logOilFound($id, $name, $point, $comName, $str);
-		$land->[$x][$y] = $HlandOil;
+		$land->[$x][$y] = Hako::Constants::LAND_OIL;
 		$landValue->[$x][$y] = 0;
 	    } else {
 		# 無駄撃ちに終わる
@@ -639,13 +641,13 @@ sub doCommand {
 	}
 
 	# 目的の場所を海にする。山なら荒地に。浅瀬なら海に。
-	if($landKind == $HlandMountain) {
-	    $land->[$x][$y] = $HlandWaste;
+	if($landKind == Hako::Constants::LAND_MOUNTAIN) {
+	    $land->[$x][$y] = Hako::Constants::LAND_WASTE;
 	    $landValue->[$x][$y] = 0;
-	} elsif($landKind == $HlandSea) {
+	} elsif($landKind == Hako::Constants::LAND_SEA) {
 	    $landValue->[$x][$y] = 0;
 	} else {
-	    $land->[$x][$y] = $HlandSea;
+	    $land->[$x][$y] = Hako::Constants::LAND_SEA;
 	    $landValue->[$x][$y] = 1;
 	    $island->{'area'}--;
 	}
@@ -654,62 +656,62 @@ sub doCommand {
 	# 金を差し引く
 	$island->{'money'} -= $cost;
 	return 1;
-    } elsif($kind == $HcomSellTree) {
+    } elsif($kind == Hako::Constants::COMMAND_SELL_TREE) {
 	# 伐採
-	if($landKind != $HlandForest) {
+	if($landKind != Hako::Constants::LAND_FOREST) {
 	    # 森以外は伐採できない
 	    logLandFail($id, $name, $comName, $landName, $point);
 	    return 0;
 	}
 
 	# 目的の場所を平地にする
-	$land->[$x][$y] = $HlandPlains;
+	$land->[$x][$y] = Hako::Constants::LAND_PLAINS;
 	$landValue->[$x][$y] = 0;
 	logLandSuc($id, $name, $comName, $point);
 
 	# 売却金を得る
 	$island->{'money'} += Hako::Config::TREE_VALUE * $lv;
 	return 1;
-    } elsif(($kind == $HcomPlant) ||
-	    ($kind == $HcomFarm) ||
-	    ($kind == $HcomFactory) ||
-	    ($kind == $HcomBase) ||
-	    ($kind == $HcomMonument) ||
-	    ($kind == $HcomHaribote) ||
-	    ($kind == $HcomDbase)) {
+    } elsif(($kind == Hako::Constants::COMMAND_PLANT) ||
+	    ($kind == Hako::Constants::COMMAND_FARM) ||
+	    ($kind == Hako::Constants::COMMAND_FACTORY) ||
+	    ($kind == Hako::Constants::COMMAND_BASE) ||
+	    ($kind == Hako::Constants::COMMAND_MONUMENT) ||
+	    ($kind == Hako::Constants::COMMAND_HARIBOTE) ||
+	    ($kind == Hako::Constants::COMMAND_DEFENCE_BASE)) {
 
 	# 地上建設系
 	if(!
-	   (($landKind == $HlandPlains) ||
-	    ($landKind == $HlandTown) ||
-	    (($landKind == $HlandMonument) && ($kind == $HcomMonument)) ||
-	    (($landKind == $HlandFarm) && ($kind == $HcomFarm)) ||
-	    (($landKind == $HlandFactory) && ($kind == $HcomFactory)) ||
-	    (($landKind == $HlandDefence) && ($kind == $HcomDbase)))) {
+	   (($landKind == Hako::Constants::LAND_PLAINS) ||
+	    ($landKind == Hako::Constants::LAND_TOWN) ||
+	    (($landKind == Hako::Constants::LAND_MONUMENT) && ($kind == Hako::Constants::COMMAND_MONUMENT)) ||
+	    (($landKind == Hako::Constants::LAND_FARM) && ($kind == Hako::Constants::COMMAND_FARM)) ||
+	    (($landKind == Hako::Constants::LAND_FACTORY) && ($kind == Hako::Constants::COMMAND_FACTORY)) ||
+	    (($landKind == Hako::Constants::LAND_DEFENCE) && ($kind == Hako::Constants::COMMAND_DEFENCE_BASE)))) {
 	    # 不適当な地形
 	    logLandFail($id, $name, $comName, $landName, $point);
 	    return 0;
 	}
 
 	# 種類で分岐
-	if($kind == $HcomPlant) {
+	if($kind == Hako::Constants::COMMAND_PLANT) {
 	    # 目的の場所を森にする。
-	    $land->[$x][$y] = $HlandForest;
+	    $land->[$x][$y] = Hako::Constants::LAND_FOREST;
 	    $landValue->[$x][$y] = 1; # 木は最低単位
 	    logPBSuc($id, $name, $comName, $point);
-	} elsif($kind == $HcomBase) {
+	} elsif($kind == Hako::Constants::COMMAND_BASE) {
 	    # 目的の場所をミサイル基地にする。
-	    $land->[$x][$y] = $HlandBase;
+	    $land->[$x][$y] = Hako::Constants::LAND_BASE;
 	    $landValue->[$x][$y] = 0; # 経験値0
 	    logPBSuc($id, $name, $comName, $point);
-	} elsif($kind == $HcomHaribote) {
+	} elsif($kind == Hako::Constants::COMMAND_HARIBOTE) {
 	    # 目的の場所をハリボテにする
-	    $land->[$x][$y] = $HlandHaribote;
+	    $land->[$x][$y] = Hako::Constants::LAND_HARIBOTE;
 	    $landValue->[$x][$y] = 0;
-	    logHariSuc($id, $name, $comName, $HcomName[$HcomDbase], $point);
-	} elsif($kind == $HcomFarm) {
+	    logHariSuc($id, $name, $comName, Hako::Command->id_to_name(Hako::Constants::COMMAND_DEFENCE_BASE), $point);
+	} elsif($kind == Hako::Constants::COMMAND_FARM) {
 	    # 農場
-	    if($landKind == $HlandFarm) {
+	    if($landKind == Hako::Constants::LAND_FARM) {
 		# すでに農場の場合
 		$landValue->[$x][$y] += 2; # 規模 + 2000人
 		if($landValue->[$x][$y] > 50) {
@@ -717,13 +719,13 @@ sub doCommand {
 		}
 	    } else {
 		# 目的の場所を農場に
-		$land->[$x][$y] = $HlandFarm;
+		$land->[$x][$y] = Hako::Constants::LAND_FARM;
 		$landValue->[$x][$y] = 10; # 規模 = 10000人
 	    }
 	    logLandSuc($id, $name, $comName, $point);
-	} elsif($kind == $HcomFactory) {
+	} elsif($kind == Hako::Constants::COMMAND_FACTORY) {
 	    # 工場
-	    if($landKind == $HlandFactory) {
+	    if($landKind == Hako::Constants::LAND_FACTORY) {
 		# すでに工場の場合
 		$landValue->[$x][$y] += 10; # 規模 + 10000人
 		if($landValue->[$x][$y] > 100) {
@@ -731,25 +733,25 @@ sub doCommand {
 		}
 	    } else {
 		# 目的の場所を工場に
-		$land->[$x][$y] = $HlandFactory;
+		$land->[$x][$y] = Hako::Constants::LAND_FACTORY;
 		$landValue->[$x][$y] = 30; # 規模 = 10000人
 	    }
 	    logLandSuc($id, $name, $comName, $point);
-	} elsif($kind == $HcomDbase) {
+	} elsif($kind == Hako::Constants::COMMAND_DEFENCE_BASE) {
 	    # 防衛施設
-	    if($landKind == $HlandDefence) {
+	    if($landKind == Hako::Constants::LAND_DEFENCE) {
 		# すでに防衛施設の場合
 		$landValue->[$x][$y] = 1; # 自爆装置セット
 		logBombSet($id, $name, $landName, $point);
 	    } else {
 		# 目的の場所を防衛施設に
-		$land->[$x][$y] = $HlandDefence;
+		$land->[$x][$y] = Hako::Constants::LAND_DEFENCE;
 		$landValue->[$x][$y] = 0;
 		logLandSuc($id, $name, $comName, $point);
 	    }
-	} elsif($kind == $HcomMonument) {
+	} elsif($kind == Hako::Constants::COMMAND_MONUMENT) {
 	    # 記念碑
-	    if($landKind == $HlandMonument) {
+	    if($landKind == Hako::Constants::LAND_MONUMENT) {
 		# すでに記念碑の場合
 		# ターゲット取得
 		my($tn) = $HidToNumber{$target};
@@ -762,12 +764,12 @@ sub doCommand {
 		$tIsland->{'bigmissile'}++;
 
 		# その場所は荒地に
-		$land->[$x][$y] = $HlandWaste;
+		$land->[$x][$y] = Hako::Constants::LAND_WASTE;
 		$landValue->[$x][$y] = 0;
 		logMonFly($id, $name, $landName, $point);
 	    } else {
 		# 目的の場所を記念碑に
-		$land->[$x][$y] = $HlandMonument;
+		$land->[$x][$y] = Hako::Constants::LAND_MONUMENT;
 		if($arg >= Hako::Config::MONUMENT_NUMBER) {
 		    $arg = 0;
 		}
@@ -780,7 +782,7 @@ sub doCommand {
 	$island->{'money'} -= $cost;
 
         # 回数付きなら、コマンドを戻す
-        if(($kind == $HcomFarm) || ($kind == $HcomFactory)) {
+        if(($kind == Hako::Constants::COMMAND_FARM) || ($kind == Hako::Constants::COMMAND_FACTORY)) {
             if($arg > 1) {
                 $arg--;
                 $comArray->[0] = {
@@ -795,9 +797,9 @@ sub doCommand {
         }
 
         return 1;
-    } elsif($kind == $HcomMountain) {
+    } elsif($kind == Hako::Constants::COMMAND_MOUNTAIN) {
         # 採掘場
-        if($landKind != $HlandMountain) {
+        if($landKind != Hako::Constants::LAND_MOUNTAIN) {
             # 山以外には作れない
             logLandFail($id, $name, $comName, $landName, $point);
             return 0;
@@ -823,25 +825,25 @@ sub doCommand {
             Hako::DB->insert_command($island->{id}, 0, $comArray->[0]);
         }
         return 1;
-    } elsif($kind == $HcomSbase) {
+    } elsif($kind == Hako::Constants::COMMAND_SEABASE) {
 	# 海底基地
-	if(($landKind != $HlandSea) || ($lv != 0)){
+	if(($landKind != Hako::Constants::LAND_SEA) || ($lv != 0)){
 	    # 海以外には作れない
 	    logLandFail($id, $name, $comName, $landName, $point);
 	    return 0;
 	}
 
-	$land->[$x][$y] = $HlandSbase;
+	$land->[$x][$y] = Hako::Constants::LAND_SEA_BASE;
 	$landValue->[$x][$y] = 0; # 経験値0
 	logLandSuc($id, $name, $comName, '(?, ?)');
 
 	# 金を差し引く
 	$island->{'money'} -= $cost;
 	return 1;
-    } elsif(($kind == $HcomMissileNM) ||
-	    ($kind == $HcomMissilePP) ||
-	    ($kind == $HcomMissileST) ||
-	    ($kind == $HcomMissileLD)) {
+    } elsif(($kind == Hako::Constants::COMMAND_MISSILE_NM) ||
+	    ($kind == Hako::Constants::COMMAND_MISSILE_PP) ||
+	    ($kind == Hako::Constants::COMMAND_MISSILE_ST) ||
+	    ($kind == Hako::Constants::COMMAND_MISSILE_LD)) {
 	# ミサイル系
 	# ターゲット取得
 	my($tn) = $HidToNumber{$target};
@@ -868,7 +870,7 @@ sub doCommand {
 	my($boat) = 0;
 
 	# 誤差
-	if($kind == $HcomMissilePP) {
+	if($kind == Hako::Constants::COMMAND_MISSILE_PP) {
 	    $err = 7;
 	} else {
 	    $err = 19;
@@ -879,16 +881,16 @@ sub doCommand {
 	while(($arg > 0) &&
 	      ($island->{'money'} >= $cost)) {
 	    # 基地を見つけるまでループ
-	    while($count < $HpointNumber) {
+	    while($count < Hako::Config::POINT_NUMBER) {
 		$bx = $Hrpx[$count];
 		$by = $Hrpy[$count];
-		if(($land->[$bx][$by] == $HlandBase) ||
-		   ($land->[$bx][$by] == $HlandSbase)) {
+		if(($land->[$bx][$by] == Hako::Constants::LAND_BASE) ||
+		   ($land->[$bx][$by] == Hako::Constants::LAND_SEA_BASE)) {
 		    last;
 		}
 		$count++;
 	    }
-	    if($count >= $HpointNumber) {
+	    if($count >= Hako::Config::POINT_NUMBER) {
 		# 見つからなかったらそこまで
 		last;
 	    }
@@ -918,7 +920,7 @@ sub doCommand {
 		if(($tx < 0) || ($tx >= Hako::Config::ISLAND_SIZE) ||
 		   ($ty < 0) || ($ty >= Hako::Config::ISLAND_SIZE)) {
 		    # 範囲外
-		    if($kind == $HcomMissileST) {
+		    if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 			# ステルス
 			logMsOutS($id, $target, $name, $tName,
 				   $comName, $point);
@@ -943,7 +945,7 @@ sub doCommand {
 		} elsif($HdefenceHex[$id][$tx][$ty] == -1) {
 		    $defence = 0;
 		} else {
-		    if($tL == $HlandDefence) {
+		    if($tL == Hako::Constants::LAND_DEFENCE) {
 			# 防衛施設に命中
 			# フラグをクリア
 			my($i, $count, $sx, $sy);
@@ -964,7 +966,7 @@ sub doCommand {
 				$HdefenceHex[$id][$sx][$sy] = 0;
 			    }
 			}
-		    } elsif(countAround($tLand, $tx, $ty, $HlandDefence, 19)) {
+		    } elsif(countAround($tLand, $tx, $ty, Hako::Constants::LAND_DEFENCE, 19)) {
 			$HdefenceHex[$id][$tx][$ty] = 1;
 			$defence = 1;
 		    } else {
@@ -975,7 +977,7 @@ sub doCommand {
 		
 		if($defence == 1) {
 		    # 空中爆破
-		    if($kind == $HcomMissileST) {
+		    if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 			# ステルス
 			logMsCaughtS($id, $target, $name, $tName,
 				      $comName, $point, $tPoint);
@@ -988,19 +990,19 @@ sub doCommand {
 		}
 
 		# 「効果なし」hexを最初に判定
-		if((($tL == $HlandSea) && ($tLv == 0))|| # 深い海
-		   ((($tL == $HlandSea) ||   # 海または・・・
-		     ($tL == $HlandSbase) ||   # 海底基地または・・・
-		     ($tL == $HlandMountain)) # 山で・・・
-		    && ($kind != $HcomMissileLD))) { # 陸破弾以外
+		if((($tL == Hako::Constants::LAND_SEA) && ($tLv == 0))|| # 深い海
+		   ((($tL == Hako::Constants::LAND_SEA) ||   # 海または・・・
+		     ($tL == Hako::Constants::LAND_SEA_BASE) ||   # 海底基地または・・・
+		     ($tL == Hako::Constants::LAND_MOUNTAIN)) # 山で・・・
+		    && ($kind != Hako::Constants::COMMAND_MISSILE_LD))) { # 陸破弾以外
 		    # 海底基地の場合、海のフリ
-		    if($tL == $HlandSbase) {
-			$tL = $HlandSea;
+		    if($tL == Hako::Constants::LAND_SEA_BASE) {
+			$tL = Hako::Constants::LAND_SEA;
 		    }
 		    $tLname = landName($tL, $tLv);
 
 		    # 無効化
-		    if($kind == $HcomMissileST) {
+		    if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 			# ステルス
 			logMsNoDamageS($id, $target, $name, $tName,
 					$comName, $tLname, $point, $tPoint);
@@ -1013,26 +1015,26 @@ sub doCommand {
 		}
 
 		# 弾の種類で分岐
-		if($kind == $HcomMissileLD) {
+		if($kind == Hako::Constants::COMMAND_MISSILE_LD) {
 		    # 陸地破壊弾
-		    if($tL == $HlandMountain) {
+		    if($tL == Hako::Constants::LAND_MOUNTAIN) {
 			# 山(荒地になる)
 			logMsLDMountain($id, $target, $name, $tName,
 					 $comName, $tLname, $point, $tPoint);
 			# 荒地になる
-			$tLand->[$tx][$ty] = $HlandWaste;
+			$tLand->[$tx][$ty] = Hako::Constants::LAND_WASTE;
 			$tLandValue->[$tx][$ty] = 0;
 			next;
 
-		    } elsif($tL == $HlandSbase) {
+		    } elsif($tL == Hako::Constants::LAND_SEA_BASE) {
 			# 海底基地
 			logMsLDSbase($id, $target, $name, $tName,
 				      $comName, $tLname, $point, $tPoint);
-		    } elsif($tL == $HlandMonster) {
+		    } elsif($tL == Hako::Constants::LAND_MONSTER) {
 			# 怪獣
 			logMsLDMonster($id, $target, $name, $tName,
 					$comName, $tLname, $point, $tPoint);
-		    } elsif($tL == $HlandSea) {
+		    } elsif($tL == Hako::Constants::LAND_SEA) {
 			# 浅瀬
 			logMsLDSea1($id, $target, $name, $tName,
 				    $comName, $tLname, $point, $tPoint);
@@ -1043,9 +1045,9 @@ sub doCommand {
 		    }
 		    
 		    # 経験値
-		    if($tL == $HlandTown) {
-			if(($land->[$bx][$by] == $HlandBase) ||
-			   ($land->[$bx][$by] == $HlandSbase)) {
+		    if($tL == Hako::Constants::LAND_TOWN) {
+			if(($land->[$bx][$by] == Hako::Constants::LAND_BASE) ||
+			   ($land->[$bx][$by] == Hako::Constants::LAND_SEA_BASE)) {
 			    # まだ基地の場合のみ
 			    $landValue->[$bx][$by] += int($tLv / 20);
 			    if($landValue->[$bx][$by] > Hako::Config::MAX_EXP_POINT) {
@@ -1055,21 +1057,21 @@ sub doCommand {
 		    }
 
 		    # 浅瀬になる
-		    $tLand->[$tx][$ty] = $HlandSea;
+		    $tLand->[$tx][$ty] = Hako::Constants::LAND_SEA;
 		    $tIsland->{'area'}--;
 		    $tLandValue->[$tx][$ty] = 1;
 
 		    # でも油田、浅瀬、海底基地だったら海
-		    if(($tL == $HlandOil) ||
-			($tL == $HlandSea) ||
-		       ($tL == $HlandSbase)) {
+		    if(($tL == Hako::Constants::LAND_OIL) ||
+			($tL == Hako::Constants::LAND_SEA) ||
+		       ($tL == Hako::Constants::LAND_SEA_BASE)) {
 			$tLandValue->[$tx][$ty] = 0;
 		    }
 		} else {
 		    # その他ミサイル
-		    if($tL == $HlandWaste) {
+		    if($tL == Hako::Constants::LAND_WASTE) {
 			# 荒地(被害なし)
-			if($kind == $HcomMissileST) {
+			if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 			    # ステルス
 			    logMsWasteS($id, $target, $name, $tName,
 					 $comName, $tLname, $point, $tPoint);
@@ -1078,7 +1080,7 @@ sub doCommand {
 			    logMsWaste($id, $target, $name, $tName,
 					$comName, $tLname, $point, $tPoint);
 			}
-		    } elsif($tL == $HlandMonster) {
+		    } elsif($tL == Hako::Constants::LAND_MONSTER) {
 			# 怪獣
 			my($mKind, $mName, $mHp) = monsterSpec($tLv);
 			my($special) = ${Hako::Config::MONSTER_SPECIAL()}[$mKind];
@@ -1087,7 +1089,7 @@ sub doCommand {
 			if((($special == 3) && (($HislandTurn % 2) == 1)) ||
 			   (($special == 4) && (($HislandTurn % 2) == 0))) {
 			    # 硬化中
-			    if($kind == $HcomMissileST) {
+			    if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 				# ステルス
 				logMsMonNoDamageS($id, $target, $name, $tName,
 					     $comName, $mName, $point,
@@ -1103,8 +1105,8 @@ sub doCommand {
 			    # 硬化中じゃない
 			    if($mHp == 1) {
 				# 怪獣しとめた
-				if(($land->[$bx][$by] == $HlandBase) ||
-				   ($land->[$bx][$by] == $HlandSbase)) {
+				if(($land->[$bx][$by] == Hako::Constants::LAND_BASE) ||
+				   ($land->[$bx][$by] == Hako::Constants::LAND_SEA_BASE)) {
 				    # 経験値
 				    $landValue->[$bx][$by] += ${Hako::Config::MONSTER_EXP()}[$mKind];
 				    if($landValue->[$bx][$by] > Hako::Config::MAX_EXP_POINT) {
@@ -1112,7 +1114,7 @@ sub doCommand {
 				    }
 				}
 
-				if($kind == $HcomMissileST) {
+				if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 				    # ステルス
 				    logMsMonKillS($id, $target, $name, $tName,
 						  $comName, $mName, $point,
@@ -1142,7 +1144,7 @@ sub doCommand {
 				$island->{'prize'} = "$flags,$monsters,$turns";
 			    } else {
 				# 怪獣生きてる
-				if($kind == $HcomMissileST) {
+				if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 				    # ステルス
 				    logMsMonsterS($id, $target, $name, $tName,
 						  $comName, $mName, $point,
@@ -1161,7 +1163,7 @@ sub doCommand {
 			}
 		    } else {
 			# 通常地形
-			if($kind == $HcomMissileST) {
+			if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
 			    # ステルス
 			    logMsNormalS($id, $target, $name, $tName,
 					   $comName, $tLname, $point,
@@ -1174,9 +1176,9 @@ sub doCommand {
 			}
 		    }
 		    # 経験値
-		    if($tL == $HlandTown) {
-			if(($land->[$bx][$by] == $HlandBase) ||
-			    ($land->[$bx][$by] == $HlandSbase)) {
+		    if($tL == Hako::Constants::LAND_TOWN) {
+			if(($land->[$bx][$by] == Hako::Constants::LAND_BASE) ||
+			    ($land->[$bx][$by] == Hako::Constants::LAND_SEA_BASE)) {
 			    $landValue->[$bx][$by] += int($tLv / 20);
 			    $boat += $tLv; # 通常ミサイルなので難民にプラス
 			    if($landValue->[$bx][$by] > Hako::Config::MAX_EXP_POINT) {
@@ -1186,12 +1188,12 @@ sub doCommand {
 		    }
 		    
                     # 荒地になる
-		    $tLand->[$tx][$ty] = $HlandWaste;
+		    $tLand->[$tx][$ty] = Hako::Constants::LAND_WASTE;
 		    $tLandValue->[$tx][$ty] = 1; # 着弾点
 
 		    # でも油田だったら海
-		    if($tL == $HlandOil) {
-			$tLand->[$tx][$ty] = $HlandSea;
+		    if($tL == Hako::Constants::LAND_OIL) {
+			$tLand->[$tx][$ty] = Hako::Constants::LAND_SEA;
 			$tLandValue->[$tx][$ty] = 0;
 		    }
 		} 
@@ -1210,14 +1212,14 @@ sub doCommand {
 
 	# 難民判定
 	$boat = int($boat / 2);
-	if(($boat > 0) && ($id != $target) && ($kind != $HcomMissileST)) {
+	if(($boat > 0) && ($id != $target) && ($kind != Hako::Constants::COMMAND_MISSILE_ST)) {
 	    # 難民漂着
 	    my($achive); # 到達難民
 	    my($i);
-	    for($i = 0; ($i < $HpointNumber && $boat > 0); $i++) {
+	    for($i = 0; ($i < Hako::Config::POINT_NUMBER && $boat > 0); $i++) {
 		$bx = $Hrpx[$i];
 		$by = $Hrpy[$i];
-		if($land->[$bx][$by] == $HlandTown) {
+		if($land->[$bx][$by] == Hako::Constants::LAND_TOWN) {
 		    # 町の場合
 		    my($lv) = $landValue->[$bx][$by];
 		    if($boat > 50) {
@@ -1235,9 +1237,9 @@ sub doCommand {
 			$lv = 200;
 		    }
 		    $landValue->[$bx][$by] = $lv;
-		} elsif($land->[$bx][$by] == $HlandPlains) {
+		} elsif($land->[$bx][$by] == Hako::Constants::LAND_PLAINS) {
 		    # 平地の場合
-		    $land->[$bx][$by] = $HlandTown;;
+		    $land->[$bx][$by] = Hako::Constants::LAND_TOWN;;
 		    if($boat > 10) {
 			$landValue->[$bx][$by] = 5;
 			$boat -= 10;
@@ -1298,7 +1300,7 @@ sub doCommand {
 
 	$island->{'money'} -= $cost;
 	return 1;
-    } elsif($kind == $HcomSell) {
+    } elsif($kind == Hako::Constants::COMMAND_SELL) {
 	# 輸出量決定
 	if($arg == 0) { $arg = 1; }
 	my($value) = min($arg * (-$cost), $island->{'food'});
@@ -1308,8 +1310,8 @@ sub doCommand {
 	$island->{'food'} -=  $value;
 	$island->{'money'} += ($value / 10);
 	return 0;
-    } elsif(($kind == $HcomFood) ||
-	    ($kind == $HcomMoney)) {
+    } elsif(($kind == Hako::Constants::COMMAND_MONEY) ||
+	    ($kind == Hako::Constants::COMMAND_MONEY)) {
 	# 援助系
 	# ターゲット取得
 	my($tn) = $HidToNumber{$target};
@@ -1338,13 +1340,13 @@ sub doCommand {
 	    $tIsland->{'money'} += $value;
 	}
 	return 0;
-    } elsif($kind == $HcomPropaganda) {
+    } elsif($kind == Hako::Constants::COMMAND_PROPAGANDA) {
 	# 誘致活動
 	logPropaganda($id, $name, $comName);
 	$island->{'propaganda'} = 1;
 	$island->{'money'} -= $cost;
 	return 1;
-    } elsif($kind == $HcomGiveup) {
+    } elsif($kind == Hako::Constants::COMMAND_GIVE_UP) {
 	# 放棄
 	logGiveup($id, $name);
 	$island->{'dead'} = 1;
@@ -1381,20 +1383,20 @@ sub doEachHex {
 
     # ループ
     my($x, $y, $i);
-    for($i = 0; $i < $HpointNumber; $i++) {
+    for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 	$x = $Hrpx[$i];
 	$y = $Hrpy[$i];
 	my($landKind) = $land->[$x][$y];
 	my($lv) = $landValue->[$x][$y];
 
-	if($landKind == $HlandTown) {
+	if($landKind == Hako::Constants::LAND_TOWN) {
 	    # 町系
 	    if($addpop < 0) {
 		# 不足
 		$lv -= (random(-$addpop) + 1);
 		if($lv <= 0) {
 		    # 平地に戻す
-		    $land->[$x][$y] = $HlandPlains;
+		    $land->[$x][$y] = Hako::Constants::LAND_PLAINS;
 		    $landValue->[$x][$y] = 0;
 		    next;
 		}
@@ -1416,22 +1418,22 @@ sub doEachHex {
 		$lv = 200;
 	    }
 	    $landValue->[$x][$y] = $lv;
-	} elsif($landKind == $HlandPlains) {
+	} elsif($landKind == Hako::Constants::LAND_PLAINS) {
 	    # 平地
 	    if(random(5) == 0) {
 		# 周りに農場、町があれば、ここも町になる
 	        if(countGrow($land, $landValue, $x, $y)){
-		    $land->[$x][$y] = $HlandTown;
+		    $land->[$x][$y] = Hako::Constants::LAND_TOWN;
 		    $landValue->[$x][$y] = 1;
 		}
 	    }
-	} elsif($landKind == $HlandForest) {
+	} elsif($landKind == Hako::Constants::LAND_FOREST) {
 	    # 森
 	    if($lv < 200) {
 		# 木を増やす
 		$landValue->[$x][$y]++;
 	    }
-	} elsif($landKind == $HlandDefence) {
+	} elsif($landKind == Hako::Constants::LAND_DEFENCE) {
 	    if($lv == 1) {
 		# 防衛施設自爆
 		my($lName) = &landName($landKind, $lv);
@@ -1440,7 +1442,7 @@ sub doEachHex {
 		# 広域被害ルーチン
 		wideDamage($id, $name, $land, $landValue, $x, $y);
 	    }
-	} elsif($landKind == $HlandOil) {
+	} elsif($landKind == Hako::Constants::LAND_OIL) {
 	    # 海底油田
 	    my($value, $str, $lName);
 	    $lName = landName($landKind, $lv);
@@ -1455,11 +1457,11 @@ sub doEachHex {
 	    if(random(1000) < Hako::Config::OIL_RAITO) {
 		# 枯渇
 		logOilEnd($id, $name, $lName, "($x, $y)");
-		$land->[$x][$y] = $HlandSea;
+		$land->[$x][$y] = Hako::Constants::LAND_SEA;
 		$landValue->[$x][$y] = 0;
 	    }
 
-	} elsif($landKind == $HlandMonster) {
+	} elsif($landKind == Hako::Constants::LAND_MONSTER) {
 	    # 怪獣
 	    if($monsterMove[$x][$y] == 2) {
 		# すでに動いた後
@@ -1497,12 +1499,12 @@ sub doEachHex {
 		}
 
 		# 海、海基、油田、怪獣、山、記念碑以外
-		if(($land->[$sx][$sy] != $HlandSea) &&
-		   ($land->[$sx][$sy] != $HlandSbase) &&
-		   ($land->[$sx][$sy] != $HlandOil) &&
-		   ($land->[$sx][$sy] != $HlandMountain) &&
-		   ($land->[$sx][$sy] != $HlandMonument) &&
-		   ($land->[$sx][$sy] != $HlandMonster)) {
+		if(($land->[$sx][$sy] != Hako::Constants::LAND_SEA) &&
+		   ($land->[$sx][$sy] != Hako::Constants::LAND_SEA_BASE) &&
+		   ($land->[$sx][$sy] != Hako::Constants::LAND_OIL) &&
+		   ($land->[$sx][$sy] != Hako::Constants::LAND_MOUNTAIN) &&
+		   ($land->[$sx][$sy] != Hako::Constants::LAND_MONUMENT) &&
+		   ($land->[$sx][$sy] != Hako::Constants::LAND_MONSTER)) {
 		    last;
 		}
 	    }
@@ -1523,7 +1525,7 @@ sub doEachHex {
 	    $landValue->[$sx][$sy] = $landValue->[$x][$y];
 
 	    # もと居た位置を荒地に
-	    $land->[$x][$y] = $HlandWaste;
+	    $land->[$x][$y] = Hako::Constants::LAND_WASTE;
 	    $landValue->[$x][$y] = 0;
 
 	    # 移動済みフラグ
@@ -1537,7 +1539,7 @@ sub doEachHex {
 		$monsterMove[$sx][$sy] = 2;
 	    }
 
-	    if(($l == $HlandDefence) && (Hako::Config::DEFENCE_BASE_AUTO == 1)) {
+	    if(($l == Hako::Constants::LAND_DEFENCE) && (Hako::Config::DEFENCE_BASE_AUTO == 1)) {
 		# 防衛施設を踏んだ
 		logMonsMoveDefence($id, $name, $lName, $point, $mName);
 
@@ -1550,20 +1552,20 @@ sub doEachHex {
 	}
 
 	# 火災判定
-	if((($landKind == $HlandTown) && ($lv > 30)) ||
-	   ($landKind == $HlandHaribote) ||
-	   ($landKind == $HlandFactory)) {
+	if((($landKind == Hako::Constants::LAND_TOWN) && ($lv > 30)) ||
+	   ($landKind == Hako::Constants::LAND_HARIBOTE) ||
+	   ($landKind == Hako::Constants::LAND_FACTORY)) {
 	    if(random(1000) < Hako::Config::DISASTER_FIRE) {
 		# 周囲の森と記念碑を数える
-		if((countAround($land, $x, $y, $HlandForest, 7) +
-		    countAround($land, $x, $y, $HlandMonument, 7)) == 0) {
+		if((countAround($land, $x, $y, Hako::Constants::LAND_FOREST, 7) +
+		    countAround($land, $x, $y, Hako::Constants::LAND_MONUMENT, 7)) == 0) {
 		    # 無かった場合、火災で壊滅
 		    my($l) = $land->[$x][$y];
 		    my($lv) = $landValue->[$x][$y];
 		    my($point) = "($x, $y)";
 		    my($lName) = landName($l, $lv);
 		    logFire($id, $name, $lName, $point);
-		    $land->[$x][$y] = $HlandWaste;
+		    $land->[$x][$y] = Hako::Constants::LAND_WASTE;
 		    $landValue->[$x][$y] = 0;
 		}
 	    }
@@ -1588,8 +1590,8 @@ sub countGrow {
 	    ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 	 } else {
 	     # 範囲内の場合
-	     if(($land->[$sx][$sy] == $HlandTown) ||
-		($land->[$sx][$sy] == $HlandFarm)) {
+	     if(($land->[$sx][$sy] == Hako::Constants::LAND_TOWN) ||
+		($land->[$sx][$sy] == Hako::Constants::LAND_FARM)) {
 		 if($landValue->[$sx][$sy] != 1) {
 		     return 1;
 		 }
@@ -1615,20 +1617,20 @@ sub doIslandProcess {
 	logEarthquake($id, $name);
 
 	my($x, $y, $landKind, $lv, $i);
-	for($i = 0; $i < $HpointNumber; $i++) {
+	for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 	    $x = $Hrpx[$i];
 	    $y = $Hrpy[$i];
 	    $landKind = $land->[$x][$y];
 	    $lv = $landValue->[$x][$y];
 
-	    if((($landKind == $HlandTown) && ($lv >= 100)) ||
-	       ($landKind == $HlandHaribote) ||
-	       ($landKind == $HlandFactory)) {
+	    if((($landKind == Hako::Constants::LAND_TOWN) && ($lv >= 100)) ||
+	       ($landKind == Hako::Constants::LAND_HARIBOTE) ||
+	       ($landKind == Hako::Constants::LAND_FACTORY)) {
 		# 1/4で壊滅
 		if(random(4) == 0) {
 		    logEQDamage($id, $name, landName($landKind, $lv),
 				"($x, $y)");
-		    $land->[$x][$y] = $HlandWaste;
+		    $land->[$x][$y] = Hako::Constants::LAND_WASTE;
 		    $landValue->[$x][$y] = 0;
 		}
 	    }
@@ -1643,21 +1645,21 @@ sub doIslandProcess {
 	$island->{'food'} = 0;
 
 	my($x, $y, $landKind, $lv, $i);
-	for($i = 0; $i < $HpointNumber; $i++) {
+	for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 	    $x = $Hrpx[$i];
 	    $y = $Hrpy[$i];
 	    $landKind = $land->[$x][$y];
 	    $lv = $landValue->[$x][$y];
 
-	    if(($landKind == $HlandFarm) ||
-	       ($landKind == $HlandFactory) ||
-	       ($landKind == $HlandBase) ||
-	       ($landKind == $HlandDefence)) {
+	    if(($landKind == Hako::Constants::LAND_FARM) ||
+	       ($landKind == Hako::Constants::LAND_FACTORY) ||
+	       ($landKind == Hako::Constants::LAND_BASE) ||
+	       ($landKind == Hako::Constants::LAND_DEFENCE)) {
 		# 1/4で壊滅
 		if(random(4) == 0) {
 		    logSvDamage($id, $name, landName($landKind, $lv),
 				"($x, $y)");
-		    $land->[$x][$y] = $HlandWaste;
+		    $land->[$x][$y] = Hako::Constants::LAND_WASTE;
 		    $landValue->[$x][$y] = 0;
 		}
 	    }
@@ -1670,26 +1672,26 @@ sub doIslandProcess {
 	logTsunami($id, $name);
 
 	my($x, $y, $landKind, $lv, $i);
-	for($i = 0; $i < $HpointNumber; $i++) {
+	for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 	    $x = $Hrpx[$i];
 	    $y = $Hrpy[$i];
 	    $landKind = $land->[$x][$y];
 	    $lv = $landValue->[$x][$y];
 
-	    if(($landKind == $HlandTown) ||
-	       ($landKind == $HlandFarm) ||
-	       ($landKind == $HlandFactory) ||
-	       ($landKind == $HlandBase) ||
-	       ($landKind == $HlandDefence) ||
-	       ($landKind == $HlandHaribote)) {
+	    if(($landKind == Hako::Constants::LAND_TOWN) ||
+	       ($landKind == Hako::Constants::LAND_FARM) ||
+	       ($landKind == Hako::Constants::LAND_FACTORY) ||
+	       ($landKind == Hako::Constants::LAND_BASE) ||
+	       ($landKind == Hako::Constants::LAND_DEFENCE) ||
+	       ($landKind == Hako::Constants::LAND_HARIBOTE)) {
 		# 1d12 <= (周囲の海 - 1) で崩壊
 		if(random(12) <
-		   (countAround($land, $x, $y, $HlandOil, 7) +
-		    countAround($land, $x, $y, $HlandSbase, 7) +
-		    countAround($land, $x, $y, $HlandSea, 7) - 1)) {
+		   (countAround($land, $x, $y, Hako::Constants::LAND_OIL, 7) +
+		    countAround($land, $x, $y, Hako::Constants::LAND_SEA_BASE, 7) +
+		    countAround($land, $x, $y, Hako::Constants::LAND_SEA, 7) - 1)) {
 		    logTsunamiDamage($id, $name, landName($landKind, $lv),
 				     "($x, $y)");
-		    $land->[$x][$y] = $HlandWaste;
+		    $land->[$x][$y] = Hako::Constants::LAND_WASTE;
 		    $landValue->[$x][$y] = 0;
 		}
 	    }
@@ -1727,16 +1729,16 @@ sub doIslandProcess {
 
 	    # どこに現れるか決める
 	    my($bx, $by, $i);
-	    for($i = 0; $i < $HpointNumber; $i++) {
+	    for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 		$bx = $Hrpx[$i];
 		$by = $Hrpy[$i];
-		if($land->[$bx][$by] == $HlandTown) {
+		if($land->[$bx][$by] == Hako::Constants::LAND_TOWN) {
 
 		    # 地形名
-		    my($lName) = landName($HlandTown, $landValue->[$bx][$by]);
+		    my($lName) = landName(Hako::Constants::LAND_TOWN, $landValue->[$bx][$by]);
 
 		    # そのヘックスを怪獣に
-		    $land->[$bx][$by] = $HlandMonster;
+		    $land->[$bx][$by] = Hako::Constants::LAND_MONSTER;
 		    $landValue->[$bx][$by] = $lv;
 
 		    # 怪獣情報
@@ -1757,20 +1759,20 @@ sub doIslandProcess {
 	logFalldown($id, $name);
 
 	my($x, $y, $landKind, $lv, $i);
-	for($i = 0; $i < $HpointNumber; $i++) {
+	for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 	    $x = $Hrpx[$i];
 	    $y = $Hrpy[$i];
 	    $landKind = $land->[$x][$y];
 	    $lv = $landValue->[$x][$y];
 
-	    if(($landKind != $HlandSea) &&
-	       ($landKind != $HlandSbase) &&
-	       ($landKind != $HlandOil) &&
-	       ($landKind != $HlandMountain)) {
+	    if(($landKind != Hako::Constants::LAND_SEA) &&
+	       ($landKind != Hako::Constants::LAND_SEA_BASE) &&
+	       ($landKind != Hako::Constants::LAND_OIL) &&
+	       ($landKind != Hako::Constants::LAND_MOUNTAIN)) {
 
 		# 周囲に海があれば、値を-1に
-		if(countAround($land, $x, $y, $HlandSea, 7) + 
-		   countAround($land, $x, $y, $HlandSbase, 7)) {
+		if(countAround($land, $x, $y, Hako::Constants::LAND_SEA, 7) + 
+		   countAround($land, $x, $y, Hako::Constants::LAND_SEA_BASE, 7)) {
 		    logFalldownLand($id, $name, landName($landKind, $lv),
 				"($x, $y)");
 		    $land->[$x][$y] = -1;
@@ -1779,16 +1781,16 @@ sub doIslandProcess {
 	    }
 	}
 
-	for($i = 0; $i < $HpointNumber; $i++) {
+	for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 	    $x = $Hrpx[$i];
 	    $y = $Hrpy[$i];
 	    $landKind = $land->[$x][$y];
 
 	    if($landKind == -1) {
 		# -1になっている所を浅瀬に
-		$land->[$x][$y] = $HlandSea;
+		$land->[$x][$y] = Hako::Constants::LAND_SEA;
 		$landValue->[$x][$y] = 1;
-	    } elsif ($landKind == $HlandSea) {
+	    } elsif ($landKind == Hako::Constants::LAND_SEA) {
 		# 浅瀬は海に
 		$landValue->[$x][$y] = 0;
 	    }
@@ -1802,23 +1804,23 @@ sub doIslandProcess {
 	logTyphoon($id, $name);
 
 	my($x, $y, $landKind, $lv, $i);
-	for($i = 0; $i < $HpointNumber; $i++) {
+	for($i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
 	    $x = $Hrpx[$i];
 	    $y = $Hrpy[$i];
 	    $landKind = $land->[$x][$y];
 	    $lv = $landValue->[$x][$y];
 
-	    if(($landKind == $HlandFarm) ||
-	       ($landKind == $HlandHaribote)) {
+	    if(($landKind == Hako::Constants::LAND_FARM) ||
+	       ($landKind == Hako::Constants::LAND_HARIBOTE)) {
 
 		# 1d12 <= (6 - 周囲の森) で崩壊
 		if(random(12) < 
 		   (6
-		    - countAround($land, $x, $y, $HlandForest, 7)
-		    - countAround($land, $x, $y, $HlandMonument, 7))) {
+		    - countAround($land, $x, $y, Hako::Constants::LAND_FOREST, 7)
+		    - countAround($land, $x, $y, Hako::Constants::LAND_MONUMENT, 7))) {
 		    logTyphoonDamage($id, $name, landName($landKind, $lv),
 				     "($x, $y)");
-		    $land->[$x][$y] = $HlandPlains;
+		    $land->[$x][$y] = Hako::Constants::LAND_PLAINS;
 		    $landValue->[$x][$y] = 0;
 		}
 	    }
@@ -1878,24 +1880,24 @@ sub doIslandProcess {
 	    $lv = $landValue->[$x][$y];
 	    $point = "($x, $y)";
 
-	    if(($landKind == $HlandSea) && ($lv == 0)){
+	    if(($landKind == Hako::Constants::LAND_SEA) && ($lv == 0)){
 		# 海ポチャ
 		logMeteoSea($id, $name, landName($landKind, $lv),
 			    $point);
-	    } elsif($landKind == $HlandMountain) {
+	    } elsif($landKind == Hako::Constants::LAND_MOUNTAIN) {
 		# 山破壊
 		logMeteoMountain($id, $name, landName($landKind, $lv),
 				 $point);
-		$land->[$x][$y] = $HlandWaste;
+		$land->[$x][$y] = Hako::Constants::LAND_WASTE;
 		$landValue->[$x][$y] = 0;
 		next;
-	    } elsif($landKind == $HlandSbase) {
+	    } elsif($landKind == Hako::Constants::LAND_SEA_BASE) {
 		logMeteoSbase($id, $name, landName($landKind, $lv),
 			      $point);
-	    } elsif($landKind == $HlandMonster) {
+	    } elsif($landKind == Hako::Constants::LAND_MONSTER) {
 		logMeteoMonster($id, $name, landName($landKind, $lv),
 				$point);
-	    } elsif($landKind == $HlandSea) {
+	    } elsif($landKind == Hako::Constants::LAND_SEA) {
 		# 浅瀬
 		logMeteoSea1($id, $name, landName($landKind, $lv),
 			     $point);
@@ -1903,7 +1905,7 @@ sub doIslandProcess {
 		logMeteoNormal($id, $name, landName($landKind, $lv),
 			       $point);
 	    }
-	    $land->[$x][$y] = $HlandSea;
+	    $land->[$x][$y] = Hako::Constants::LAND_SEA;
 	    $landValue->[$x][$y] = 0;
 	}
     }
@@ -1918,7 +1920,7 @@ sub doIslandProcess {
 	$point = "($x, $y)";
 	logEruption($id, $name, landName($landKind, $lv),
 		    $point);
-	$land->[$x][$y] = $HlandMountain;
+	$land->[$x][$y] = Hako::Constants::LAND_MOUNTAIN;
 	$landValue->[$x][$y] = 0;
 
 	for($i = 1; $i < 7; $i++) {
@@ -1941,9 +1943,9 @@ sub doIslandProcess {
 		$landKind = $land->[$sx][$sy];
 		$lv = $landValue->[$sx][$sy];
 		$point = "($sx, $sy)";
-		if(($landKind == $HlandSea) ||
-		   ($landKind == $HlandOil) ||
-		   ($landKind == $HlandSbase)) {
+		if(($landKind == Hako::Constants::LAND_SEA) ||
+		   ($landKind == Hako::Constants::LAND_OIL) ||
+		   ($landKind == Hako::Constants::LAND_SEA_BASE)) {
 		    # 海の場合
 		    if($lv == 1) {
 			# 浅瀬
@@ -1952,20 +1954,20 @@ sub doIslandProcess {
 		    } else {
 			logEruptionSea($id, $name, landName($landKind, $lv),
 				       $point);
-			$land->[$sx][$sy] = $HlandSea;
+			$land->[$sx][$sy] = Hako::Constants::LAND_SEA;
 			$landValue->[$sx][$sy] = 1;
 			next;
 		    }
-		} elsif(($landKind == $HlandMountain) ||
-			($landKind == $HlandMonster) ||
-			($landKind == $HlandWaste)) {
+		} elsif(($landKind == Hako::Constants::LAND_MOUNTAIN) ||
+			($landKind == Hako::Constants::LAND_MONSTER) ||
+			($landKind == Hako::Constants::LAND_WASTE)) {
 		    next;
 		} else {
 		    # それ以外の場合
 		    logEruptionNormal($id, $name, landName($landKind, $lv),
 				      $point);
 		}
-		$land->[$sx][$sy] = $HlandWaste;
+		$land->[$sx][$sy] = Hako::Constants::LAND_WASTE;
 		$landValue->[$sx][$sy] = 0;
 	    }
 	}
@@ -2059,21 +2061,21 @@ sub wideDamage {
 	# 範囲による分岐
 	if($i < 7) {
 	    # 中心、および1ヘックス
-	    if($landKind == $HlandSea) {
+	    if($landKind == Hako::Constants::LAND_SEA) {
 		$landValue->[$sx][$sy] = 0;
 		next;
-	    } elsif(($landKind == $HlandSbase) ||
-		    ($landKind == $HlandOil)) {
+	    } elsif(($landKind == Hako::Constants::LAND_SEA_BASE) ||
+		    ($landKind == Hako::Constants::LAND_OIL)) {
 		logWideDamageSea2($id, $name, $landName, $point);
-		$land->[$sx][$sy] = $HlandSea;
+		$land->[$sx][$sy] = Hako::Constants::LAND_SEA;
 		$landValue->[$sx][$sy] = 0;
 	    } else {
-		if($landKind == $HlandMonster) {
+		if($landKind == Hako::Constants::LAND_MONSTER) {
 		    logWideDamageMonsterSea($id, $name, $landName, $point);
 		} else {
 		    logWideDamageSea($id, $name, $landName, $point);
 		}
-		$land->[$sx][$sy] = $HlandSea;
+		$land->[$sx][$sy] = Hako::Constants::LAND_SEA;
 		if($i == 0) {
 		    # 海
 		    $landValue->[$sx][$sy] = 0;
@@ -2084,19 +2086,19 @@ sub wideDamage {
 	    }
 	} else {
 	    # 2ヘックス
-	    if(($landKind == $HlandSea) ||
-	       ($landKind == $HlandOil) ||
-	       ($landKind == $HlandWaste) ||
-	       ($landKind == $HlandMountain) ||
-	       ($landKind == $HlandSbase)) {
+	    if(($landKind == Hako::Constants::LAND_SEA) ||
+	       ($landKind == Hako::Constants::LAND_OIL) ||
+	       ($landKind == Hako::Constants::LAND_WASTE) ||
+	       ($landKind == Hako::Constants::LAND_MOUNTAIN) ||
+	       ($landKind == Hako::Constants::LAND_SEA_BASE)) {
 		next;
-	    } elsif($landKind == $HlandMonster) {
+	    } elsif($landKind == Hako::Constants::LAND_MONSTER) {
 		logWideDamageMonster($id, $name, $landName, $point);
-		$land->[$sx][$sy] = $HlandWaste;
+		$land->[$sx][$sy] = Hako::Constants::LAND_WASTE;
 		$landValue->[$sx][$sy] = 0;
 	    } else {
 		logWideDamageWaste($id, $name, $landName, $point);
-		$land->[$sx][$sy] = $HlandWaste;
+		$land->[$sx][$sy] = Hako::Constants::LAND_WASTE;
 		$landValue->[$sx][$sy] = 0;
 	    }
 	}
@@ -2460,7 +2462,7 @@ sub logChangeName {
 # 飢餓
 sub logStarve {
     my($id, $name) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島")."の@{[Hako::Template::Function->wrap_disaster("食料が不足")]}しています！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."の".Hako::Template::Function->wrap_disaster("食料が不足")."しています！！", $id);
 }
 
 # 怪獣現る
@@ -2484,7 +2486,7 @@ sub logMonsMoveDefence {
 # 火災
 sub logFire {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>が@{[Hako::Template::Function->wrap_disaster("火災")]}により壊滅しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>が".Hako::Template::Function->wrap_disaster("火災")."により壊滅しました。",$id);
 }
 
 # 埋蔵金
@@ -2496,13 +2498,13 @@ sub logMaizo {
 # 地震発生
 sub logEarthquake {
     my($id, $name) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島")."で大規模な@{[Hako::Template::Function->wrap_disaster("地震")]}が発生！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で大規模な".Hako::Template::Function->wrap_disaster("地震")."が発生！！",$id);
 }
 
 # 地震被害
 sub logEQDamage {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は@{[Hako::Template::Function->wrap_disaster("地震")]}により壊滅しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は".Hako::Template::Function->wrap_disaster("地震")."により壊滅しました。",$id);
 }
 
 # 食料不足被害
@@ -2514,97 +2516,97 @@ sub logSvDamage {
 # 津波発生
 sub logTsunami {
     my($id, $name) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島")."付近で@{[Hako::Template::Function->wrap_disaster("津波")]}発生！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."付近で".Hako::Template::Function->wrap_disaster("津波")."発生！！",$id);
 }
 
 # 津波被害
 sub logTsunamiDamage {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は@{[Hako::Template::Function->wrap_disaster("津波")]}により崩壊しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は".Hako::Template::Function->wrap_disaster("津波")."により崩壊しました。",$id);
 }
 
 # 台風発生
 sub logTyphoon {
     my($id, $name) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島")."に@{[Hako::Template::Function->wrap_disaster("台風")]}上陸！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."に".Hako::Template::Function->wrap_disaster("台風")."上陸！！",$id);
 }
 
 # 台風被害
 sub logTyphoonDamage {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は@{[Hako::Template::Function->wrap_disaster("台風")]}で飛ばされました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>は".Hako::Template::Function->wrap_disaster("台風")."で飛ばされました。",$id);
 }
 
 # 隕石、海
 sub logMeteoSea {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に".Hako::Template::Function->wrap_disaster("隕石")."が落下しました。",$id);
 }
 
 # 隕石、山
 sub logMeteoMountain {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、<B>$lName</B>は消し飛びました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に".Hako::Template::Function->wrap_disaster("隕石")."が落下、<B>$lName</B>は消し飛びました。",$id);
 }
 
 # 隕石、海底基地
 sub logMeteoSbase {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、<B>$lName</B>は崩壊しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."の<B>$lName</B>に".Hako::Template::Function->wrap_disaster("隕石")."が落下、<B>$lName</B>は崩壊しました。",$id);
 }
 
 # 隕石、怪獣
 sub logMeteoMonster {
     my($id, $name, $lName, $point) = @_;
-    logOut("<B>怪獣$lName</B>がいた".Hako::Template::Function->wrap_name($name."島".$point)."地点に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、陸地は<B>怪獣$lName</B>もろとも水没しました。",$id);
+    logOut("<B>怪獣$lName</B>がいた".Hako::Template::Function->wrap_name($name."島".$point)."地点に".Hako::Template::Function->wrap_disaster("隕石")."が落下、陸地は<B>怪獣$lName</B>もろとも水没しました。",$id);
 }
 
 # 隕石、浅瀬
 sub logMeteoSea1 {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、海底がえぐられました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点に".Hako::Template::Function->wrap_disaster("隕石")."が落下、海底がえぐられました。",$id);
 }
 
 # 隕石、その他
 sub logMeteoNormal {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>に@{[Hako::Template::Function->wrap_disaster("隕石")]}が落下、一帯が水没しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>に".Hako::Template::Function->wrap_disaster("隕石")."が落下、一帯が水没しました。",$id);
 }
 
 # 隕石、その他
 sub logHugeMeteo {
     my($id, $name, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点に@{[Hako::Template::Function->wrap_disaster("巨大隕石")]}が落下！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点に".Hako::Template::Function->wrap_disaster("巨大隕石")."が落下！！",$id);
 }
 
 # 噴火
 sub logEruption {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点で@{[Hako::Template::Function->wrap_disaster("火山が噴火")]}、<B>山</B>が出来ました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点で".Hako::Template::Function->wrap_disaster("火山が噴火")."、<B>山</B>が出来ました。",$id);
 }
 
 # 噴火、浅瀬
 sub logEruptionSea1 {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、@{[Hako::Template::Function->wrap_disaster("噴火")]}の影響で陸地になりました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、".Hako::Template::Function->wrap_disaster("噴火")."の影響で陸地になりました。",$id);
 }
 
 # 噴火、海or海基
 sub logEruptionSea {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、@{[Hako::Template::Function->wrap_disaster("噴火")]}の影響で海底が隆起、浅瀬になりました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、".Hako::Template::Function->wrap_disaster("噴火")."の影響で海底が隆起、浅瀬になりました。",$id);
 }
 
 # 噴火、その他
 sub logEruptionNormal {
     my($id, $name, $lName, $point) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、@{[Hako::Template::Function->wrap_disaster("噴火")]}の影響で壊滅しました。",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島".$point)."地点の<B>$lName</B>は、".Hako::Template::Function->wrap_disaster("噴火")."の影響で壊滅しました。",$id);
 }
 
 # 地盤沈下発生
 sub logFalldown {
     my($id, $name) = @_;
-    logOut(Hako::Template::Function->wrap_name($name."島")."で@{[Hako::Template::Function->wrap_disaster("地盤沈下")]}が発生しました！！",$id);
+    logOut(Hako::Template::Function->wrap_name($name."島")."で".Hako::Template::Function->wrap_disaster("地盤沈下")."が発生しました！！",$id);
 }
 
 # 地盤沈下被害
@@ -2699,17 +2701,17 @@ END
 # 地形の呼び方
 sub landName {
     my($land, $lv) = @_;
-    if($land == $HlandSea) {
+    if($land == Hako::Constants::LAND_SEA) {
 	if($lv == 1) {
             return '浅瀬';
         } else {
             return '海';
 	}
-    } elsif($land == $HlandWaste) {
+    } elsif($land == Hako::Constants::LAND_WASTE) {
 	return '荒地';
-    } elsif($land == $HlandPlains) {
+    } elsif($land == Hako::Constants::LAND_PLAINS) {
 	return '平地';
-    } elsif($land == $HlandTown) {
+    } elsif($land == Hako::Constants::LAND_TOWN) {
 	if($lv < 30) {
 	    return '村';
 	} elsif($lv < 100) {
@@ -2717,28 +2719,28 @@ sub landName {
 	} else {
 	    return '都市';
 	}
-    } elsif($land == $HlandForest) {
+    } elsif($land == Hako::Constants::LAND_FOREST) {
 	return '森';
-    } elsif($land == $HlandFarm) {
+    } elsif($land == Hako::Constants::LAND_FARM) {
 	return '農場';
-    } elsif($land == $HlandFactory) {
+    } elsif($land == Hako::Constants::LAND_FACTORY) {
 	return '工場';
-    } elsif($land == $HlandBase) {
+    } elsif($land == Hako::Constants::LAND_BASE) {
 	return 'ミサイル基地';
-    } elsif($land == $HlandDefence) {
+    } elsif($land == Hako::Constants::LAND_DEFENCE) {
 	return '防衛施設';
-    } elsif($land == $HlandMountain) {
+    } elsif($land == Hako::Constants::LAND_MOUNTAIN) {
 	return '山';
-    } elsif($land == $HlandMonster) {
+    } elsif($land == Hako::Constants::LAND_MONSTER) {
 	my($kind, $name, $hp) = monsterSpec($lv);
 	return $name;
-    } elsif($land == $HlandSbase) {
+    } elsif($land == Hako::Constants::LAND_SEA_BASE) {
 	return '海底基地';
-    } elsif($land == $HlandOil) {
+    } elsif($land == Hako::Constants::LAND_OIL) {
 	return '海底油田';
-    } elsif($land == $HlandMonument) {
+    } elsif($land == Hako::Constants::LAND_MONUMENT) {
 	return ${Hako::Config::MONUMEBT_NAME()}[$lv];
-    } elsif($land == $HlandHaribote) {
+    } elsif($land == Hako::Constants::LAND_HARIBOTE) {
 	return 'ハリボテ';
     }
 }
@@ -2760,20 +2762,20 @@ sub estimate {
 	for($x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
 	    $kind = $land->[$x][$y];
 	    $value = $landValue->[$x][$y];
-	    if(($kind != $HlandSea) &&
-	       ($kind != $HlandSbase) &&
-	       ($kind != $HlandOil)){
+	    if(($kind != Hako::Constants::LAND_SEA) &&
+	       ($kind != Hako::Constants::LAND_SEA_BASE) &&
+	       ($kind != Hako::Constants::LAND_OIL)){
 		$area++;
-		if($kind == $HlandTown) {
+		if($kind == Hako::Constants::LAND_TOWN) {
 		    # 町
 		    $pop += $value;
-		} elsif($kind == $HlandFarm) {
+		} elsif($kind == Hako::Constants::LAND_FARM) {
 		    # 農場
 		    $farm += $value;
-		} elsif($kind == $HlandFactory) {
+		} elsif($kind == Hako::Constants::LAND_FACTORY) {
 		    # 工場
 		    $factory += $value;
-		} elsif($kind == $HlandMountain) {
+		} elsif($kind == Hako::Constants::LAND_MOUNTAIN) {
 		    # 山
 		    $mountain += $value;
 		}
@@ -2807,7 +2809,7 @@ sub countAround {
 	 if(($sx < 0) || ($sx >= Hako::Config::ISLAND_SIZE) ||
 	    ($sy < 0) || ($sy >= Hako::Config::ISLAND_SIZE)) {
 	     # 範囲外の場合
-	     if($kind == $HlandSea) {
+	     if($kind == Hako::Constants::LAND_SEA) {
 		 # 海なら加算
 		 $count++;
 	     }

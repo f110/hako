@@ -1,7 +1,9 @@
 # vim: set ft=perl:
 use utf8;
 use Hako::Config;
+use Hako::Constants;
 use Hako::Template::Function;
+use Hako::Command;
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
 # 地図モードモジュール(ver1.00)
@@ -101,24 +103,24 @@ sub commandMain {
     if($HcommandMode eq 'delete') {
         Hako::DB->delete_command($island->{id}, $HcommandPlanNumber);
         tempCommandDelete();
-    } elsif(($HcommandKind == $HcomAutoPrepare) || ($HcommandKind == $HcomAutoPrepare2)) {
+    } elsif(($HcommandKind == Hako::Constants::COMMAND_AUTO_PREPARE) || ($HcommandKind == Hako::Constants::COMMAND_AUTO_PREPARE2)) {
         # フル整地、フル地ならし
         # 座標配列を作る
         makeRandomPointArray();
         my($land) = $island->{'land'};
 
         # コマンドの種類決定
-        my($kind) = $HcomPrepare;
-        if($HcommandKind == $HcomAutoPrepare2) {
-            $kind = $HcomPrepare2;
+        my($kind) = Hako::Constants::COMMAND_PREPARE;
+        if($HcommandKind == Hako::Constants::COMMAND_AUTO_PREPARE2) {
+            $kind = Hako::Constants::COMMAND_PREPARE2;
         }
 
         my($i) = 0;
         my($j) = 0;
-        while(($j < $HpointNumber) && ($i < Hako::Config::COMMAND_MAX)) {
+        while(($j < Hako::Config::POINT_NUMBER) && ($i < Hako::Config::COMMAND_MAX)) {
             my($x) = $Hrpx[$j];
             my($y) = $Hrpy[$j];
-            if($land->[$x][$y] == $HlandWaste) {
+            if($land->[$x][$y] == Hako::Constants::LAND_WASTE) {
                 my $cmd = {
                     kind   => $kind,
                     target => 0,
@@ -133,7 +135,7 @@ sub commandMain {
             $j++;
         }
         tempCommandAdd();
-    } elsif($HcommandKind == $HcomAutoDelete) {
+    } elsif($HcommandKind == Hako::Constants::COMMAND_AUTO_DELETE) {
         # 全消し
         Hako::DB->delete_all_command($island->{id});
         tempCommandDelete();
@@ -304,13 +306,13 @@ sub islandInfo {
     my($mStr2) = '';
     if((Hako::Config::HIDE_MONEY_MODE == 1) || ($HmainMode eq 'owner')) {
 	# 無条件またはownerモード
-	$mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("資金")]}</NOBR></TH>";
+	$mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
 	$mStr2 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{money}@{[Hako::Config::UNIT_MONEY]}</NOBR></TD>";
     } elsif(Hako::Config::HIDE_MONEY_MODE == 2) {
 	my($mTmp) = aboutMoney($island->{'money'});
 
 	# 1000億単位モード
-	$mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("資金")]}</NOBR></TH>";
+	$mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
 	$mStr2 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mTmp</NOBR></TD>";
     }
     out(<<END);
@@ -359,14 +361,13 @@ END
     my($command) = $island->{'command'};
     my($com, @comStr, $i);
     if($HmainMode eq 'owner') {
-	for($i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
-	    my($j) = $i + 1;
-	    $com = $command->[$i];
-	    if($com->{'kind'} < 20) {
-		$comStr[$com->{'x'}][$com->{'y'}] .=
-		    " [${j}]$HcomName[$com->{'kind'}]";
-	    }
-	}
+        for($i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
+            my($j) = $i + 1;
+            $com = $command->[$i];
+            if($com->{'kind'} < 20) {
+                $comStr[$com->{'x'}][$com->{'y'}] .= " [${j}]" . Hako::Command->id_to_name($com->{'kind'});
+            }
+        }
     }
 
     # 座標(上)を出力
@@ -403,7 +404,7 @@ sub landString {
     my($point) = "($x,$y)";
     my($image, $alt);
 
-    if($l == $HlandSea) {
+    if($l == Hako::Constants::LAND_SEA) {
 
 	if($lv == 1) {
 	    # 浅瀬
@@ -414,7 +415,7 @@ sub landString {
 	    $image = 'land0.gif';
 	    $alt = '海';
         }
-    } elsif($l == $HlandWaste) {
+    } elsif($l == Hako::Constants::LAND_WASTE) {
 	# 荒地
 	if($lv == 1) {
 	    $image = 'land13.gif'; # 着弾点
@@ -423,11 +424,11 @@ sub landString {
 	    $image = 'land1.gif';
 	    $alt = '荒地';
 	}
-    } elsif($l == $HlandPlains) {
+    } elsif($l == Hako::Constants::LAND_PLAINS) {
 	# 平地
 	$image = 'land2.gif';
 	$alt = '平地';
-    } elsif($l == $HlandForest) {
+    } elsif($l == Hako::Constants::LAND_FOREST) {
 	# 森
 	if($mode == 1) {
 	    $image = 'land6.gif';
@@ -437,7 +438,7 @@ sub landString {
 	    $image = 'land6.gif';
 	    $alt = '森';
 	}
-    } elsif($l == $HlandTown) {
+    } elsif($l == Hako::Constants::LAND_TOWN) {
 	# 町
 	my($p, $n);
 	if($lv < 30) {
@@ -453,15 +454,15 @@ sub landString {
 
 	$image = "land${p}.gif";
 	$alt = "$n(${lv}@{[Hako::Config::UNIT_POPULATION]})";
-    } elsif($l == $HlandFarm) {
+    } elsif($l == Hako::Constants::LAND_FARM) {
 	# 農場
 	$image = 'land7.gif';
 	$alt = "農場(${lv}0@{[Hako::Config::UNIT_POPULATION]}規模)";
-    } elsif($l == $HlandFactory) {
+    } elsif($l == Hako::Constants::LAND_FACTORY) {
 	# 工場
 	$image = 'land8.gif';
 	$alt = "工場(${lv}0@{[Hako::Config::UNIT_POPULATION]}規模)";
-    } elsif($l == $HlandBase) {
+    } elsif($l == Hako::Constants::LAND_BASE) {
 	if($mode == 0) {
 	    # 観光者の場合は森のふり
 	    $image = 'land6.gif';
@@ -472,7 +473,7 @@ sub landString {
 	    $image = 'land9.gif';
 	    $alt = "ミサイル基地 (レベル ${level}/経験値 $lv)";
 	}
-    } elsif($l == $HlandSbase) {
+    } elsif($l == Hako::Constants::LAND_SEA_BASE) {
 	# 海底基地
 	if($mode == 0) {
 	    # 観光者の場合は海のふり
@@ -483,11 +484,11 @@ sub landString {
 	    $image = 'land12.gif';
 	    $alt = "海底基地 (レベル ${level}/経験値 $lv)";
 	}
-    } elsif($l == $HlandDefence) {
+    } elsif($l == Hako::Constants::LAND_DEFENCE) {
 	# 防衛施設
 	$image = 'land10.gif';
 	$alt = '防衛施設';
-    } elsif($l == $HlandHaribote) {
+    } elsif($l == Hako::Constants::LAND_HARIBOTE) {
 	# ハリボテ
 	$image = 'land10.gif';
 	if($mode == 0) {
@@ -496,11 +497,11 @@ sub landString {
 	} else {
 	    $alt = 'ハリボテ';
 	}
-    } elsif($l == $HlandOil) {
+    } elsif($l == Hako::Constants::LAND_OIL) {
 	# 海底油田
 	$image = 'land16.gif';
 	$alt = '海底油田';
-    } elsif($l == $HlandMountain) {
+    } elsif($l == Hako::Constants::LAND_MOUNTAIN) {
 	# 山
 	my($str);
 	$str = '';
@@ -511,11 +512,11 @@ sub landString {
 	    $image = 'land11.gif';
 	    $alt = '山';
 	}
-    } elsif($l == $HlandMonument) {
+    } elsif($l == Hako::Constants::LAND_MONUMENT) {
 	# 記念碑
 	$image = ${Hako::Config::MONUMENT_IMAGE()}[$lv];
 	$alt = ${Hako::Config::MONUMEBT_NAME()}[$lv];
-    } elsif($l == $HlandMonster) {
+    } elsif($l == Hako::Constants::LAND_MONSTER) {
 	# 怪獣
 	my($kind, $name, $hp) = monsterSpec($lv);
 	my($special) = ${Hako::Config::MONSTER_SPECIAL()}[$kind];
@@ -642,23 +643,24 @@ END
 
     #コマンド
     my($kind, $cost, $s);
-    for($i = 0; $i < $HcommandTotal; $i++) {
-	$kind = $HcomList[$i];
-	$cost = $HcomCost[$kind];
-	if($cost == 0) {
-	    $cost = '無料'
-	} elsif($cost < 0) {
-	    $cost = - $cost;
-	    $cost .= Hako::Config::UNIT_FOOD;
-	} else {
-	    $cost .= Hako::Config::UNIT_MONEY;
-	}
-	if($kind == $HdefaultKind) {
-	    $s = 'SELECTED';
-	} else {
-	    $s = '';
-	}
-	out("<OPTION VALUE=$kind $s>$HcomName[$kind]($cost)\n");
+    for($i = 0; $i < Hako::Constants::COMMAND_TOTAL_NUM; $i++) {
+        $kind = ${Hako::Constants::COM_LIST()}[$i];
+        $cost = Hako::Command->id_to_cost($kind);
+        if($cost == 0) {
+            $cost = '無料'
+        } elsif($cost < 0) {
+            $cost = - $cost;
+            $cost .= Hako::Config::UNIT_FOOD;
+        } else {
+            $cost .= Hako::Config::UNIT_MONEY;
+        }
+        if($kind == $HdefaultKind) {
+            $s = 'SELECTED';
+        } else {
+            $s = '';
+        }
+        my $name = Hako::Command->id_to_name("$kind");
+        out("<OPTION VALUE=$kind $s>".$name."($cost)\n");
     }
 
     out(<<END);
@@ -757,16 +759,16 @@ sub tempCommand {
 	 $command->{'y'},
 	 $command->{'arg'}
 	 );
-    my($name) = Hako::Config::TAG_COM_NAME_ . "${HcomName[$kind]}" . Hako::Config::_TAG_COM_NAME;
+    my($name) = Hako::Config::TAG_COM_NAME_ . Hako::Command->id_to_name($kind) . Hako::Config::_TAG_COM_NAME;
     my($point) = Hako::Config::TAG_NAME_ . "($x,$y)" . Hako::Config::_TAG_NAME;
     $target = $HidToName{$target};
     if($target eq '') {
 	$target = "無人";
     }
     $target = Hako::Config::TAG_NAME_ . "${target}島" . Hako::Config::_TAG_NAME;
-    my($value) = $arg * $HcomCost[$kind];
+    my($value) = $arg * Hako::Command->id_to_cost($kind);
     if($value == 0) {
-	$value = $HcomCost[$kind];
+	$value = Hako::Command->id_to_cost($kind);
     }
     if($value < 0) {
 	$value = -$value;
@@ -780,32 +782,32 @@ sub tempCommand {
 
     out("<A STYlE=\"text-decoration:none\" HREF=\"JavaScript:void(0);\" onClick=\"ns($number)\"><NOBR>@{[Hako::Template::Function->wrap_number($j)]}<FONT COLOR=\"@{[Hako::Config::NORMAL_COLOR]}\">");
 
-    if(($kind == $HcomDoNothing) || ($kind == $HcomGiveup)) {
+    if(($kind == Hako::Constants::COMMAND_DO_NOTHING) || ($kind == Hako::Constants::COMMAND_GIVE_UP)) {
         out("@{[$name]}");
-    } elsif(($kind == $HcomMissileNM) || ($kind == $HcomMissilePP) || ($kind == $HcomMissileST) || ($kind == $HcomMissileLD)) {
+    } elsif(($kind == Hako::Constants::COMMAND_MISSILE_NM) || ($kind == Hako::Constants::COMMAND_MISSILE_PP) || ($kind == Hako::Constants::COMMAND_MISSILE_ST) || ($kind == Hako::Constants::COMMAND_MISSILE_LD)) {
         # ミサイル系
         my($n) = ($arg == 0 ? '無制限' : "${arg}発");
         out("@{[$target]}@{[$point]}へ@{[$name]}(@{[Hako::Config::TAG_NAME_]}@{[$n]}@{[Hako::Config::_TAG_NAME]})");
-    } elsif($kind == $HcomSendMonster) {
+    } elsif($kind == Hako::Constants::COMMAND_SEND_MONSTER) {
         # 怪獣派遣
         out("@{[$target]}へ@{[$name]}");
-    } elsif($kind == $HcomSell) {
+    } elsif($kind == Hako::Constants::COMMAND_SELL) {
         # 食料輸出
         out("@{[$name]}@{[$value]}");
-    } elsif($kind == $HcomPropaganda) {
+    } elsif($kind == Hako::Constants::COMMAND_PROPAGANDA) {
         # 誘致活動
         out("@{[$name]}");
-    } elsif(($kind == $HcomMoney) || ($kind == $HcomFood)) {
+    } elsif(($kind == Hako::Constants::COMMAND_MONEY) || ($kind == Hako::Constants::COMMAND_MONEY)) {
         # 援助
         out("@{[$target]}へ@{[$name]}@{[$value]}");
-    } elsif($kind == $HcomDestroy) {
+    } elsif($kind == Hako::Constants::COMMAND_DESTROY) {
         # 掘削
         if($arg != 0) {
             out("@{[$point]}で@{[$name]}(予算@{[$value]})");
         } else {
             out("@{[$point]}で@{[$name]}");
         }
-    } elsif(($kind == $HcomFarm) || ($kind == $HcomFactory) || ($kind == $HcomMountain)) {
+    } elsif(($kind == Hako::Constants::COMMAND_FARM) || ($kind == Hako::Constants::COMMAND_FACTORY) || ($kind == Hako::Constants::COMMAND_MOUNTAIN)) {
         # 回数付き
         if($arg == 0) {
             out("@{[$point]}で@{[$name]}");

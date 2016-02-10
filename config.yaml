@@ -18,6 +18,7 @@ command_max: 20
 use_local_bbs: 1
 local_bbs_max: 10
 island_size: 12
+point_number: 144
 hide_money_mode: 2
 crypt: 1
 debug: 0

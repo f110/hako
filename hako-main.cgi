@@ -371,131 +371,131 @@ my($baseDir) = Hako::Config::BASE_DIR;
 $HthisFile = "$baseDir/hako-main.cgi";
 
 # 地形番号
-$HlandSea      = Hako::Constants::LAND_SEA;  # 海
-$HlandWaste    = Hako::Constants::LAND_WASTE;  # 荒地
-$HlandPlains   = Hako::Constants::LAND_PLAINS;  # 平地
-$HlandTown     = Hako::Constants::LAND_TOWN;  # 町系
-$HlandForest   = Hako::Constants::LAND_FOREST;  # 森
-$HlandFarm     = Hako::Constants::LAND_FARM;  # 農場
-$HlandFactory  = Hako::Constants::LAND_FACTORY;  # 工場
-$HlandBase     = Hako::Constants::LAND_BASE;  # ミサイル基地
-$HlandDefence  = Hako::Constants::LAND_DEFENCE;  # 防衛施設
-$HlandMountain = Hako::Constants::LAND_MOUNTAIN;  # 山
-$HlandMonster  = Hako::Constants::LAND_MONSTER; # 怪獣
-$HlandSbase    = Hako::Constants::LAND_SEA_BASE; # 海底基地
-$HlandOil      = Hako::Constants::LAND_OIL; # 海底油田
-$HlandMonument = Hako::Constants::LAND_MONUMENT; # 記念碑
-$HlandHaribote = Hako::Constants::LAND_HARIBOTE; # ハリボテ
+#$HlandSea      = Hako::Constants::LAND_SEA;  # 海
+#$HlandWaste    = Hako::Constants::LAND_WASTE;  # 荒地
+#$HlandPlains   = Hako::Constants::LAND_PLAINS;  # 平地
+#$HlandTown     = Hako::Constants::LAND_TOWN;  # 町系
+#$HlandForest   = Hako::Constants::LAND_FOREST;  # 森
+#$HlandFarm     = Hako::Constants::LAND_FARM;  # 農場
+#$HlandFactory  = Hako::Constants::LAND_FACTORY;  # 工場
+#$HlandBase     = Hako::Constants::LAND_BASE;  # ミサイル基地
+#$HlandDefence  = Hako::Constants::LAND_DEFENCE;  # 防衛施設
+#$HlandMountain = Hako::Constants::LAND_MOUNTAIN;  # 山
+#$HlandMonster  = Hako::Constants::LAND_MONSTER; # 怪獣
+#$HlandSbase    = Hako::Constants::LAND_SEA_BASE; # 海底基地
+#$HlandOil      = Hako::Constants::LAND_OIL; # 海底油田
+#$HlandMonument = Hako::Constants::LAND_MONUMENT; # 記念碑
+#$HlandHaribote = Hako::Constants::LAND_HARIBOTE; # ハリボテ
 
 # コマンド
-$HcommandTotal = 28; # コマンドの種類
+#$HcommandTotal = Hako::Constants::COMMAND_TOTAL_NUM; # コマンドの種類
 
 # 計画番号の設定
 # 整地系
-$HcomPrepare  = Hako::Constants::COMMAND_PREPARE; # 整地
-$HcomPrepare2 = Hako::Constants::COMMAND_PREPARE2; # 地ならし
-$HcomReclaim  = Hako::Constants::COMMAND_RECLAIM; # 埋め立て
-$HcomDestroy  = Hako::Constants::COMMAND_DESTROY; # 掘削
-$HcomSellTree = Hako::Constants::COMMAND_SELL_TREE; # 伐採
+#$HcomPrepare  = Hako::Constants::COMMAND_PREPARE; # 整地
+#$HcomPrepare2 = Hako::Constants::COMMAND_PREPARE2; # 地ならし
+#$HcomReclaim  = Hako::Constants::COMMAND_RECLAIM; # 埋め立て
+#$HcomDestroy  = Hako::Constants::COMMAND_DESTROY; # 掘削
+#$HcomSellTree = Hako::Constants::COMMAND_SELL_TREE; # 伐採
 
 # 作る系
-$HcomPlant    = Hako::Constants::COMMAND_PLANT; # 植林
-$HcomFarm     = Hako::Constants::COMMAND_FARM; # 農場整備
-$HcomFactory  = Hako::Constants::COMMAND_FACTORY; # 工場建設
-$HcomMountain = Hako::Constants::COMMAND_MOUNTAIN; # 採掘場整備
-$HcomBase     = Hako::Constants::COMMAND_BASE; # ミサイル基地建設
-$HcomDbase    = Hako::Constants::COMMAND_DEFENCE_BASE; # 防衛施設建設
-$HcomSbase    = Hako::Constants::COMMAND_SEABASE; # 海底基地建設
-$HcomMonument = Hako::Constants::COMMAND_MONUMENT; # 記念碑建造
-$HcomHaribote = Hako::Constants::COMMAND_HARIBOTE; # ハリボテ設置
+#$HcomPlant    = Hako::Constants::COMMAND_PLANT; # 植林
+#$HcomFarm     = Hako::Constants::COMMAND_FARM; # 農場整備
+#$HcomFactory  = Hako::Constants::COMMAND_FACTORY; # 工場建設
+#$HcomMountain = Hako::Constants::COMMAND_MOUNTAIN; # 採掘場整備
+#$HcomBase     = Hako::Constants::COMMAND_BASE; # ミサイル基地建設
+#$HcomDbase    = Hako::Constants::COMMAND_DEFENCE_BASE; # 防衛施設建設
+#$HcomSbase    = Hako::Constants::COMMAND_SEABASE; # 海底基地建設
+#$HcomMonument = Hako::Constants::COMMAND_MONUMENT; # 記念碑建造
+#$HcomHaribote = Hako::Constants::COMMAND_HARIBOTE; # ハリボテ設置
 
 # 発射系
-$HcomMissileNM   = Hako::Constants::COMMAND_MISSILE_NM; # ミサイル発射
-$HcomMissilePP   = Hako::Constants::COMMAND_MISSILE_PP; # PPミサイル発射
-$HcomMissileST   = Hako::Constants::COMMAND_MISSILE_ST; # STミサイル発射
-$HcomMissileLD   = Hako::Constants::COMMAND_MISSILE_LD; # 陸地破壊弾発射
-$HcomSendMonster = Hako::Constants::COMMAND_SEND_MONSTER; # 怪獣派遣
+#$HcomMissileNM   = Hako::Constants::COMMAND_MISSILE_NM; # ミサイル発射
+#$HcomMissilePP   = Hako::Constants::COMMAND_MISSILE_PP; # PPミサイル発射
+#$HcomMissileST   = Hako::Constants::COMMAND_MISSILE_ST; # STミサイル発射
+#$HcomMissileLD   = Hako::Constants::COMMAND_MISSILE_LD; # 陸地破壊弾発射
+#$HcomSendMonster = Hako::Constants::COMMAND_SEND_MONSTER; # 怪獣派遣
 
 # 運営系
-$HcomDoNothing  = Hako::Constants::COMMAND_DO_NOTHING; # 資金繰り
-$HcomSell       = Hako::Constants::COMMAND_SELL; # 食料輸出
-$HcomMoney      = Hako::Constants::COMMAND_MONEY; # 資金援助
-$HcomFood       = Hako::Constants::COMMAND_FOOD; # 食料援助
-$HcomPropaganda = Hako::Constants::COMMAND_PROPAGANDA; # 誘致活動
-$HcomGiveup     = Hako::Constants::COMMAND_GIVE_UP; # 島の放棄
+#$HcomDoNothing  = Hako::Constants::COMMAND_DO_NOTHING; # 資金繰り
+#$HcomSell       = Hako::Constants::COMMAND_SELL; # 食料輸出
+#$HcomMoney      = Hako::Constants::COMMAND_MONEY; # 資金援助
+#$HcomFood       = Hako::Constants::COMMAND_FOOD; # 食料援助
+#$HcomPropaganda = Hako::Constants::COMMAND_PROPAGANDA; # 誘致活動
+#$HcomGiveup     = Hako::Constants::COMMAND_GIVE_UP; # 島の放棄
 
 # 自動入力系
-$HcomAutoPrepare  = Hako::Constants::COMMAND_AUTO_PREPARE; # フル整地
-$HcomAutoPrepare2 = Hako::Constants::COMMAND_AUTO_PREPARE2; # フル地ならし
-$HcomAutoDelete   = Hako::Constants::COMMAND_AUTO_DELETE; # 全コマンド消去
+#$HcomAutoPrepare  = Hako::Constants::COMMAND_AUTO_PREPARE; # フル整地
+#$HcomAutoPrepare2 = Hako::Constants::COMMAND_AUTO_PREPARE2; # フル地ならし
+#$HcomAutoDelete   = Hako::Constants::COMMAND_AUTO_DELETE; # 全コマンド消去
 
 # 順番
-@HcomList =
-    ($HcomPrepare, $HcomSell, $HcomPrepare2, $HcomReclaim, $HcomDestroy,
-     $HcomSellTree, $HcomPlant, $HcomFarm, $HcomFactory, $HcomMountain,
-     $HcomBase, $HcomDbase, $HcomSbase, $HcomMonument, $HcomHaribote,
-     $HcomMissileNM, $HcomMissilePP,
-     $HcomMissileST, $HcomMissileLD, $HcomSendMonster, $HcomDoNothing,
-     $HcomMoney, $HcomFood, $HcomPropaganda, $HcomGiveup,
-     $HcomAutoPrepare, $HcomAutoPrepare2, $HcomAutoDelete);
+#@HcomList =
+    #($HcomPrepare, $HcomSell, $HcomPrepare2, $HcomReclaim, $HcomDestroy,
+     #$HcomSellTree, $HcomPlant, $HcomFarm, $HcomFactory, $HcomMountain,
+     #$HcomBase, $HcomDbase, $HcomSbase, $HcomMonument, $HcomHaribote,
+     #$HcomMissileNM, $HcomMissilePP,
+     #$HcomMissileST, $HcomMissileLD, $HcomSendMonster, $HcomDoNothing,
+     #$HcomMoney, $HcomFood, $HcomPropaganda, $HcomGiveup,
+     #$HcomAutoPrepare, $HcomAutoPrepare2, $HcomAutoDelete);
 
 # 計画の名前と値段
-$HcomName[$HcomPrepare]      = Hako::Constants::COMMAND_NAME_PREPARE;
-$HcomCost[$HcomPrepare]      = Hako::Constants::COMMAND_COST_PREPARE;
-$HcomName[$HcomPrepare2]     = Hako::Constants::COMMAND_NAME_PREPARE2;
-$HcomCost[$HcomPrepare2]     = Hako::Constants::COMMAND_COST_PREPARE2;
-$HcomName[$HcomReclaim]      = Hako::Constants::COMMAND_NAME_RECLAIM;
-$HcomCost[$HcomReclaim]      = Hako::Constants::COMMAND_COST_RECLAIM;
-$HcomName[$HcomDestroy]      = Hako::Constants::COMMAND_NAME_DESTROY;
-$HcomCost[$HcomDestroy]      = Hako::Constants::COMMAND_COST_DESTROY;
-$HcomName[$HcomSellTree]     = Hako::Constants::COMMAND_NAME_SELL_TREE;
-$HcomCost[$HcomSellTree]     = Hako::Constants::COMMAND_COST_SELL_TREE;
-$HcomName[$HcomPlant]        = Hako::Constants::COMMAND_NAME_PLANT;
-$HcomCost[$HcomPlant]        = Hako::Constants::COMMAND_COST_PLANT;
-$HcomName[$HcomFarm]         = Hako::Constants::COMMAND_NAME_FARM;
-$HcomCost[$HcomFarm]         = Hako::Constants::COMMAND_COST_FARM;
-$HcomName[$HcomFactory]      = Hako::Constants::COMMAND_NAME_FACTORY;
-$HcomCost[$HcomFactory]      = Hako::Constants::COMMAND_COST_FACTORY;
-$HcomName[$HcomMountain]     = Hako::Constants::COMMAND_NAME_MOUNTAIN;
-$HcomCost[$HcomMountain]     = Hako::Constants::COMMAND_COST_MOUNTAIN;
-$HcomName[$HcomBase]         = Hako::Constants::COMMAND_NAME_BASE;
-$HcomCost[$HcomBase]         = Hako::Constants::COMMAND_COST_BASE;
-$HcomName[$HcomDbase]        = Hako::Constants::COMMAND_NAME_DEFENCE_BASE;
-$HcomCost[$HcomDbase]        = Hako::Constants::COMMAND_COST_DEFENCE_BASE;
-$HcomName[$HcomSbase]        = Hako::Constants::COMMAND_NAME_SEA_BASE;
-$HcomCost[$HcomSbase]        = Hako::Constants::COMMAND_COST_SEA_BASE;
-$HcomName[$HcomMonument]     = Hako::Constants::COMMAND_NAME_MONUMENT;
-$HcomCost[$HcomMonument]     = Hako::Constants::COMMAND_COST_MONUMENT;
-$HcomName[$HcomHaribote]     = Hako::Constants::COMMAND_NAME_HARIBOTE;
-$HcomCost[$HcomHaribote]     = Hako::Constants::COMMAND_COST_HARIBOTE;
-$HcomName[$HcomMissileNM]    = Hako::Constants::COMMAND_NAME_MISSILE_NM;
-$HcomCost[$HcomMissileNM]    = Hako::Constants::COMMAND_COST_MISSILE_NM;
-$HcomName[$HcomMissilePP]    = Hako::Constants::COMMAND_NAME_MISSILE_PP;
-$HcomCost[$HcomMissilePP]    = Hako::Constants::COMMAND_COST_MISSILE_PP;
-$HcomName[$HcomMissileST]    = Hako::Constants::COMMAND_NAME_MISSILE_ST;
-$HcomCost[$HcomMissileST]    = Hako::Constants::COMMAND_COST_MISSILE_ST;
-$HcomName[$HcomMissileLD]    = Hako::Constants::COMMAND_NAME_MISSILE_LD;
-$HcomCost[$HcomMissileLD]    = Hako::Constants::COMMAND_COST_MISSILE_LD;
-$HcomName[$HcomSendMonster]  = Hako::Constants::COMMAND_NAME_SEND_MONSTER;
-$HcomCost[$HcomSendMonster]  = Hako::Constants::COMMAND_COST_SEND_MONSTER;
-$HcomName[$HcomDoNothing]    = Hako::Constants::COMMAND_NAME_DO_NOTHING;
-$HcomCost[$HcomDoNothing]    = Hako::Constants::COMMAND_COST_DO_NOTHING;
-$HcomName[$HcomSell]         = Hako::Constants::COMMAND_NAME_SELL;
-$HcomCost[$HcomSell]         = Hako::Constants::COMMAND_COST_SELL;
-$HcomName[$HcomMoney]        = Hako::Constants::COMMAND_NAME_MONEY;
-$HcomCost[$HcomMoney]        = Hako::Constants::COMMAND_COST_MONEY;
-$HcomName[$HcomFood]         = Hako::Constants::COMMAND_NAME_FOOD;
-$HcomCost[$HcomFood]         = Hako::Constants::COMMAND_COST_FOOD;
-$HcomName[$HcomPropaganda]   = Hako::Constants::COMMAND_NAME_PROPAGANDA;
-$HcomCost[$HcomPropaganda]   = Hako::Constants::COMMAND_COST_PROPAGANDA;
-$HcomName[$HcomGiveup]       = Hako::Constants::COMMAND_NAME_GIVE_UP;
-$HcomCost[$HcomGiveup]       = Hako::Constants::COMMAND_COST_GIVE_UP;
-$HcomName[$HcomAutoPrepare]  = Hako::Constants::COMMAND_NAME_AUTO_PREPARE;
-$HcomCost[$HcomAutoPrepare]  = Hako::Constants::COMMAND_COST_AUTO_PREPARE;
-$HcomName[$HcomAutoPrepare2] = Hako::Constants::COMMAND_NAME_AUTO_PREPARE2;
-$HcomCost[$HcomAutoPrepare2] = Hako::Constants::COMMAND_COST_AUTO_PREPARE2;
-$HcomName[$HcomAutoDelete]   = Hako::Constants::COMMAND_NAME_AUTO_DELETE;
-$HcomCost[$HcomAutoDelete]   = Hako::Constants::COMMAND_COST_AUTO_DELETE;
+#$HcomName[$HcomPrepare]      = Hako::Constants::COMMAND_NAME_PREPARE;
+#$HcomCost[$HcomPrepare]      = Hako::Constants::COMMAND_COST_PREPARE;
+#$HcomName[$HcomPrepare2]     = Hako::Constants::COMMAND_NAME_PREPARE2;
+#$HcomCost[$HcomPrepare2]     = Hako::Constants::COMMAND_COST_PREPARE2;
+#$HcomName[$HcomReclaim]      = Hako::Constants::COMMAND_NAME_RECLAIM;
+#$HcomCost[$HcomReclaim]      = Hako::Constants::COMMAND_COST_RECLAIM;
+#$HcomName[$HcomDestroy]      = Hako::Constants::COMMAND_NAME_DESTROY;
+#$HcomCost[$HcomDestroy]      = Hako::Constants::COMMAND_COST_DESTROY;
+#$HcomName[$HcomSellTree]     = Hako::Constants::COMMAND_NAME_SELL_TREE;
+#$HcomCost[$HcomSellTree]     = Hako::Constants::COMMAND_COST_SELL_TREE;
+#$HcomName[$HcomPlant]        = Hako::Constants::COMMAND_NAME_PLANT;
+#$HcomCost[$HcomPlant]        = Hako::Constants::COMMAND_COST_PLANT;
+#$HcomName[$HcomFarm]         = Hako::Constants::COMMAND_NAME_FARM;
+#$HcomCost[$HcomFarm]         = Hako::Constants::COMMAND_COST_FARM;
+#$HcomName[$HcomFactory]      = Hako::Constants::COMMAND_NAME_FACTORY;
+#$HcomCost[$HcomFactory]      = Hako::Constants::COMMAND_COST_FACTORY;
+#$HcomName[$HcomMountain]     = Hako::Constants::COMMAND_NAME_MOUNTAIN;
+#$HcomCost[$HcomMountain]     = Hako::Constants::COMMAND_COST_MOUNTAIN;
+#$HcomName[$HcomBase]         = Hako::Constants::COMMAND_NAME_BASE;
+#$HcomCost[$HcomBase]         = Hako::Constants::COMMAND_COST_BASE;
+#$HcomName[$HcomDbase]        = Hako::Constants::COMMAND_NAME_DEFENCE_BASE;
+#$HcomCost[$HcomDbase]        = Hako::Constants::COMMAND_COST_DEFENCE_BASE;
+#$HcomName[$HcomSbase]        = Hako::Constants::COMMAND_NAME_SEA_BASE;
+#$HcomCost[$HcomSbase]        = Hako::Constants::COMMAND_COST_SEA_BASE;
+#$HcomName[$HcomMonument]     = Hako::Constants::COMMAND_NAME_MONUMENT;
+#$HcomCost[$HcomMonument]     = Hako::Constants::COMMAND_COST_MONUMENT;
+#$HcomName[$HcomHaribote]     = Hako::Constants::COMMAND_NAME_HARIBOTE;
+#$HcomCost[$HcomHaribote]     = Hako::Constants::COMMAND_COST_HARIBOTE;
+#$HcomName[$HcomMissileNM]    = Hako::Constants::COMMAND_NAME_MISSILE_NM;
+#$HcomCost[$HcomMissileNM]    = Hako::Constants::COMMAND_COST_MISSILE_NM;
+#$HcomName[$HcomMissilePP]    = Hako::Constants::COMMAND_NAME_MISSILE_PP;
+#$HcomCost[$HcomMissilePP]    = Hako::Constants::COMMAND_COST_MISSILE_PP;
+#$HcomName[$HcomMissileST]    = Hako::Constants::COMMAND_NAME_MISSILE_ST;
+#$HcomCost[$HcomMissileST]    = Hako::Constants::COMMAND_COST_MISSILE_ST;
+#$HcomName[$HcomMissileLD]    = Hako::Constants::COMMAND_NAME_MISSILE_LD;
+#$HcomCost[$HcomMissileLD]    = Hako::Constants::COMMAND_COST_MISSILE_LD;
+#$HcomName[$HcomSendMonster]  = Hako::Constants::COMMAND_NAME_SEND_MONSTER;
+#$HcomCost[$HcomSendMonster]  = Hako::Constants::COMMAND_COST_SEND_MONSTER;
+#$HcomName[$HcomDoNothing]    = Hako::Constants::COMMAND_NAME_DO_NOTHING;
+#$HcomCost[$HcomDoNothing]    = Hako::Constants::COMMAND_COST_DO_NOTHING;
+#$HcomName[$HcomSell]         = Hako::Constants::COMMAND_NAME_SELL;
+#$HcomCost[$HcomSell]         = Hako::Constants::COMMAND_COST_SELL;
+#$HcomName[$HcomMoney]        = Hako::Constants::COMMAND_NAME_MONEY;
+#$HcomCost[$HcomMoney]        = Hako::Constants::COMMAND_COST_MONEY;
+#$HcomName[$HcomFood]         = Hako::Constants::COMMAND_NAME_FOOD;
+#$HcomCost[$HcomFood]         = Hako::Constants::COMMAND_COST_FOOD;
+#$HcomName[$HcomPropaganda]   = Hako::Constants::COMMAND_NAME_PROPAGANDA;
+#$HcomCost[$HcomPropaganda]   = Hako::Constants::COMMAND_COST_PROPAGANDA;
+#$HcomName[$HcomGiveup]       = Hako::Constants::COMMAND_NAME_GIVE_UP;
+#$HcomCost[$HcomGiveup]       = Hako::Constants::COMMAND_COST_GIVE_UP;
+#$HcomName[$HcomAutoPrepare]  = Hako::Constants::COMMAND_NAME_AUTO_PREPARE;
+#$HcomCost[$HcomAutoPrepare]  = Hako::Constants::COMMAND_COST_AUTO_PREPARE;
+#$HcomName[$HcomAutoPrepare2] = Hako::Constants::COMMAND_NAME_AUTO_PREPARE2;
+#$HcomCost[$HcomAutoPrepare2] = Hako::Constants::COMMAND_COST_AUTO_PREPARE2;
+#$HcomName[$HcomAutoDelete]   = Hako::Constants::COMMAND_NAME_AUTO_DELETE;
+#$HcomCost[$HcomAutoDelete]   = Hako::Constants::COMMAND_COST_AUTO_DELETE;
 
 #----------------------------------------------------------------------
 # 変数
@@ -507,7 +507,7 @@ my($defaultTarget);   # ターゲットの名前
 
 
 # 島の座標数
-$HpointNumber = Hako::Config::ISLAND_SIZE * Hako::Config::ISLAND_SIZE;
+#$HpointNumber = Hako::Config::ISLAND_SIZE * Hako::Config::ISLAND_SIZE;
 
 #----------------------------------------------------------------------
 # メイン
@@ -998,7 +998,7 @@ sub to_app {
     sub expToLevel {
         my($kind, $exp) = @_;
         my($i);
-        if($kind == $HlandBase) {
+        if($kind == Hako::Constants::LAND_BASE) {
         # ミサイル基地
         for($i = Hako::Config::MAX_BASE_LEVEL; $i > 1; $i--) {
             if($exp >= ${Hako::Config::BASE_LEVEL_UP()}[$i - 2]) {

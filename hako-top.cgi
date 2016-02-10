@@ -78,7 +78,7 @@ $mStr1
 <TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("食料")]}</NOBR></TH>
 <TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("農場規模")]}</NOBR></TH>
 <TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("工場規模")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("")]}採掘場規模</NOBR></TH>
+<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("採掘場規模")]}</NOBR></TH>
 </TR>
 END
 
