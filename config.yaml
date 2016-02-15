@@ -6,8 +6,10 @@ admin_name: 管理者の名前
 admin_email: root@localhost.localdomain
 bbs_url: http://localhost/bbs.cgi
 toppage_url: http://localhost/index.html
+this_file: http://localhost:5000/hako-main.cgi # TODO: 消す
+temp_back: <A HREF="http://localhost:5000/hako-main.cgi"><font size=6>トップへ戻る</font></A> # TODO: 消す
 
-data_dir: hoge # あとで消す
+data_dir: hoge # TODO: 消す
 unit_time: 43200
 max_island: 30
 top_log_turn: 1

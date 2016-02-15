@@ -8,7 +8,7 @@ use Hako::DB;
 
 require 'hako-main.cgi';
 
-my $main_app = MainApp::to_app();
+my $main_app = MainApp->new;
 my $admin_app = Hako::Admin::App->new;
 
 builder {
@@ -26,5 +26,5 @@ builder {
             dbh => Hako::DB->connect,
         );
     mount "/admin" => $admin_app->psgi;
-    mount "/" => $main_app;
+    mount "/" => $main_app->psgi;
 };
