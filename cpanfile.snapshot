@@ -13,60 +13,6 @@ DISTRIBUTIONS
       POSIX::strftime::Compiler 0.30
       Time::Local 0
       perl 5.008001
-  CGI-Compile-0.19
-    pathname: M/MI/MIYAGAWA/CGI-Compile-0.19.tar.gz
-    provides:
-      CGI::Compile 0.19
-    requirements:
-      File::pushd 0
-      Module::Build::Tiny 0.039
-      perl 5.008001
-  CGI-Emulate-PSGI-0.20
-    pathname: M/MI/MIYAGAWA/CGI-Emulate-PSGI-0.20.tar.gz
-    provides:
-      CGI::Emulate::PSGI 0.20
-      CGI::Parse::PSGI undef
-    requirements:
-      CGI 3.63
-      ExtUtils::MakeMaker 0
-      HTTP::Response 0
-  CPAN-Meta-2.150005
-    pathname: D/DA/DAGOLDEN/CPAN-Meta-2.150005.tar.gz
-    provides:
-      CPAN::Meta 2.150005
-      CPAN::Meta::Converter 2.150005
-      CPAN::Meta::Feature 2.150005
-      CPAN::Meta::History 2.150005
-      CPAN::Meta::Merge 2.150005
-      CPAN::Meta::Prereqs 2.150005
-      CPAN::Meta::Spec 2.150005
-      CPAN::Meta::Validator 2.150005
-    requirements:
-      CPAN::Meta::Requirements 2.121
-      CPAN::Meta::YAML 0.008
-      Carp 0
-      ExtUtils::MakeMaker 6.17
-      JSON::PP 2.27200
-      Parse::CPAN::Meta 1.4414
-      Scalar::Util 0
-      perl 5.008
-      strict 0
-      version 0.88
-      warnings 0
-  CPAN-Meta-YAML-0.016
-    pathname: D/DA/DAGOLDEN/CPAN-Meta-YAML-0.016.tar.gz
-    provides:
-      CPAN::Meta::YAML 0.016
-    requirements:
-      B 0
-      Carp 0
-      Exporter 0
-      ExtUtils::MakeMaker 6.17
-      Fcntl 0
-      Scalar::Util 0
-      perl 5.008001
-      strict 0
-      warnings 0
   Class-Accessor-Lite-0.08
     pathname: K/KA/KAZUHO/Class-Accessor-Lite-0.08.tar.gz
     provides:
@@ -331,30 +277,6 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
-  ExtUtils-ParseXS-3.24
-    pathname: S/SM/SMUELLER/ExtUtils-ParseXS-3.24.tar.gz
-    provides:
-      ExtUtils::ParseXS 3.24
-      ExtUtils::ParseXS::Constants 3.24
-      ExtUtils::ParseXS::CountLines 3.24
-      ExtUtils::ParseXS::Eval 3.24
-      ExtUtils::ParseXS::Utilities 3.24
-      ExtUtils::Typemaps 3.24
-      ExtUtils::Typemaps::Cmd 3.24
-      ExtUtils::Typemaps::InputMap 3.24
-      ExtUtils::Typemaps::OutputMap 3.24
-      ExtUtils::Typemaps::Type 3.24
-    requirements:
-      Carp 0
-      Cwd 0
-      DynaLoader 0
-      Exporter 5.57
-      ExtUtils::CBuilder 0
-      ExtUtils::MakeMaker 6.46
-      File::Basename 0
-      File::Spec 0
-      Symbol 0
-      Test::More 0.47
   File-Copy-Recursive-0.38
     pathname: D/DM/DMUEY/File-Copy-Recursive-0.38.tar.gz
     provides:
@@ -383,21 +305,6 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 6.11
       File::Spec 0
       IO::Dir 0
-  File-pushd-1.009
-    pathname: D/DA/DAGOLDEN/File-pushd-1.009.tar.gz
-    provides:
-      File::pushd 1.009
-    requirements:
-      Carp 0
-      Cwd 0
-      Exporter 0
-      ExtUtils::MakeMaker 6.17
-      File::Path 0
-      File::Spec 0
-      File::Temp 0
-      overload 0
-      strict 0
-      warnings 0
   Filesys-Notify-Simple-0.12
     pathname: M/MI/MIYAGAWA/Filesys-Notify-Simple-0.12.tar.gz
     provides:
@@ -471,21 +378,6 @@ DISTRIBUTIONS
       MIME::QuotedPrint 0
       URI 1.10
       perl 5.008001
-  HTTP-Tiny-0.056
-    pathname: D/DA/DAGOLDEN/HTTP-Tiny-0.056.tar.gz
-    provides:
-      HTTP::Tiny 0.056
-    requirements:
-      Carp 0
-      ExtUtils::MakeMaker 6.17
-      Fcntl 0
-      IO::Socket 0
-      MIME::Base64 0
-      Time::Local 0
-      bytes 0
-      perl 5.006
-      strict 0
-      warnings 0
   Hash-MultiValue-0.16
     pathname: A/AR/ARISTOTLE/Hash-MultiValue-0.16.tar.gz
     provides:
@@ -502,14 +394,6 @@ DISTRIBUTIONS
       Encode 2.10
       Exporter 5.57
       ExtUtils::MakeMaker 6.30
-  IO-Socket-IP-0.37
-    pathname: P/PE/PEVANS/IO-Socket-IP-0.37.tar.gz
-    provides:
-      IO::Socket::IP 0.37
-    requirements:
-      IO::Socket 0
-      Socket 1.97
-      Test::More 0.88
   LWP-MediaTypes-6.02
     pathname: G/GA/GAAS/LWP-MediaTypes-6.02.tar.gz
     provides:
@@ -675,20 +559,6 @@ DISTRIBUTIONS
       POSIX 0
       Time::Local 0
       perl 5.008001
-  Parse-CPAN-Meta-1.4417
-    pathname: D/DA/DAGOLDEN/Parse-CPAN-Meta-1.4417.tar.gz
-    provides:
-      Parse::CPAN::Meta 1.4417
-    requirements:
-      CPAN::Meta::YAML 0.011
-      Carp 0
-      Encode 0
-      Exporter 0
-      ExtUtils::MakeMaker 0
-      File::Spec 0.80
-      JSON::PP 2.27200
-      perl 5.008001
-      strict 0
   Plack-1.0036
     pathname: M/MI/MIYAGAWA/Plack-1.0036.tar.gz
     provides:
@@ -889,60 +759,6 @@ DISTRIBUTIONS
       List::Util 1.09
       Scalar::Util 1.09
       Test::Builder 0
-  Test-Harness-3.35
-    pathname: L/LE/LEONT/Test-Harness-3.35.tar.gz
-    provides:
-      App::Prove 3.35
-      App::Prove::State 3.35
-      App::Prove::State::Result 3.35
-      App::Prove::State::Result::Test 3.35
-      Harness::Hook undef
-      TAP::Base 3.35
-      TAP::Formatter::Base 3.35
-      TAP::Formatter::Color 3.35
-      TAP::Formatter::Console 3.35
-      TAP::Formatter::Console::ParallelSession 3.35
-      TAP::Formatter::Console::Session 3.35
-      TAP::Formatter::File 3.35
-      TAP::Formatter::File::Session 3.35
-      TAP::Formatter::Session 3.35
-      TAP::Harness 3.35
-      TAP::Harness::Env 3.35
-      TAP::Object 3.35
-      TAP::Parser 3.35
-      TAP::Parser::Aggregator 3.35
-      TAP::Parser::Grammar 3.35
-      TAP::Parser::Iterator 3.35
-      TAP::Parser::Iterator::Array 3.35
-      TAP::Parser::Iterator::Process 3.35
-      TAP::Parser::Iterator::Stream 3.35
-      TAP::Parser::IteratorFactory 3.35
-      TAP::Parser::Multiplexer 3.35
-      TAP::Parser::Result 3.35
-      TAP::Parser::Result::Bailout 3.35
-      TAP::Parser::Result::Comment 3.35
-      TAP::Parser::Result::Plan 3.35
-      TAP::Parser::Result::Pragma 3.35
-      TAP::Parser::Result::Test 3.35
-      TAP::Parser::Result::Unknown 3.35
-      TAP::Parser::Result::Version 3.35
-      TAP::Parser::Result::YAML 3.35
-      TAP::Parser::ResultFactory 3.35
-      TAP::Parser::Scheduler 3.35
-      TAP::Parser::Scheduler::Job 3.35
-      TAP::Parser::Scheduler::Spinner 3.35
-      TAP::Parser::Source 3.35
-      TAP::Parser::SourceHandler 3.35
-      TAP::Parser::SourceHandler::Executable 3.35
-      TAP::Parser::SourceHandler::File 3.35
-      TAP::Parser::SourceHandler::Handle 3.35
-      TAP::Parser::SourceHandler::Perl 3.35
-      TAP::Parser::SourceHandler::RawTAP 3.35
-      TAP::Parser::YAMLish::Reader 3.35
-      TAP::Parser::YAMLish::Writer 3.35
-      Test::Harness 3.35
-    requirements:
-      ExtUtils::MakeMaker 0
   Test-Requires-0.08
     pathname: T/TO/TOKUHIROM/Test-Requires-0.08.tar.gz
     provides:

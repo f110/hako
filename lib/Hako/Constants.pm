@@ -5,8 +5,10 @@ use File::Spec;
 use File::Basename;
 use YAML;
 
+my $config;
+
 sub import {
-    my $config = YAML::LoadFile(File::Spec->catfile(dirname(__FILE__), "../../constants.yaml"));
+    $config = YAML::LoadFile(File::Spec->catfile(dirname(__FILE__), "../../constants.yaml"));
 
     for my $key (keys %{$config}) {
         no strict 'refs';
@@ -17,5 +19,7 @@ sub import {
 }
 
 sub DIR_MODE { return 0755; }
+
+sub config { $config; }
 
 1;

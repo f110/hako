@@ -43,6 +43,36 @@ command_give_up: 46
 command_auto_prepare: 61
 command_auto_prepare2: 62
 command_auto_delete: 63
+# 有効なコマンドリスト
+com_list:
+    - 01
+    - 02
+    - 03
+    - 04
+    - 05
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 31
+    - 32
+    - 33
+    - 34
+    - 35
+    - 41
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 61
+    - 62
+    - 63
 # コマンド名
 command_name_prepare: "整地"
 command_name_prepare2: "地ならし"
@@ -101,3 +131,5 @@ command_cost_give_up: 0
 command_cost_auto_prepare: 0
 command_cost_auto_prepare2: 0
 command_cost_auto_delete: 0
+
+command_total_num: 28
