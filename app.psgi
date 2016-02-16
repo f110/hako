@@ -5,10 +5,9 @@ use File::Basename;
 use Hako::Config;
 use Hako::Admin::App;
 use Hako::DB;
+use Hako::MainApp;
 
-require 'hako-main.cgi';
-
-my $main_app = MainApp->new;
+my $main_app = Hako::MainApp->new;
 my $admin_app = Hako::Admin::App->new;
 
 builder {
