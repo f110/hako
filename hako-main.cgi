@@ -17,6 +17,7 @@ use Hako::Model::Island;
 use Hako::Util;
 use Hako::Mode;
 use Hako::Template::Function;
+use Devel::Peek;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30
@@ -506,8 +507,8 @@ use Hako::Template::Function;
 #----------------------------------------------------------------------
 
 # COOKIE
-my($defaultID);       # 島の名前
-my($defaultTarget);   # ターゲットの名前
+#my($defaultID);       # 島の名前
+#my($defaultTarget);   # ターゲットの名前
 
 
 # 島の座標数
@@ -808,7 +809,7 @@ sub readIslandsFile {
     # 島の読みこみ
     my $islands_from_db = Hako::DB->get_islands;
     for (my $i = 0; $i < $self->{island_number}; $i++) {
-        $self->{islands}->[$i] = $self->readIsland($num, $islands_from_db);
+        push(@{$self->{islands}}, $self->readIsland($num, $islands_from_db));
         $self->{id_to_number}->{$self->{islands}->[$i]->{'id'}} = $i;
     }
 
@@ -1005,7 +1006,7 @@ sub writeIslandsFile {
 
     # 島の書きこみ
     for (my $i = 0; $i < $self->{island_number}; $i++) {
-        $self->writeIsland($self->{islands}->[$i], $num, $i);
+        $self->writeIsland($self->{islands}[$i], $num, $i);
     }
 
     # DB用に放棄された島を消す
@@ -1020,7 +1021,7 @@ sub writeIsland {
     my ($self, $island, $num, $sort) = @_;
     # 地形
     if (($num <= -1) || ($num == $island->{'id'})) {
-        my $land = $island->{'land'};
+        my $land = $island->{land};
         my $landValue = $island->{'landValue'};
         my $land_str = "";
         for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {

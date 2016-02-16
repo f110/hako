@@ -6,6 +6,8 @@ use Hako::Constants;
 use Hako::DB;
 use Hako::Log;
 use Hako::Util;
+use Hako::Command;
+use Data::Dumper;
 
 #周囲2ヘックスの座標
 my (@ax) = (0, 1, 1, 1, 0,-1, 0, 1, 2, 2, 2, 1, 0,-1,-1,-2,-1,-1, 0);
@@ -97,14 +99,14 @@ sub makeRandomPointArray {
 
     # 初期値
     my @Hrpx = (0..Hako::Config::ISLAND_SIZE()-1) x Hako::Config::ISLAND_SIZE;
-    my @Hrpy = [];
+    my @Hrpy;
     for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
         push(@Hrpy, ($y) x Hako::Config::ISLAND_SIZE);
     }
 
     # シャッフル
-    for (my $i = $context->{point_number}; --$i; ) {
-        my ($j) = int(rand($i+1)); 
+    for (my $i = Hako::Config::POINT_NUMBER; --$i; ) {
+        my $j = int(rand($i+1));
         next if ($i == $j);
         @Hrpx[$i,$j] = @Hrpx[$j,$i];
         @Hrpy[$i,$j] = @Hrpy[$j,$i];
@@ -188,9 +190,7 @@ sub income {
     if ($pop > $farm) {
         # 農業だけじゃ手が余る場合
         $island->{'food'} += $farm; # 農場フル稼働
-        $island->{'money'} +=
-        min(int(($pop - $farm) / 10),
-            $factory + $mountain);
+        $island->{'money'} += Hako::Util::min(int(($pop - $farm) / 10), $factory + $mountain);
     } else {
         # 農業だけで手一杯の場合
         $island->{'food'} += $pop; # 全員野良仕事
@@ -1741,8 +1741,8 @@ sub doIslandProcess {
             $first = 0;
 
             # 落下
-            my $x = random(Hako::Config::ISLAND_SIZE);
-            my $y = random(Hako::Config::ISLAND_SIZE);
+            my $x = Hako::Util::random(Hako::Config::ISLAND_SIZE);
+            my $y = Hako::Util::random(Hako::Config::ISLAND_SIZE);
             my $landKind = $land->[$x][$y];
             my $lv = $landValue->[$x][$y];
             my $point = "($x, $y)";
@@ -1888,7 +1888,8 @@ sub islandSort {
     # 人口が同じときは直前のターンの順番のまま
     my @idx = (0..$#islands);
     @idx = sort { $context->{islands}->[$b]->{'pop'} <=> $context->{islands}->[$a]->{'pop'} || $a <=> $b } @idx;
-    $context->{islands} = \@islands[@idx];
+    my @new_islands = @islands[@idx];
+    $context->{islands} = \@new_islands;
 }
 
 sub newIslandMain {
@@ -2162,7 +2163,7 @@ sub ownerMain {
 
     # ○○島ローカル掲示板
     if (Hako::Config::USE_LOCAL_BBS) {
-        $context->tempLbbsHead;     # ローカル掲示板
+        $context->tempLbbsHead($context->{current_name});     # ローカル掲示板
         $context->tempLbbsInputOW;   # 書き込みフォーム
         $context->tempLbbsContents; # 掲示板内容
     }
