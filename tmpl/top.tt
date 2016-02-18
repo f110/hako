@@ -1,0 +1,109 @@
+<font size=7 COLOR="#8888ff">[% title %]</font>
+[% IF debug_mode %]
+<form method="POST">
+<input type="submit" value="ターンを進める" name="TurnButton">
+</form>
+[% END %]
+<H1><FONT COLOR="#4444ff">ターン[% turn %]</font></H1>
+
+<HR>
+<H1><FONT COLOR="#4444ff">自分の島へ</font></H1>
+<FORM method="POST">
+あなたの島の名前は？<BR>
+<SELECT NAME="ISLANDID">
+[% island_list %]
+</SELECT><BR>
+
+パスワードをどうぞ！！<BR>
+<INPUT TYPE="password" NAME="PASSWORD" VALUE="[% default_password %]" SIZE=32 MAXLENGTH=32><BR>
+<INPUT TYPE="submit" VALUE="開発しに行く" NAME="OwnerButton"><BR>
+</FORM>
+
+<HR>
+
+<H1><FONT COLOR="#4444ff">諸島の状況</font></H1>
+<P>
+島の名前をクリックすると、<B>観光</B>することができます。
+</P>
+<TABLE BORDER>
+<TR>
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>順位</b></font></NOBR></TH>
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>島</b></font></NOBR></TH>
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>人口</b></font></NOBR></TH>
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>面積</b></font></NOBR></TH>
+[% mStr1 %]
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>食料</b></font></NOBR></TH>
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>農場規模</b></font></NOBR></TH>
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>工場規模</b></font></NOBR></TH>
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>採掘場規模</b></font></NOBR></TH>
+</TR>
+[% FOREACH island IN islands %]
+    <TR>
+    <TD BGCOLOR="#ccffcc" ROWSPAN=2 align=center nowrap=nowrap><NOBR>[% island.j %]</NOBR></TD>
+    <TD BGCOLOR="#ccffff" ROWSPAN=2 align=left nowrap=nowrap><NOBR><A STYlE=\"text-decoration:none\" HREF="/?Sight=[% island.id %]">[% island.name %]</A></NOBR><BR>[% island.prize %]</TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.pop %][% unit_population %]</NOBR></TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.area %][% unit_area %]</NOBR></TD>
+    [% island.mStr1 %]
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.food %][% unit_food %]</NOBR></TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.farm %]</NOBR></TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.factory %]</NOBR></TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.mountain %]</NOBR></TD>
+    </TR>
+    <TR>
+    <TD BGCOLOR="#ccffcc" COLSPAN=7 align=left nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>コメント：</b></font>[% island.comment %]</NOBR></TD>
+    </TR>
+[% END %]
+</TABLE>
+
+<HR>
+<H1><FONT COLOR="#4444ff">新しい島を探す</font></H1>
+
+[% IF island_number < max_island %]
+<FORM method="POST">
+どんな名前をつける予定？<BR>
+<INPUT TYPE="text" NAME="ISLANDNAME" SIZE=32 MAXLENGTH=32>島<BR>
+パスワードは？<BR>
+<INPUT TYPE="password" NAME="PASSWORD" SIZE=32 MAXLENGTH=32><BR>
+念のためパスワードをもう一回<BR>
+<INPUT TYPE="password" NAME="PASSWORD2" SIZE=32 MAXLENGTH=32><BR>
+
+<INPUT TYPE="submit" VALUE="探しに行く" NAME="NewIslandButton">
+</FORM>
+[% ELSE %]
+島の数が最大数です・・・現在登録できません。
+[% END %]
+
+<HR>
+<H1><FONT COLOR="#4444ff">島の名前とパスワードの変更</font></H1>
+<P>
+(注意)名前の変更には[% change_name_cost %][% unit_money %]かかります。
+</P>
+<FORM method="POST">
+どの島ですか？<BR>
+<SELECT NAME="ISLANDID">
+[% island_list %]
+</SELECT>
+<BR>
+どんな名前に変えますか？(変更する場合のみ)<BR>
+<INPUT TYPE="text" NAME="ISLANDNAME" SIZE=32 MAXLENGTH=32>島<BR>
+パスワードは？(必須)<BR>
+<INPUT TYPE="password" NAME="OLDPASS" SIZE=32 MAXLENGTH=32><BR>
+新しいパスワードは？(変更する時のみ)<BR>
+<INPUT TYPE="password" NAME="PASSWORD" SIZE=32 MAXLENGTH=32><BR>
+念のためパスワードをもう一回(変更する時のみ)<BR>
+<INPUT TYPE="password" NAME="PASSWORD2" SIZE=32 MAXLENGTH=32><BR>
+
+<INPUT TYPE="submit" VALUE="変更する" NAME="ChangeInfoButton">
+</FORM>
+
+<HR>
+
+<H1><FONT COLOR="#4444ff">最近の出来事</font></H1>
+[% FOREACH log IN logs %]
+<NOBR><FONT COLOR="#800000"><B>ターン[% log.turn %]</b></font>：[% log.message %]</NOBR><BR>
+[% END %]
+
+<H1><FONT COLOR="#4444ff">発見の記録</font></H1>
+[% FOREACH history IN histories %]
+<NOBR><FONT COLOR="#800000"><B>ターン[% history.turn %]</b></font>：[% history.message %]</NOBR><BR>
+[% END %]

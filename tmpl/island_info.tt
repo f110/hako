@@ -1,0 +1,23 @@
+<CENTER>
+<TABLE BORDER>
+<TR>
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>順位</B></FONT></NOBR></TH>
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>人口</B></FONT></NOBR></TH>
+[% mStr1 %]
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>食料</B></FONT></NOBR></TH>
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>面積</B></FONT></NOBR></TH>
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>農場規模</B></FONT></NOBR></TH>
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>工場規模</B></FONT></NOBR></TH>
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>採掘場規模</B></FONT></NOBR></TH>
+</TR>
+<TR>
+<TD BGCOLOR="#ccffcc" align=middle nowrap=nowrap><NOBR><FONT COLOR="#800000"><B>[% rank %]</B></FONT></NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.pop %][% unit_population %]</NOBR></TD>
+[% mStr2 %]
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.food %][% unit_food %]</NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.area %][% unit_area %]</NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% farm %]</NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% factory %]</NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% mountain %]</NOBR></TD>
+</TR>
+</TABLE></CENTER>

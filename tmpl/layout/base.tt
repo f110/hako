@@ -1,0 +1,22 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>[% title %]</title>
+    <base href="[% image_dir %]/">
+</head>
+<body [% html_body %]>
+<a href="http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html">箱庭諸島スクリプト配布元</a><hr>
+
+[% FOREACH body_file IN body_files %]
+    [% INCLUDE body_file %]
+[% END %]
+
+<hr>
+<p align=center>
+管理者:[% admin_name %](<a href="mailto:[% email %]">[% email %]</a>)<br>
+掲示板(<a href="[% bbs %]">[% bbs %]</a>)<br>
+トップページ(<a href="[% toppage %]">[% toppage %]</a>)<br>
+箱庭諸島のページ(<a href="http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html">http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html</a>)<br>
+</p>
+</body>
+</html>

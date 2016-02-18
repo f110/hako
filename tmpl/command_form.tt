@@ -1,0 +1,65 @@
+<CENTER>
+<TABLE BORDER>
+<TR>
+<TD BGCOLOR="#ccffcc" >
+<CENTER>
+<FORM method=POST>
+<INPUT TYPE=submit VALUE="計画送信" NAME=CommandButton[% current_id %]>
+<HR>
+<B>パスワード</B></BR>
+<INPUT TYPE=password NAME=PASSWORD VALUE="[% default_password %]">
+<HR>
+<B>計画番号</B><SELECT NAME=NUMBER>
+[% FOREACH i IN command_range %]
+<OPTION VALUE=[% i %]>[% i + 1 %]
+[% END %]
+</SELECT><BR>
+<HR>
+<B>開発計画</B><BR>
+<SELECT NAME=COMMAND>
+[% FOREACH cmd IN commands %]
+[% cmd %]
+[% END %]
+</SELECT>
+<HR>
+<B>座標(</B>
+<SELECT NAME=POINTX>
+[% FOREACH i IN island_size_range %]
+    [% IF default_x == i %]
+        <OPTION VALUE=[% i %] SELECTED>[% i %]
+    [% ELSE %]
+        <OPTION VALUE=[% i %]>[% i %]
+    [% END %]
+[% END %]
+</SELECT>, <SELECT NAME=POINTY>
+[% FOREACH i IN island_size_range %]
+    [% IF default_y == i %]
+        <OPTION VALUE=[% i %] SELECTED>[% i %]
+    [% ELSE %]
+        <OPTION VALUE=[% i %]>[% i %]
+    [% END %]
+[% END %]
+</SELECT><B>)</B>
+<HR>
+<B>数量</B><SELECT NAME=AMOUNT>
+[% FOREACH i IN num_range %]
+    <OPTION VALUE=[% i %]>[% i %]
+[% END %]
+</SELECT>
+<HR>
+<B>目標の島</B><BR>
+<SELECT NAME=TARGETID>
+[% target_list %]<BR>
+</SELECT>
+<HR>
+<B>動作</B><BR>
+<INPUT TYPE=radio NAME=COMMANDMODE VALUE=insert CHECKED>挿入
+<INPUT TYPE=radio NAME=COMMANDMODE VALUE=write>上書き<BR>
+<INPUT TYPE=radio NAME=COMMANDMODE VALUE=delete>削除
+<HR>
+<INPUT TYPE=submit VALUE="計画送信" NAME=CommandButton[% current_id %]>
+
+</CENTER>
+</FORM>
+</TD>
+<TD bgcolor="#ccffcc">

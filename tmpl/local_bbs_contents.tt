@@ -1,0 +1,11 @@
+<CENTER>
+<TABLE BORDER>
+<TR>
+<TH>番号</TH>
+<TH>記帳内容</TH>
+</TR>
+[% FOREACH content IN local_bbs_contents %]
+[% content.number %]
+[% content.content %]
+[% END %]
+</TD></TR></TABLE></CENTER>

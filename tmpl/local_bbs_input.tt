@@ -1,0 +1,17 @@
+<CENTER>
+<FORM method="POST">
+<TABLE BORDER>
+<TR>
+<TH>名前</TH>
+<TH>内容</TH>
+<TH>動作</TH>
+</TR>
+<TR>
+<TD><INPUT TYPE="text" SIZE=32 MAXLENGTH=32 NAME="LBBSNAME" VALUE="[% default_name %]"></TD>
+<TD><INPUT TYPE="text" SIZE=80 NAME="LBBSMESSAGE"></TD>
+<TD><INPUT TYPE="submit" VALUE="記帳する" NAME="LbbsButtonSS[% current_id %]"></TD>
+</TR>
+</TABLE>
+</FORM>
+</CENTER>
+

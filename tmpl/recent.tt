@@ -1,0 +1,13 @@
+<HR>
+<FONT SIZE=6><FONT COLOR="#a06040"><B>[% current_name %]島</B></FONT>の近況</font><BR>
+[% IF recent_mode == 1 %]
+    [% FOREACH log IN secrets %]
+        <NOBR><FONT COLOR="#800000"><B>ターン[% log.turn %]<B>(機密)</B></B></FONT>：[% log.message %]</NOBR><BR>
+    [% END %]
+[% END %]
+[% FOREACH log IN lates %]
+    <NOBR><FONT COLOR="#800000"><B>ターン[% log.turn %]</b></font>：[% log.message %]</NOBR><BR>
+[% END %]
+[% FOREACH log IN normals %]
+    <NOBR><FONT COLOR="#800000"><B>ターン[% log.turn %]</b></font>：[% log.message %]</NOBR><BR>
+[% END %]

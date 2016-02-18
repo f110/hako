@@ -1,0 +1,20 @@
+</TD>
+<TD bgcolor="#ccffcc">
+[% FOREACH k IN command_list %]
+[% k %]
+[% END %]
+
+</TD>
+</TR>
+</TABLE>
+</CENTER>
+<HR>
+<CENTER>
+<FONT SIZE=6>コメント更新</font><BR>
+<FORM method="POST">
+コメント<INPUT TYPE=text NAME=MESSAGE SIZE=80><BR>
+パスワード<INPUT TYPE=password NAME=PASSWORD VALUE="[% default_password %]">
+<INPUT TYPE=submit VALUE="コメント更新" NAME=MessageButton[% current_id %]>
+</FORM>
+</CENTER>
+

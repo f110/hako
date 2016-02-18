@@ -2,6 +2,7 @@ package Hako::MainApp;
 use utf8;
 use strict;
 use warnings;
+use feature ":5.10";
 use Encode qw();
 use YAML ();
 use File::Spec;
@@ -10,6 +11,7 @@ use Plack::Response;
 use Plack::Request;
 use List::MoreUtils qw();
 use Text::Xslate qw(mark_raw);
+use Hash::Merge qw();
 use Hako::Config;
 use Hako::Constants;
 use Hako::DB;
@@ -17,16 +19,34 @@ use Hako::Model::Island;
 use Hako::Util;
 use Hako::Mode;
 use Hako::Template::Function;
+use Hako::Exception;
 use Devel::Peek;
 
 sub new {
     my ($class) = @_;
 
-    return bless {}, $class;
+    return bless {
+        xslate => Text::Xslate->new(
+            syntax => 'TTerse',
+            function => {
+            }
+        )
+    }, $class;
+}
+
+sub render {
+    my ($self, $templates, $opt) = @_;
+
+    $opt->{layout} ||= "base";
+    $self->{vars}->{body_files} = [map { "tmpl/".$_.".tt" } @$templates];
+
+    return $self->{xslate}->render("tmpl/layout/".$opt->{layout}.".tt", $self->{vars});
 }
 
 sub initialize {
     my ($self) = @_;
+
+    $self->{vars} = {};
 
     $self->{out_buffer} = "";
     $self->{cookie_buffer} = "";
@@ -110,42 +130,275 @@ sub psgi {
         # ヘッダ出力
         $self->tempHeader;
 
-        if ($self->{main_mode} eq 'turn') {
-            # ターン進行
-            Hako::Mode->turnMain($self);
-        } elsif ($self->{main_mode} eq 'new') {
-            # 島の新規作成
-            Hako::Mode->newIslandMain($self);
-        } elsif ($self->{main_mode} eq 'print') {
-            # 観光モード
-            Hako::Mode->printIslandMain($self);
-        } elsif ($self->{main_mode} eq 'owner') {
-            # 開発モード
-            Hako::Mode->ownerMain($self);
-        } elsif ($self->{main_mode} eq 'command') {
-            # コマンド入力モード
-            Hako::Mode->commandMain($self);
-        } elsif ($self->{main_mode} eq 'comment') {
-            # コメント入力モード
-            Hako::Mode->commentMain($self);
-        } elsif ($self->{main_mode} eq 'lbbs') {
-            # ローカル掲示板モード
-            Hako::Mode->localBbsMain($self);
-        } elsif ($self->{main_mode} eq 'change') {
-            # 情報変更モード
-            Hako::Mode->changeMain($self);
-        } else {
-            # その他の場合はトップページモード
-            $self->topPageMain;
+        my @templates;
+        eval {
+            if ($self->{main_mode} eq 'turn') {
+                # ターン進行
+                Hako::Mode->turnMain($self);
+
+                $self->topPageMain;
+                push(@templates, "top");
+            } elsif ($self->{main_mode} eq 'new') {
+                # 島の新規作成
+                Hako::Mode->newIslandMain($self);
+
+                $self->tempNewIslandHead($self->{current_name}); # 発見しました!!
+                push(@templates, "new_island");
+                $self->islandInfo; # 島の情報
+                push(@templates, "island_info");
+                $self->islandMap(1); # 島の地図、ownerモード
+                push(@templates, "island_map");
+            } elsif ($self->{main_mode} eq 'print') {
+                # 観光モード
+                Hako::Mode->printIslandMain($self);
+                # 観光画面
+                $self->tempPrintIslandHead($self->{current_name}); # ようこそ!!
+                push(@templates, "island_head");
+                $self->islandInfo; # 島の情報
+                push(@templates, "island_info");
+                $self->islandMap(0); # 島の地図、観光モード
+                push(@templates, "island_map");
+
+                # ○○島ローカル掲示板
+                if (Hako::Config::USE_LOCAL_BBS) {
+                    $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
+                    push(@templates, "local_bbs_head");
+                    $self->tempLbbsInput;   # 書き込みフォーム
+                    push(@templates, "local_bbs_input");
+                    $self->tempLbbsContents; # 掲示板内容
+                    push(@templates, "local_bbs_contents");
+                }
+
+                # 近況
+                $self->tempRecent(0);
+                push(@templates, "recent");
+            } elsif ($self->{main_mode} eq 'owner') {
+                # 開発モード
+                Hako::Mode->ownerMain($self);
+
+                # 開発画面
+                $self->tempOwner; # 「開発計画」
+                push(@templates, "owner");
+                $self->islandInfo;
+                push(@templates, "island_info");
+                $self->tempCommandForm;
+                push(@templates, "command_form");
+                $self->islandMap(1);
+                push(@templates, "island_map");
+                $self->tempOwnerEnd;
+                push(@templates, "owner_end");
+
+                # ○○島ローカル掲示板
+                if (Hako::Config::USE_LOCAL_BBS) {
+                    $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
+                    push(@templates, "local_bbs_head");
+                    $self->tempLbbsInputOW;   # 書き込みフォーム
+                    push(@templates, "local_bbs_input_owner");
+                    $self->tempLbbsContents; # 掲示板内容
+                    push(@templates, "local_bbs_contents");
+                }
+
+                # 近況
+                $self->tempRecent(1);
+                push(@templates, "recent");
+            } elsif ($self->{main_mode} eq 'command') {
+                # コマンド入力モード
+                Hako::Mode->commandMain($self);
+                push(@templates, "command_message");
+
+                # 開発画面
+                $self->tempOwner; # 「開発計画」
+                push(@templates, "owner");
+                $self->islandInfo;
+                push(@templates, "island_info");
+                $self->tempCommandForm;
+                push(@templates, "command_form");
+                $self->islandMap(1);
+                push(@templates, "island_map");
+                $self->tempOwnerEnd;
+                push(@templates, "owner_end");
+
+                # ○○島ローカル掲示板
+                if (Hako::Config::USE_LOCAL_BBS) {
+                    $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
+                    push(@templates, "local_bbs_head");
+                    $self->tempLbbsInputOW;   # 書き込みフォーム
+                    push(@templates, "local_bbs_input_owner");
+                    $self->tempLbbsContents; # 掲示板内容
+                    push(@templates, "local_bbs_contents");
+                }
+
+                # 近況
+                $self->tempRecent(1);
+                push(@templates, "recent");
+            } elsif ($self->{main_mode} eq 'comment') {
+                # コメント入力モード
+                Hako::Mode->commentMain($self);
+                push(@templates, "command_message");
+
+                # 開発画面
+                $self->tempOwner; # 「開発計画」
+                push(@templates, "owner");
+                $self->islandInfo;
+                push(@templates, "island_info");
+                $self->tempCommandForm;
+                push(@templates, "command_form");
+                $self->islandMap(1);
+                push(@templates, "island_map");
+                $self->tempOwnerEnd;
+                push(@templates, "owner_end");
+
+                # ○○島ローカル掲示板
+                if (Hako::Config::USE_LOCAL_BBS) {
+                    $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
+                    push(@templates, "local_bbs_head");
+                    $self->tempLbbsInputOW;   # 書き込みフォーム
+                    push(@templates, "local_bbs_input_owner");
+                    $self->tempLbbsContents; # 掲示板内容
+                    push(@templates, "local_bbs_contents");
+                }
+
+                # 近況
+                $self->tempRecent(1);
+                push(@templates, "recent");
+            } elsif ($self->{main_mode} eq 'lbbs') {
+                # ローカル掲示板モード
+                Hako::Mode->localBbsMain($self);
+                push(@templates, "local_bbs_message");
+
+                # もとのモードへ
+                if ($self->{local_bbs_mode} == 0) {
+                    # 観光画面
+                    $self->tempPrintIslandHead($self->{current_name}); # ようこそ!!
+                    push(@templates, "island_head");
+                    $self->islandInfo; # 島の情報
+                    push(@templates, "island_info");
+                    $self->islandMap(0); # 島の地図、観光モード
+                    push(@templates, "island_map");
+
+                    # ○○島ローカル掲示板
+                    if (Hako::Config::USE_LOCAL_BBS) {
+                        $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
+                        push(@templates, "local_bbs_head");
+                        $self->tempLbbsInput;   # 書き込みフォーム
+                        push(@templates, "local_bbs_input");
+                        $self->tempLbbsContents; # 掲示板内容
+                        push(@templates, "local_bbs_contents");
+                    }
+
+                    # 近況
+                    $self->tempRecent(0);
+                    push(@templates, "recent");
+                } else {
+                    # 開発画面
+                    $self->tempOwner; # 「開発計画」
+                    push(@templates, "owner");
+                    $self->islandInfo;
+                    push(@templates, "island_info");
+                    $self->tempCommandForm;
+                    push(@templates, "command_form");
+                    $self->islandMap(1);
+                    push(@templates, "island_map");
+                    $self->tempOwnerEnd;
+                    push(@templates, "owner_end");
+
+                    # ○○島ローカル掲示板
+                    if (Hako::Config::USE_LOCAL_BBS) {
+                        $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
+                        push(@templates, "local_bbs_head");
+                        $self->tempLbbsInputOW;   # 書き込みフォーム
+                        push(@templates, "local_bbs_input_owner");
+                        $self->tempLbbsContents; # 掲示板内容
+                        push(@templates, "local_bbs_contents");
+                    }
+
+                    # 近況
+                    $self->tempRecent(1);
+                    push(@templates, "recent");
+                }
+            } elsif ($self->{main_mode} eq 'change') {
+                # 情報変更モード
+                Hako::Mode->changeMain($self);
+                push(@templates, "change_name");
+            } else {
+                # その他の場合はトップページモード
+                $self->topPageMain;
+                push(@templates, "top");
+            }
+        };
+        given ($@) {
+            when (Hako::Exception::IslandFull->caught($_)) {
+                $self->tempNewIslandFull;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::NoName->caught($_)) {
+                $self->tempNewIslandNoName;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::BadName->caught($_)) {
+                $self->tempNewIslandBadName;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::AlreadyExist->caught($_)) {
+                $self->tempNewIslandAlready;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::NoPassword->caught($_)) {
+                $self->tempNewIslandNoPassword;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::WrongPassword->caught($_)) {
+                $self->tempWrongPassword;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::LocalBBSNoMessage->caught($_)) {
+                $self->tempLbbsNoMessage;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::SomethingWrong->caught($_)) {
+                $self->tempProblem;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::NoMoney->caught($_)) {
+                $self->tempChangeNoMoney;
+                push(@templates, "error");
+            }
+            when (Hako::Exception::ChangeNothing->caught($_)) {
+                $self->tempChangeNothing;
+                push(@templates, "error");
+            }
+            default {
+                warn $@;
+            }
         }
 
-        # フッタ出力
-        $self->tempFooter;
-
-        $response->body($self->{out_buffer});
+        $self->common_assign;
+        $response->body(Encode::encode("utf-8", $self->render(\@templates)));
         $response->headers({"Set-Cookie" => $self->{cookie_buffer}});
         return $response->finalize;
     };
+}
+
+sub vars_merge {
+    my ($self, %vars) = @_;
+
+    $self->{vars} = Hash::Merge::merge($self->{vars}, \%vars);
+}
+
+sub common_assign {
+    my ($self) = @_;
+
+    $self->vars_merge(
+        title      => Hako::Config::TITLE,
+        image_dir  => mark_raw(Hako::Config::IMAGE_DIR),
+        html_body  => mark_raw(Hako::Config::HTML_BODY),
+        admin_name => Hako::Config::ADMIN_NAME,
+        email      => Hako::Config::ADMIN_EMAIL,
+        bbs        => Hako::Config::BBS_URL,
+        toppage    => Hako::Config::TOPPAGE_URL,
+        debug_mode => Hako::Config::DEBUG,
+        temp_back  => mark_raw(Hako::Config::TEMP_BACK),
+    );
 }
 
 #cookie入力
@@ -406,9 +659,7 @@ sub tempHeader {
 # hakojima.datがない
 sub tempNoDataFile {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}データファイルが開けません。@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "データファイルが開けません。");
 }
 
 # フッタ
@@ -537,67 +788,13 @@ sub writeIsland {
 sub topPageMain {
     my ($self) = @_;
 
-    # タイトル
-    $self->out(<<END);
-@{[Hako::Config::TAG_TITLE_]}@{[Hako::Config::TITLE]}@{[Hako::Config::_TAG_TITLE]}
-END
-
-    # デバッグモードなら「ターンを進める」ボタン
-    if (Hako::Config::DEBUG == 1) {
-        $self->out(<<END);
-<FORM action="@{[Hako::Config::THIS_FILE]}" method="POST">
-<INPUT TYPE="submit" VALUE="ターンを進める" NAME="TurnButton">
-</FORM>
-END
-    }
-
     my $mStr1 = '';
     if (Hako::Config::HIDE_MONEY_MODE != 0) {
         $mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
     }
 
-    # フォーム
-    $self->out(<<END);
-<H1>@{[Hako::Config::TAG_HEADER_]}ターン@{[$self->{island_turn}]}@{[Hako::Config::_TAG_HEADER]}</H1>
-
-<HR>
-<H1>@{[Hako::Config::TAG_HEADER_]}自分の島へ@{[Hako::Config::_TAG_HEADER]}</H1>
-<FORM action="@{[Hako::Config::THIS_FILE]}" method="POST">
-END
-        $self->out(<<END);
-あなたの島の名前は？<BR>
-<SELECT NAME="ISLANDID">
-@{[$self->{island_list}]}
-</SELECT><BR>
-
-パスワードをどうぞ！！<BR>
-<INPUT TYPE="password" NAME="PASSWORD" VALUE="@{[$self->{default_password}]}" SIZE=32 MAXLENGTH=32><BR>
-<INPUT TYPE="submit" VALUE="開発しに行く" NAME="OwnerButton"><BR>
-</FORM>
-
-<HR>
-
-END
-        $self->out(<<END);
-<H1>@{[Hako::Config::TAG_HEADER_]}諸島の状況@{[Hako::Config::_TAG_HEADER]}</H1>
-<P>
-島の名前をクリックすると、<B>観光</B>することができます。
-</P>
-<TABLE BORDER>
-<TR>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("順位")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("島")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("人口")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("面積")]}</NOBR></TH>
-$mStr1
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("食料")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("農場規模")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("工場規模")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("採掘場規模")]}</NOBR></TH>
-</TR>
-END
-
     my $name;
+    my @islands;
     for (my $ii = 0; $ii < $self->{island_number}; $ii++) {
         my $j = $ii + 1;
         my $island = $self->{islands}->[$ii];
@@ -660,83 +857,26 @@ END
             $mStr1 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mTmp</NOBR></TD>";
         }
 
-        $self->out(<<END);
-<TR>
-<TD @{[Hako::Config::BG_NUMBER_CELL]} ROWSPAN=2 align=center nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_number($j)]}</NOBR></TD>
-<TD @{[Hako::Config::BG_NAME_CELL]} ROWSPAN=2 align=left nowrap=nowrap><NOBR><A STYlE=\"text-decoration:none\" HREF="@{[Hako::Config::THIS_FILE]}?Sight=${id}">$name</A></NOBR><BR>$prize</TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'pop'}@{[Hako::Config::UNIT_POPULATION]}</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'area'}@{[Hako::Config::UNIT_AREA]}</NOBR></TD>
-$mStr1
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'food'}@{[Hako::Config::UNIT_FOOD]}</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$farm</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$factory</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mountain</NOBR></TD>
-</TR>
-<TR>
-<TD @{[Hako::Config::BG_COMMENT_CELL]} COLSPAN=7 align=left nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("コメント：")]}$island->{'comment'}</NOBR></TD>
-</TR>
-END
+        push(@islands, {%$island, j => $j, name => mark_raw($name), prize => mark_raw($prize), mStr1 => mark_raw($mStr1), farm => $farm, factory => $factory, mountain => $mountain});
     }
 
-    $self->out(<<END);
-</TABLE>
-
-<HR>
-<H1>@{[Hako::Config::TAG_HEADER_]}新しい島を探す@{[Hako::Config::_TAG_HEADER]}</H1>
-END
-
-    if ($self->{island_number} < Hako::Config::MAX_ISLAND) {
-        $self->out(<<END);
-<FORM action="@{[Hako::Config::THIS_FILE]}" method="POST">
-どんな名前をつける予定？<BR>
-<INPUT TYPE="text" NAME="ISLANDNAME" SIZE=32 MAXLENGTH=32>島<BR>
-パスワードは？<BR>
-<INPUT TYPE="password" NAME="PASSWORD" SIZE=32 MAXLENGTH=32><BR>
-念のためパスワードをもう一回<BR>
-<INPUT TYPE="password" NAME="PASSWORD2" SIZE=32 MAXLENGTH=32><BR>
-
-<INPUT TYPE="submit" VALUE="探しに行く" NAME="NewIslandButton">
-</FORM>
-END
-    } else {
-        $self->out(<<END);
-        島の数が最大数です・・・現在登録できません。
-END
-    }
-
-    $self->out(<<END);
-<HR>
-<H1>@{[Hako::Config::TAG_HEADER_]}島の名前とパスワードの変更@{[Hako::Config::_TAG_HEADER]}</H1>
-<P>
-(注意)名前の変更には@{[Hako::Config::CHANGE_NAME_COST]}@{[Hako::Config::UNIT_MONEY]}かかります。
-</P>
-<FORM action="@{[Hako::Config::THIS_FILE]}" method="POST">
-どの島ですか？<BR>
-<SELECT NAME="ISLANDID">
-@{[$self->{island_list}]}
-</SELECT>
-<BR>
-どんな名前に変えますか？(変更する場合のみ)<BR>
-<INPUT TYPE="text" NAME="ISLANDNAME" SIZE=32 MAXLENGTH=32>島<BR>
-パスワードは？(必須)<BR>
-<INPUT TYPE="password" NAME="OLDPASS" SIZE=32 MAXLENGTH=32><BR>
-新しいパスワードは？(変更する時のみ)<BR>
-<INPUT TYPE="password" NAME="PASSWORD" SIZE=32 MAXLENGTH=32><BR>
-念のためパスワードをもう一回(変更する時のみ)<BR>
-<INPUT TYPE="password" NAME="PASSWORD2" SIZE=32 MAXLENGTH=32><BR>
-
-<INPUT TYPE="submit" VALUE="変更する" NAME="ChangeInfoButton">
-</FORM>
-
-<HR>
-
-<H1>@{[Hako::Config::TAG_HEADER_]}最近の出来事@{[Hako::Config::_TAG_HEADER]}</H1>
-END
-    $self->logPrintTop();
-    $self->out(<<END);
-<H1>@{[Hako::Config::TAG_HEADER_]}発見の記録@{[Hako::Config::_TAG_HEADER]}</H1>
-END
-    $self->historyPrint();
+    $self->vars_merge(
+        hide_money_mode  => Hako::Config::HIDE_MONEY_MODE,
+        turn             => $self->{island_turn},
+        island_list      => mark_raw($self->{island_list}),
+        default_password => $self->{default_password},
+        mStr1            => mark_raw($mStr1),
+        islands          => \@islands,
+        unit_population  => Hako::Config::UNIT_POPULATION,
+        unit_area        => Hako::Config::UNIT_AREA,
+        unit_food        => Hako::Config::UNIT_FOOD,
+        unit_money       => Hako::Config::UNIT_MONEY,
+        max_island       => Hako::Config::MAX_ISLAND,
+        island_number    => $self->{island_number},
+        change_name_cost => Hako::Config::CHANGE_NAME_COST,
+        logs             => [map {$_->{message} = mark_raw($_->{message}); $_} @{Hako::DB->get_common_log($self->{island_turn})}],
+        histories        => [map {$_->{message} = mark_raw($_->{message}); $_} @{Hako::DB->get_history()}],
+    );
 }
 
 # トップページ用ログ表示
@@ -762,54 +902,45 @@ sub historyPrint {
 # 島がいっぱいな場合
 sub tempNewIslandFull {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}申し訳ありません、島が一杯で登録できません！！@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "申し訳ありません、島が一杯で登録できません！！");
 }
 
 # 新規で名前がない場合
 sub tempNewIslandNoName {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}島につける名前が必要です。@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+
+    $self->vars_merge(message => "島につける名前が必要です。");
 }
 
 # 新規で名前が不正な場合
 sub tempNewIslandBadName {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}',?()<>\$'とか入ってたり、「無人島」とかいった変な名前はやめましょうよ〜@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "',?()<>\$'とか入ってたり、「無人島」とかいった変な名前はやめましょうよ〜");
 }
 
 # すでにその名前の島がある場合
 sub tempNewIslandAlready {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}その島ならすでに発見されています。@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "その島ならすでに発見されています。");
 }
 
 # パスワードがない場合
 sub tempNewIslandNoPassword {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}パスワードが必要です。@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "パスワードが必要です。");
 }
 
 # パスワード間違い
 sub tempWrongPassword {
     my ($self) = @_;
-    $self->out(<<END);
-    @{[Hako::Config::TAG_BIG_]}パスワードが違います。@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "パスワードが違います。");
 }
 
 # 島を発見しました!!
 sub tempNewIslandHead {
     my ($self, $current_name) = @_;
+    $self->vars_merge(current_name => $current_name);
+
     $self->out(<<END);
 <CENTER>
 @{[Hako::Config::TAG_BIG_]}島を発見しました！！@{[Hako::Config::_TAG_BIG]}<BR>
@@ -821,9 +952,7 @@ END
 
 sub tempProblem {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}問題発生、とりあえず戻ってください。@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "問題発生、とりあえず戻ってください。");
 }
 
 # 島の名前から番号を得る(IDじゃなくて番号)
@@ -861,37 +990,25 @@ sub islandInfo {
         $mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
         $mStr2 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{money}@{[Hako::Config::UNIT_MONEY]}</NOBR></TD>";
     } elsif(Hako::Config::HIDE_MONEY_MODE == 2) {
-        my $mTmp = aboutMoney($island->{'money'});
+        my $mTmp = Hako::Util::aboutMoney($island->{'money'});
 
         # 1000億単位モード
         $mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
         $mStr2 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mTmp</NOBR></TD>";
     }
-    $self->out(<<END);
-<CENTER>
-<TABLE BORDER>
-<TR>
-<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("順位")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("人口")]}</NOBR></TH>
-$mStr1
-<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("食料")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("面積")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("農場規模")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("工場規模")]}</NOBR></TH>
-<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_th("採掘場規模")]}</NOBR></TH>
-</TR>
-<TR>
-<TD @{[Hako::Config::BG_NUMBER_CELL]} align=middle nowrap=nowrap><NOBR>@{[Hako::Template::Function->wrap_number($rank)]}</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'pop'}@{[Hako::Config::UNIT_POPULATION]}</NOBR></TD>
-$mStr2
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'food'}@{[Hako::Config::UNIT_FOOD]}</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{'area'}@{[Hako::Config::UNIT_AREA]}</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>${farm}</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>${factory}</NOBR></TD>
-<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>${mountain}</NOBR></TD>
-</TR>
-</TABLE></CENTER>
-END
+    $self->vars_merge(
+        mStr1           => mark_raw($mStr1),
+        mStr2           => mark_raw($mStr2),
+        rank            => $rank,
+        island          => {%$island},
+        unit_population => Hako::Config::UNIT_POPULATION,
+        unit_area       => Hako::Config::UNIT_AREA,
+        unit_food       => Hako::Config::UNIT_FOOD,
+        unit_money      => Hako::Config::UNIT_MONEY,
+        farm            => mark_raw($farm),
+        factory         => mark_raw($factory),
+        mountain        => mark_raw($mountain),
+    );
 }
 
 # 地図の表示
@@ -900,9 +1017,6 @@ sub islandMap {
     my ($self, $mode) = @_;
     my $island = $self->{islands}->[$self->{current_number}];
 
-    $self->out(<<END);
-<CENTER><TABLE BORDER><TR><TD>
-END
     # 地形、地形値を取得
     my $land = $island->{'land'};
     my $landValue = $island->{'landValue'};
@@ -911,42 +1025,37 @@ END
     # コマンド取得
     my $command = $island->{'command'};
     my @comStr;
-    if($self->{main_mode} eq 'owner') {
+    if ($self->{main_mode} eq 'owner') {
         for (my $i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
             my $j = $i + 1;
             my $com = $command->[$i];
-            if($com->{'kind'} < 20) {
+            if ($com->{'kind'} < 20) {
                 $comStr[$com->{'x'}][$com->{'y'}] .= " [${j}]" . Hako::Command->id_to_name($com->{'kind'});
             }
         }
     }
 
-    # 座標(上)を出力
-    $self->out("<IMG SRC=\"xbar.gif\" width=400 height=16><BR>");
-
     # 各地形および改行を出力
+    my @island_land;
     for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
-        # 偶数行目なら番号を出力
-        if (($y % 2) == 0) {
-            $self->out("<IMG SRC=\"space${y}.gif\" width=16 height=32>");
-        }
-
         # 各地形を出力
+        my @island_land_value;
         for (my $x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
             my $l = $land->[$x][$y];
             my $lv = $landValue->[$x][$y];
-            $self->landString($l, $lv, $x, $y, $mode, $comStr[$x][$y]);
+            my ($image, $alt) = $self->landString($l, $lv, $x, $y, $mode, $comStr[$x][$y]);
+            push(@island_land_value, {image => $image, alt => $alt});
         }
-
-        # 奇数行目なら番号を出力
-        if (($y % 2) == 1) {
-            $self->out("<IMG SRC=\"space${y}.gif\" width=16 height=32>");
-        }
-
-        # 改行を出力
-        $self->out("<BR>");
+        push(@island_land, \@island_land_value);
     }
-    $self->out("</TD></TR></TABLE></CENTER>\n");
+
+    my $island_size = Hako::Config::ISLAND_SIZE - 1;
+    $self->vars_merge(
+        island_size => Hako::Config::ISLAND_SIZE,
+        map_island_size_range => [map {$_} 0..$island_size],
+        mode        => $mode,
+        land        => \@island_land,
+    );
 }
 
 sub landString {
@@ -954,6 +1063,7 @@ sub landString {
     my $point = "($x,$y)";
     my ($image, $alt);
 
+    $comStr ||= "";
     if ($l == Hako::Constants::LAND_SEA) {
         if ($lv == 1) {
             # 浅瀬
@@ -1080,104 +1190,61 @@ sub landString {
     }
 
 
-    # 開発画面の場合は、座標設定
-    if ($mode == 1) {
-        $self->out("<A HREF=\"JavaScript:void(0);\" onclick=\"ps($x,$y)\">");
-    }
-
-    $self->out("<IMG SRC=\"$image\" ALT=\"$point $alt $comStr\" width=32 height=32 BORDER=0>");
-
-    # 座標設定閉じ
-    if ($mode == 1) {
-        $self->out("</A>");
-    }
+    return $image, "$point $alt $comStr";
 }
 
 # ○○島へようこそ！！
 sub tempPrintIslandHead {
     my ($self, $current_name) = @_;
-    $self->out(<<END);
-<CENTER>
-@{[Hako::Config::TAG_BIG_]}@{[Hako::Config::TAG_NAME_]}「${current_name}島」@{[Hako::Config::_TAG_NAME]}へようこそ！！@{[Hako::Config::_TAG_BIG]}<BR>
-@{[Hako::Config::TEMP_BACK]}<BR>
-</CENTER>
-END
+
+    $self->vars_merge(current_name => $current_name);
 }
 
 # ローカル掲示板
 sub tempLbbsHead {
     my ($self, $current_name) = @_;
-    $self->out(<<END);
-<HR>
-<CENTER>
-@{[Hako::Config::TAG_BIG_]}@{[Hako::Config::TAG_NAME_]}${current_name}島@{[Hako::Config::_TAG_NAME]}観光者通信@{[Hako::Config::_TAG_BIG]}<BR>
-</CENTER>
-END
+    $self->vars_merge(current_name => $current_name);
 }
 
 # ローカル掲示板入力フォーム
 sub tempLbbsInput {
     my ($self) = @_;
-    $self->out(<<END);
-<CENTER>
-<FORM action="@{[Hako::Config::THIS_FILE]}" method="POST">
-<TABLE BORDER>
-<TR>
-<TH>名前</TH>
-<TH>内容</TH>
-<TH>動作</TH>
-</TR>
-<TR>
-<TD><INPUT TYPE="text" SIZE=32 MAXLENGTH=32 NAME="LBBSNAME" VALUE="@{[$self->{default_name}]}"></TD>
-<TD><INPUT TYPE="text" SIZE=80 NAME="LBBSMESSAGE"></TD>
-<TD><INPUT TYPE="submit" VALUE="記帳する" NAME="LbbsButtonSS@{[$self->{current_id}]}"></TD>
-</TR>
-</TABLE>
-</FORM>
-</CENTER>
-END
+    $self->vars_merge(
+        default_name => $self->{default_name},
+        current_id => $self->{current_id},
+    );
 }
 
 # ローカル掲示板内容
 sub tempLbbsContents {
     my ($self) = @_;
     my $lbbs = $self->{islands}[$self->{current_number}]->{'lbbs'};
-    $self->out(<<END);
-<CENTER>
-<TABLE BORDER>
-<TR>
-<TH>番号</TH>
-<TH>記帳内容</TH>
-</TR>
-END
-
+    my @local_bbs;
     for (my $i = 0; $i < Hako::Config::LOCAL_BBS_MAX; $i++) {
         my $line = $lbbs->[$i];
         if ($line =~ /([0-9]*)\>(.*)\>(.*)$/) {
             my $j = $i + 1;
-            $self->out("<TR><TD align=center>@{[Hako::Template::Function->wrap_number($j)]}</TD>");
+            my $number = "<TR><TD align=center>@{[Hako::Template::Function->wrap_number($j)]}</TD>";
+            my $content;
             if ($1 == 0) {
                 # 観光者
-                $self->out("<TD>".Hako::Template::Function->wrap_local_bbs_ss($2." > ".$3)."</TD></TR>");
+                $content = "<TD>".Hako::Template::Function->wrap_local_bbs_ss($2." > ".$3)."</TD></TR>";
             } else {
                 # 島主
-                $self->out("<TD>".Hako::Template::Function->wrap_local_bbs_ow($2." > ".$3)."</TD></TR>");
+                $content = "<TD>".Hako::Template::Function->wrap_local_bbs_ow($2." > ".$3)."</TD></TR>";
             }
+            push(@local_bbs, {number => mark_raw($number), content => $content});
         }
     }
-
-    $self->out(<<END);
-</TD></TR></TABLE></CENTER>
-END
+    $self->vars_merge(local_bbs_contents => \@local_bbs);
 }
 
 # 近況
 sub tempRecent {
     my ($self, $mode) = @_;
-    $self->out(<<END);
-<HR>
-@{[Hako::Config::TAG_BIG_]}@{[Hako::Config::TAG_NAME_]}@{[$self->{current_name}]}島@{[Hako::Config::_TAG_NAME]}の近況@{[Hako::Config::_TAG_BIG]}<BR>
-END
+    $self->vars_merge(
+        current_name => $self->{current_name},
+    );
     $self->logPrintLocal($mode);
 }
 
@@ -1188,6 +1255,7 @@ sub logPrintLocal {
     my $logs = Hako::DB->get_log($self->{current_id}, $self->{island_turn});
     my (@secrets, @lates, @normals);
     for my $log (@$logs) {
+        $log->{message} = mark_raw($log->{message});
         if ($log->{log_type} == 3) {
             push @secrets, $log;
         } elsif ($log->{log_type} == 2) {
@@ -1196,76 +1264,45 @@ sub logPrintLocal {
             push @normals, $log;
         }
     }
-    if ($mode == 1) {
-        for (@secrets) {
-            $self->out("<NOBR>".Hako::Template::Function->wrap_number("ターン".$_->{turn}."<B>(機密)</B>")."：@{[$_->{message}]}</NOBR><BR>\n");
-        }
-    }
-    for (@lates) {
-        $self->out("<NOBR>".Hako::Template::Function->wrap_number("ターン".$_->{turn})."：@{[$_->{message}]}</NOBR><BR>\n");
-    }
-    for (@normals) {
-        $self->out("<NOBR>".Hako::Template::Function->wrap_number("ターン".$_->{turn})."：@{[$_->{message}]}</NOBR><BR>\n");
-    }
+    $self->vars_merge(
+        recent_mode => $mode,
+        secrets     => \@secrets,
+        lates       => \@lates,
+        normals     => \@normals,
+    );
 }
 
 # ○○島開発計画
 sub tempOwner {
     my ($self) = @_;
 
-    $self->out(<<END);
-<CENTER>
-@{[Hako::Config::TAG_BIG_]}@{[Hako::Config::TAG_NAME_]}@{[$self->{current_name}]}島@{[Hako::Config::_TAG_NAME]}開発計画@{[Hako::Config::_TAG_BIG]}<BR>
-@{[Hako::Config::TEMP_BACK]}<BR>
-</CENTER>
-<SCRIPT Language="JavaScript">
-<!--
-function ps(x, y) {
-    document.forms[0].elements[4].options[x].selected = true;
-    document.forms[0].elements[5].options[y].selected = true;
-    return true;
+    $self->vars_merge(current_name => $self->{current_name});
 }
 
-function ns(x) {
-    document.forms[0].elements[2].options[x].selected = true;
-    return true;
-}
-
-//-->
-</SCRIPT>
-END
-
-    $self->islandInfo;
-
-    my $current_id = $self->{islands}->[$self->{current_number}]->{id};
-    $self->out(<<END);
-<CENTER>
-<TABLE BORDER>
-<TR>
-<TD @{[Hako::Config::BG_INPUT_CELL]} >
-<CENTER>
-<FORM action="@{[Hako::Config::THIS_FILE]}" method=POST>
-<INPUT TYPE=submit VALUE="計画送信" NAME=CommandButton$current_id>
-<HR>
-<B>パスワード</B></BR>
-<INPUT TYPE=password NAME=PASSWORD VALUE="@{[$self->{default_password}]}">
-<HR>
-<B>計画番号</B><SELECT NAME=NUMBER>
-END
-    # 計画番号
+sub tempOwnerEnd {
+    my ($self) = @_;
+    my @command_list;
     for (my $i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
-        my $j = $i + 1;
-        $self->out("<OPTION VALUE=$i>$j\n");
+        push(@command_list, mark_raw($self->tempCommand($i, $self->{islands}->[$self->{current_number}]->{'command'}->[$i])));
     }
 
-    $self->out(<<END);
-</SELECT><BR>
-<HR>
-<B>開発計画</B><BR>
-<SELECT NAME=COMMAND>
-END
+    my $command_max = Hako::Config::COMMAND_MAX - 1;
+    $self->vars_merge(
+        command_range => [(0..$command_max)],
+        command_list => \@command_list,
+        default_password => $self->{default_password},
+    );
+}
+
+sub tempCommandForm {
+    my ($self) = @_;
+
+    my $current_id = $self->{islands}->[$self->{current_number}]->{id};
+    my $command_max = Hako::Config::COMMAND_MAX - 1;
+    my $island_size = Hako::Config::ISLAND_SIZE - 1;
 
     #コマンド
+    my @commands;
     for (my $i = 0; $i < Hako::Constants::COMMAND_TOTAL_NUM; $i++) {
         my $kind = ${Hako::Constants::COM_LIST()}[$i];
         my $cost = Hako::Command->id_to_cost($kind);
@@ -1284,96 +1321,26 @@ END
             $s = '';
         }
         my $name = Hako::Command->id_to_name("$kind");
-        $self->out("<OPTION VALUE=$kind $s>".$name."($cost)\n");
+        push(@commands, mark_raw("<OPTION VALUE=$kind $s>".$name."($cost)"));
     }
 
-    $self->out(<<END);
-</SELECT>
-<HR>
-<B>座標(</B>
-<SELECT NAME=POINTX>
-
-END
-    for (my $i = 0; $i < Hako::Config::ISLAND_SIZE; $i++) {
-        if ($i == $self->{default_x}) {
-            $self->out("<OPTION VALUE=$i SELECTED>$i\n");
-        } else {
-            $self->out("<OPTION VALUE=$i>$i\n");
-        }
-    }
-
-    $self->out(<<END);
-</SELECT>, <SELECT NAME=POINTY>
-END
-
-    for (my $i = 0; $i < Hako::Config::ISLAND_SIZE; $i++) {
-        if($i == $self->{default_y}) {
-            $self->out("<OPTION VALUE=$i SELECTED>$i\n");
-        } else {
-            $self->out("<OPTION VALUE=$i>$i\n");
-        }
-    }
-    $self->out(<<END);
-</SELECT><B>)</B>
-<HR>
-<B>数量</B><SELECT NAME=AMOUNT>
-END
-
-    # 数量
-    for (my $i = 0; $i < 100; $i++) {
-        $self->out("<OPTION VALUE=$i>$i\n");
-    }
-
-    $self->out(<<END);
-</SELECT>
-<HR>
-<B>目標の島</B><BR>
-<SELECT NAME=TARGETID>
-@{[$self->{target_list}]}<BR>
-</SELECT>
-<HR>
-<B>動作</B><BR>
-<INPUT TYPE=radio NAME=COMMANDMODE VALUE=insert CHECKED>挿入
-<INPUT TYPE=radio NAME=COMMANDMODE VALUE=write>上書き<BR>
-<INPUT TYPE=radio NAME=COMMANDMODE VALUE=delete>削除
-<HR>
-<INPUT TYPE=submit VALUE="計画送信" NAME=CommandButton$current_id>
-
-</CENTER>
-</FORM>
-</TD>
-<TD @{[Hako::Config::BG_MAP_CELL]}>
-END
-    $self->islandMap(1);    # 島の地図、所有者モード
-    $self->out(<<END);
-</TD>
-<TD @{[Hako::Config::BG_COMMAND_CELL]}>
-END
-    for (my $i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
-        $self->tempCommand($i, $self->{islands}->[$self->{current_number}]->{'command'}->[$i]);
-    }
-
-    $self->out(<<END);
-
-</TD>
-</TR>
-</TABLE>
-</CENTER>
-<HR>
-<CENTER>
-@{[Hako::Config::TAG_BIG_]}コメント更新@{[Hako::Config::_TAG_BIG]}<BR>
-<FORM action="@{[Hako::Config::THIS_FILE]}" method="POST">
-コメント<INPUT TYPE=text NAME=MESSAGE SIZE=80><BR>
-パスワード<INPUT TYPE=password NAME=PASSWORD VALUE="@{[$self->{default_password}]}">
-<INPUT TYPE=submit VALUE="コメント更新" NAME=MessageButton$current_id>
-</FORM>
-</CENTER>
-END
+    $self->vars_merge(
+        current_id => $current_id,
+        default_password => $self->{default_password},
+        command_range => [(0..$command_max)],
+        commands => \@commands,
+        island_size_range => [(0..$island_size)],
+        default_x => $self->{default_x},
+        default_y => $self->{default_y},
+        num_range => [(0..99)],
+        target_list => $self->{target_list},
+    );
 }
 
 # 入力済みコマンド表示
 sub tempCommand {
     my ($self, $number, $command) = @_;
+    my $buf;
     my($kind, $target, $x, $y, $arg) = (
         $command->{'kind'},
         $command->{'target'},
@@ -1383,7 +1350,7 @@ sub tempCommand {
     );
     my $name = Hako::Config::TAG_COM_NAME_ . Hako::Command->id_to_name($kind) . Hako::Config::_TAG_COM_NAME;
     my $point = Hako::Config::TAG_NAME_ . "($x,$y)" . Hako::Config::_TAG_NAME;
-    $target = $self->{id_to_name}->{$target};
+    $target = $self->{id_to_name}->{$target} || "";
     if ($target eq '') {
         $target = "無人";
     }
@@ -1402,161 +1369,112 @@ sub tempCommand {
 
     my $j = sprintf("%02d：", $number + 1);
 
-    $self->out("<A STYlE=\"text-decoration:none\" HREF=\"JavaScript:void(0);\" onClick=\"ns($number)\"><NOBR>@{[Hako::Template::Function->wrap_number($j)]}<FONT COLOR=\"@{[Hako::Config::NORMAL_COLOR]}\">");
+    $buf = "<A STYlE=\"text-decoration:none\" HREF=\"JavaScript:void(0);\" onClick=\"ns($number)\"><NOBR>@{[Hako::Template::Function->wrap_number($j)]}<FONT COLOR=\"@{[Hako::Config::NORMAL_COLOR]}\">";
 
     if (($kind == Hako::Constants::COMMAND_DO_NOTHING) || ($kind == Hako::Constants::COMMAND_GIVE_UP)) {
-        $self->out("@{[$name]}");
+        $buf .= "@{[$name]}";
     } elsif (($kind == Hako::Constants::COMMAND_MISSILE_NM) || ($kind == Hako::Constants::COMMAND_MISSILE_PP) || ($kind == Hako::Constants::COMMAND_MISSILE_ST) || ($kind == Hako::Constants::COMMAND_MISSILE_LD)) {
         # ミサイル系
         my $n = ($arg == 0 ? '無制限' : "${arg}発");
-        $self->out("@{[$target]}@{[$point]}へ@{[$name]}(@{[Hako::Config::TAG_NAME_]}@{[$n]}@{[Hako::Config::_TAG_NAME]})");
+        $buf .= "@{[$target]}@{[$point]}へ@{[$name]}(@{[Hako::Config::TAG_NAME_]}@{[$n]}@{[Hako::Config::_TAG_NAME]})";
     } elsif ($kind == Hako::Constants::COMMAND_SEND_MONSTER) {
         # 怪獣派遣
-        $self->out("@{[$target]}へ@{[$name]}");
+        $buf .= "@{[$target]}へ@{[$name]}";
     } elsif ($kind == Hako::Constants::COMMAND_SELL) {
         # 食料輸出
-        $self->out("@{[$name]}@{[$value]}");
+        $buf .= "@{[$name]}@{[$value]}";
     } elsif ($kind == Hako::Constants::COMMAND_PROPAGANDA) {
         # 誘致活動
-        $self->out("@{[$name]}");
+        $buf .= "@{[$name]}";
     } elsif (($kind == Hako::Constants::COMMAND_MONEY) || ($kind == Hako::Constants::COMMAND_MONEY)) {
         # 援助
-        $self->out("@{[$target]}へ@{[$name]}@{[$value]}");
+        $buf .= "@{[$target]}へ@{[$name]}@{[$value]}";
     } elsif ($kind == Hako::Constants::COMMAND_DESTROY) {
         # 掘削
         if ($arg != 0) {
-            $self->out("@{[$point]}で@{[$name]}(予算@{[$value]})");
+            $buf .= "@{[$point]}で@{[$name]}(予算@{[$value]})";
         } else {
-            $self->out("@{[$point]}で@{[$name]}");
+            $buf .= "@{[$point]}で@{[$name]}";
         }
     } elsif (($kind == Hako::Constants::COMMAND_FARM) || ($kind == Hako::Constants::COMMAND_FACTORY) || ($kind == Hako::Constants::COMMAND_MOUNTAIN)) {
         # 回数付き
         if ($arg == 0) {
-            $self->out("@{[$point]}で@{[$name]}");
+            $buf .= "@{[$point]}で@{[$name]}";
         } else {
-            $self->out("@{[$point]}で@{[$name]}(@{[$arg]}回)");
+            $buf .= "@{[$point]}で@{[$name]}(@{[$arg]}回)";
         }
     } else {
         # 座標付き
-        $self->out("@{[$point]}で@{[$name]}");
+        $buf .= "@{[$point]}で@{[$name]}";
     }
 
-    $self->out("</FONT></NOBR></A><BR>");
+    $buf .= "</FONT></NOBR></A><BR>";
+    return $buf;
 }
 
 # ローカル掲示板入力フォーム owner mode用
 sub tempLbbsInputOW {
     my ($self) = @_;
-    $self->out(<<END);
-<CENTER>
-<FORM action="@{[Hako::Config::THIS_FILE]}" method="POST">
-<TABLE BORDER>
-<TR>
-<TH>名前</TH>
-<TH COLSPAN=2>内容</TH>
-</TR>
-<TR>
-<TD><INPUT TYPE="text" SIZE=32 MAXLENGTH=32 NAME="LBBSNAME" VALUE="@{[$self->{default_name}]}"></TD>
-<TD COLSPAN=2><INPUT TYPE="text" SIZE=80 NAME="LBBSMESSAGE"></TD>
-</TR>
-<TR>
-<TH>パスワード</TH>
-<TH COLSPAN=2>動作</TH>
-</TR>
-<TR>
-<TD><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD VALUE="@{[$self->{default_password}]}"></TD>
-<TD align=right>
-<INPUT TYPE="submit" VALUE="記帳する" NAME="LbbsButtonOW@{[$self->{current_id}]}">
-</TD>
-<TD align=right>
-番号
-<SELECT NAME=NUMBER>
-END
-    # 発言番号
-    for (my $i = 0; $i < Hako::Config::LOCAL_BBS_MAX; $i++) {
-        my $j = $i + 1;
-        $self->out("<OPTION VALUE=$i>$j\n");
-    }
-    $self->out(<<END);
-</SELECT>
-<INPUT TYPE="submit" VALUE="削除する" NAME="LbbsButtonDL@{[$self->{current_id}]}">
-</TD>
-</TR>
-</TABLE>
-</FORM>
-</CENTER>
-END
+
+    my $local_bbs_max = Hako::Config::LOCAL_BBS_MAX - 1;
+    $self->vars_merge(
+        default_name => $self->{default_name},
+        default_password => $self->{default_password},
+        current_id => $self->{current_id},
+        local_bbs_max_range => [(0..$local_bbs_max)],
+    );
 }
 
 # コマンド削除
 sub tempCommandDelete {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}コマンドを削除しました@{[Hako::Config::_TAG_BIG]}<HR>
-END
+    $self->vars_merge(command_message => "コマンドを削除しました");
 }
 
 # コマンド登録
 sub tempCommandAdd {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}コマンドを登録しました@{[Hako::Config::_TAG_BIG]}<HR>
-END
+    $self->vars_merge(command_message => "コマンドを登録しました");
 }
 
 # コメント変更成功
 sub tempComment {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}コメントを更新しました@{[Hako::Config::_TAG_BIG]}<HR>
-END
+    $self->vars_merge(command_message => "コメントを更新しました");
 }
 
 # ローカル掲示板で名前かメッセージがない場合
 sub tempLbbsNoMessage {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}名前または内容の欄が空欄です。@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "名前または内容の欄が空欄です。");
 }
 
 # 書きこみ削除
 sub tempLbbsDelete {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}記帳内容を削除しました@{[Hako::Config::_TAG_BIG]}<HR>
-END
+    $self->vars_merge(local_bbs_message => "記帳内容を削除しました");
 }
 
 # コマンド登録
 sub tempLbbsAdd {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}記帳を行いました@{[Hako::Config::_TAG_BIG]}<HR>
-END
+    $self->vars_merge(local_bbs_message => "記帳を行いました");
 }
 
 # 名前変更資金足りず
 sub tempChangeNoMoney {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}資金不足のため変更できません@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "資金不足のため変更できません");
 }
 
 # 名前変更失敗
 sub tempChangeNothing {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}名前、パスワードともに空欄です@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
+    $self->vars_merge(message => "名前、パスワードともに空欄です");
 }
 
 # 名前変更成功
 sub tempChange {
     my ($self) = @_;
-    $self->out(<<END);
-@{[Hako::Config::TAG_BIG_]}変更完了しました@{[Hako::Config::_TAG_BIG]}@{[Hako::Config::TEMP_BACK]}
-END
 }
 1;
