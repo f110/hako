@@ -28,4 +28,7 @@ use parent qw(Exception::Tiny);
 package Hako::Exception::ChangeNothing;
 use parent qw(Exception::Tiny);
 
+package Hako::Exception::NoData;
+use parent qw(Exception::Tiny);
+
 1;

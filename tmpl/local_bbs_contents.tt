@@ -5,7 +5,7 @@
 <TH>記帳内容</TH>
 </TR>
 [% FOREACH content IN local_bbs_contents %]
-[% content.number %]
+<TR><TD align=center><FONT COLOR="#800000"><B>[% loop.count %]</b></font></TD>";
 [% content.content %]
 [% END %]
 </TD></TR></TABLE></CENTER>

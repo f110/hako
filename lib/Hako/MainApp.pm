@@ -29,7 +29,8 @@ sub new {
         xslate => Text::Xslate->new(
             syntax => 'TTerse',
             function => {
-            }
+            },
+            module => ['Text::Xslate::Bridge::Star'],
         )
     }, $class;
 }
@@ -112,26 +113,19 @@ sub psgi {
         # CGI読みこみ
         $self->cgiInput;
 
-        # 島データの読みこみ
-        if ($self->readIslandsFile($self->{current_id}) == 0) {
-            $self->tempHeader;
-            $self->tempNoDataFile;
-            $self->tempFooter;
-            $response->body($self->{out_buffer});
-            return $response->finalize;
-        }
-
-        # テンプレートを初期化
-        $self->tempInitialize;
-
         # COOKIE出力
         $self->cookieOutput;
 
-        # ヘッダ出力
-        $self->tempHeader;
-
         my @templates;
         eval {
+            # 島データの読みこみ
+            if ($self->readIslandsFile($self->{current_id}) == 0) {
+                Hako::Exception::NoData->throw;
+            }
+
+            # テンプレートを初期化
+            $self->tempInitialize;
+
             if ($self->{main_mode} eq 'turn') {
                 # ターン進行
                 Hako::Mode->turnMain($self);
@@ -367,8 +361,12 @@ sub psgi {
                 $self->tempChangeNothing;
                 push(@templates, "error");
             }
+            when (Hako::Exception::NoData->caught($_)) {
+                $self->tempNoDataFile;
+                push(@templates, "error");
+            }
             default {
-                warn $@;
+                warn $@ if $@;
             }
         }
 
@@ -643,36 +641,10 @@ sub out {
     $self->{out_buffer} .= sprintf("%s", Encode::encode("utf-8", $v));
 }
 
-# ヘッダ
-sub tempHeader {
-    my ($self) = @_;
-
-    my $xslate = Text::Xslate->new(syntax => 'TTerse');
-    my %vars = (
-        title     => Hako::Config::TITLE,
-        image_dir => mark_raw(Hako::Config::IMAGE_DIR),
-        html_body => mark_raw(Hako::Config::HTML_BODY),
-    );
-    $self->out($xslate->render("tmpl/header.tt", \%vars));
-}
-
 # hakojima.datがない
 sub tempNoDataFile {
     my ($self) = @_;
     $self->vars_merge(message => "データファイルが開けません。");
-}
-
-# フッタ
-sub tempFooter {
-    my ($self) = @_;
-    my $xslate = Text::Xslate->new(syntax => 'TTerse');
-    my %vars = (
-        admin_name => Hako::Config::ADMIN_NAME,
-        email      => Hako::Config::ADMIN_EMAIL,
-        bbs        => Hako::Config::BBS_URL,
-        toppage    => Hako::Config::TOPPAGE_URL,
-    );
-    $self->out($xslate->render("tmpl/footer.tt", \%vars));
 }
 
 # 初期化
@@ -793,24 +765,12 @@ sub topPageMain {
         $mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} align=center nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
     }
 
-    my $name;
     my @islands;
     for (my $ii = 0; $ii < $self->{island_number}; $ii++) {
         my $j = $ii + 1;
         my $island = $self->{islands}->[$ii];
 
         my $id = $island->{'id'};
-        my $farm = $island->{'farm'};
-        my $factory = $island->{'factory'};
-        my $mountain = $island->{'mountain'};
-        $farm = ($farm == 0) ? "保有せず" : "${farm}0" . Hako::Config::UNIT_POPULATION;
-        $factory = ($factory == 0) ? "保有せず" : "${factory}0" . Hako::Config::UNIT_POPULATION;
-        $mountain = ($mountain == 0) ? "保有せず" : "${mountain}0" . Hako::Config::UNIT_POPULATION;
-        if ($island->{'absent'}  == 0) {
-            $name = "@{[Hako::Config::TAG_NAME_]}$island->{'name'}島@{[Hako::Config::_TAG_NAME]}";
-        } else {
-            $name = "@{[Hako::Config::TAG_NAME2_]}$island->{'name'}島($island->{'absent'})@{[Hako::Config::_TAG_NAME2]}";
-        }
 
         my $prize = $island->{'prize'};
         $prize =~ /([0-9]*),([0-9]*),(.*)/;
@@ -848,24 +808,19 @@ sub topPageMain {
             $prize .= "<IMG SRC=\"" . ${Hako::Config::MONSTER_IMAGE()}[$max] . "\" ALT=\"$mNameList\" WIDTH=16 HEIGHT=16> ";
         }
 
-
-        my $mStr1 = '';
-        if (Hako::Config::HIDE_MONEY_MODE == 1) {
-            $mStr1 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{money}@{[Hako::Config::UNIT_MONEY]}</NOBR></TD>";
-        } elsif (Hako::Config::HIDE_MONEY_MODE == 2) {
-            my $mTmp = Hako::Util::aboutMoney($island->{'money'});
-            $mStr1 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mTmp</NOBR></TD>";
-        }
-
-        push(@islands, {%$island, j => $j, name => mark_raw($name), prize => mark_raw($prize), mStr1 => mark_raw($mStr1), farm => $farm, factory => $factory, mountain => $mountain});
+        push(@islands, {
+                %$island,
+                j => $j,
+                prize => mark_raw($prize),
+                about_money => Hako::Util::aboutMoney($island->{money}),
+            });
     }
 
     $self->vars_merge(
         hide_money_mode  => Hako::Config::HIDE_MONEY_MODE,
         turn             => $self->{island_turn},
-        island_list      => mark_raw($self->{island_list}),
+        default_id       => $self->{default_id},
         default_password => $self->{default_password},
-        mStr1            => mark_raw($mStr1),
         islands          => \@islands,
         unit_population  => Hako::Config::UNIT_POPULATION,
         unit_area        => Hako::Config::UNIT_AREA,
@@ -976,38 +931,23 @@ sub islandInfo {
     my $island = $self->{islands}->[$self->{current_number}];
     # 情報表示
     my $rank = $self->{current_number} + 1;
-    my $farm = $island->{'farm'};
-    my $factory = $island->{'factory'};
-    my $mountain = $island->{'mountain'};
-    $farm = ($farm == 0) ? "保有せず" : "${farm}0" . Hako::Config::UNIT_POPULATION;
-    $factory = ($factory == 0) ? "保有せず" : "${factory}0" . Hako::Config::UNIT_POPULATION;
-    $mountain = ($mountain == 0) ? "保有せず" : "${mountain}0" . Hako::Config::UNIT_POPULATION;
 
-    my $mStr1 = '';
-    my $mStr2 = '';
+    my $money_mode = 2;
     if((Hako::Config::HIDE_MONEY_MODE == 1) || ($self->{main_mode} eq 'owner')) {
-        # 無条件またはownerモード
-        $mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
-        $mStr2 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$island->{money}@{[Hako::Config::UNIT_MONEY]}</NOBR></TD>";
+        $money_mode = 1;
     } elsif(Hako::Config::HIDE_MONEY_MODE == 2) {
-        my $mTmp = Hako::Util::aboutMoney($island->{'money'});
-
-        # 1000億単位モード
-        $mStr1 = "<TH @{[Hako::Config::BG_TITLE_CELL]} nowrap=nowrap><NOBR>".Hako::Template::Function->wrap_th("資金")."</NOBR></TH>";
-        $mStr2 = "<TD @{[Hako::Config::BG_INFO_CELL]} align=right nowrap=nowrap><NOBR>$mTmp</NOBR></TD>";
+        $money_mode = 2;
     }
+
     $self->vars_merge(
-        mStr1           => mark_raw($mStr1),
-        mStr2           => mark_raw($mStr2),
         rank            => $rank,
         island          => {%$island},
+        about_money     => Hako::Util::aboutMoney($island->{money}),
+        money_mode      => $money_mode,
         unit_population => Hako::Config::UNIT_POPULATION,
         unit_area       => Hako::Config::UNIT_AREA,
         unit_food       => Hako::Config::UNIT_FOOD,
         unit_money      => Hako::Config::UNIT_MONEY,
-        farm            => mark_raw($farm),
-        factory         => mark_raw($factory),
-        mountain        => mark_raw($mountain),
     );
 }
 
@@ -1233,7 +1173,7 @@ sub tempLbbsContents {
                 # 島主
                 $content = "<TD>".Hako::Template::Function->wrap_local_bbs_ow($2." > ".$3)."</TD></TR>";
             }
-            push(@local_bbs, {number => mark_raw($number), content => $content});
+            push(@local_bbs, {content => mark_raw($content)});
         }
     }
     $self->vars_merge(local_bbs_contents => \@local_bbs);
@@ -1305,35 +1245,26 @@ sub tempCommandForm {
     my @commands;
     for (my $i = 0; $i < Hako::Constants::COMMAND_TOTAL_NUM; $i++) {
         my $kind = ${Hako::Constants::COM_LIST()}[$i];
-        my $cost = Hako::Command->id_to_cost($kind);
-        my $s;
-        if ($cost == 0) {
-            $cost = '無料'
-        } elsif($cost < 0) {
-            $cost = - $cost;
-            $cost .= Hako::Config::UNIT_FOOD;
-        } else {
-            $cost .= Hako::Config::UNIT_MONEY;
-        }
-        if ($kind == $self->{default_kind}) {
-            $s = 'SELECTED';
-        } else {
-            $s = '';
-        }
-        my $name = Hako::Command->id_to_name("$kind");
-        push(@commands, mark_raw("<OPTION VALUE=$kind $s>".$name."($cost)"));
+        push(@commands, {
+                kind => $kind,
+                name => Hako::Command->id_to_name($kind),
+                cost => Hako::Command->id_to_cost($kind),
+            });
     }
 
     $self->vars_merge(
-        current_id => $current_id,
-        default_password => $self->{default_password},
-        command_range => [(0..$command_max)],
-        commands => \@commands,
+        current_id        => $current_id,
+        default_password  => $self->{default_password},
+        default_kind      => $self->{default_kind},
+        unit_money        => Hako::Config::UNIT_MONEY,
+        unit_food         => Hako::Config::UNIT_FOOD,
+        command_range     => [(0..$command_max)],
+        commands          => \@commands,
         island_size_range => [(0..$island_size)],
-        default_x => $self->{default_x},
-        default_y => $self->{default_y},
-        num_range => [(0..99)],
-        target_list => $self->{target_list},
+        default_x         => $self->{default_x},
+        default_y         => $self->{default_y},
+        num_range         => [(0..99)],
+        target_list       => $self->{target_list},
     );
 }
 
@@ -1366,10 +1297,6 @@ sub tempCommand {
         $value = "$value" . Hako::Config::UNIT_MONEY;
     }
     $value = Hako::Template::Function->wrap_name($value);
-
-    my $j = sprintf("%02d：", $number + 1);
-
-    $buf = "<A STYlE=\"text-decoration:none\" HREF=\"JavaScript:void(0);\" onClick=\"ns($number)\"><NOBR>@{[Hako::Template::Function->wrap_number($j)]}<FONT COLOR=\"@{[Hako::Config::NORMAL_COLOR]}\">";
 
     if (($kind == Hako::Constants::COMMAND_DO_NOTHING) || ($kind == Hako::Constants::COMMAND_GIVE_UP)) {
         $buf .= "@{[$name]}";
@@ -1408,7 +1335,6 @@ sub tempCommand {
         $buf .= "@{[$point]}で@{[$name]}";
     }
 
-    $buf .= "</FONT></NOBR></A><BR>";
     return $buf;
 }
 

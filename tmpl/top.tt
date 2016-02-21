@@ -11,7 +11,9 @@
 <FORM method="POST">
 あなたの島の名前は？<BR>
 <SELECT NAME="ISLANDID">
-[% island_list %]
+[% FOREACH island IN islands %]
+<option value="[% island.id %]"[% IF island.id == default_id %] SELECTED[% END %]>[% island.name %]島
+[% END %]
 </SELECT><BR>
 
 パスワードをどうぞ！！<BR>
@@ -31,7 +33,9 @@
 <TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>島</b></font></NOBR></TH>
 <TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>人口</b></font></NOBR></TH>
 <TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>面積</b></font></NOBR></TH>
-[% mStr1 %]
+[% IF hide_money_mode != 0 %]
+<TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>資金</b></font></NOBR></TH>
+[% END %]
 <TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>食料</b></font></NOBR></TH>
 <TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>農場規模</b></font></NOBR></TH>
 <TH BGCOLOR="#ccffcc" align=center nowrap=nowrap><NOBR><font color="#C00000"><b>工場規模</b></font></NOBR></TH>
@@ -40,14 +44,45 @@
 [% FOREACH island IN islands %]
     <TR>
     <TD BGCOLOR="#ccffcc" ROWSPAN=2 align=center nowrap=nowrap><NOBR>[% island.j %]</NOBR></TD>
-    <TD BGCOLOR="#ccffff" ROWSPAN=2 align=left nowrap=nowrap><NOBR><A STYlE=\"text-decoration:none\" HREF="/?Sight=[% island.id %]">[% island.name %]</A></NOBR><BR>[% island.prize %]</TD>
+    <TD BGCOLOR="#ccffff" ROWSPAN=2 align=left nowrap=nowrap><NOBR>
+        <A STYlE=\"text-decoration:none\" HREF="/?Sight=[% island.id %]">
+            [% IF island.absent == 0 %]
+            <FONT COLOR="#a06040"><B>[% island.name %]島</b></font>
+            [% ELSE %]
+            <FONT COLOR="#808080"><B>[% island.name %]島([% island.absent %])</b></font>
+            [% END %]
+        </A>
+    </NOBR><BR>[% island.prize %]</TD>
     <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.pop %][% unit_population %]</NOBR></TD>
     <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.area %][% unit_area %]</NOBR></TD>
+    [% IF hide_money_mode == 1 %]
+        <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.money %][% unit_money %]</NOBR></TD>
+    [% ELSIF hide_money_mode == 2 %]
+        <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.about_money %]</NOBR></TD>
+    [% END %]
     [% island.mStr1 %]
     <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.food %][% unit_food %]</NOBR></TD>
-    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.farm %]</NOBR></TD>
-    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.factory %]</NOBR></TD>
-    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.mountain %]</NOBR></TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>
+        [% IF island.farm == 0 %]
+        保有せず
+        [% ELSE %]
+        [% island.farm %]0[% unit_population %]
+        [% END %]
+    </NOBR></TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>
+        [% IF island.factory == 0 %]
+        保有せず
+        [% ELSE %]
+        [% island.factory %]0[% unit_population %]
+        [% END %]
+    </NOBR></TD>
+    <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>
+        [% IF island.mountain == 0 %]
+        保有せず
+        [% ELSE %]
+        [% island.mountain %]0[% unit_population %]
+        [% END %]
+    </NOBR></TD>
     </TR>
     <TR>
     <TD BGCOLOR="#ccffcc" COLSPAN=7 align=left nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>コメント：</b></font>[% island.comment %]</NOBR></TD>

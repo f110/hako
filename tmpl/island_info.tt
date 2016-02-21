@@ -3,7 +3,11 @@
 <TR>
 <TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>順位</B></FONT></NOBR></TH>
 <TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>人口</B></FONT></NOBR></TH>
-[% mStr1 %]
+[% IF money_mode == 1 %]
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>資金</B></FONT></NOBR></TH>
+[% ELSIF money_mode == 2 %]
+<TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>資金</b></font></NOBR></TH>
+[% END %]
 <TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>食料</B></FONT></NOBR></TH>
 <TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>面積</B></FONT></NOBR></TH>
 <TH BGCOLOR="#ccffcc" nowrap=nowrap><NOBR><FONT COLOR="#C00000"><B>農場規模</B></FONT></NOBR></TH>
@@ -13,11 +17,33 @@
 <TR>
 <TD BGCOLOR="#ccffcc" align=middle nowrap=nowrap><NOBR><FONT COLOR="#800000"><B>[% rank %]</B></FONT></NOBR></TD>
 <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.pop %][% unit_population %]</NOBR></TD>
-[% mStr2 %]
+[% IF money_mode == 1 %]
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.money %][% unit_money %]</NOBR></TD>
+[% ELSIF money_mode == 2 %]
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% about_money %]</NOBR></TD>
+[% END %]
 <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.food %][% unit_food %]</NOBR></TD>
 <TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% island.area %][% unit_area %]</NOBR></TD>
-<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% farm %]</NOBR></TD>
-<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% factory %]</NOBR></TD>
-<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>[% mountain %]</NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>
+    [% IF island.farm == 0 %]
+    保有せず
+    [% ELSE %]
+    [% island.farm %]0[% unit_population %]
+    [% END %]
+</NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>
+    [% IF island.factory == 0 %]
+    保有せず
+    [% ELSE %]
+    [% island.factory %]0[% unit_population %]
+    [% END %]
+</NOBR></TD>
+<TD BGCOLOR="#ccffff" align=right nowrap=nowrap><NOBR>
+    [% IF island.mountain == 0 %]
+    保有せず
+    [% ELSE %]
+    [% island.mountain %]0[% unit_population %]
+    [% END %]
+</NOBR></TD>
 </TR>
 </TABLE></CENTER>

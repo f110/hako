@@ -18,7 +18,7 @@
 <B>開発計画</B><BR>
 <SELECT NAME=COMMAND>
 [% FOREACH cmd IN commands %]
-[% cmd %]
+<option value="[% cmd.kind %]"[% IF cmd.kind == default_kind %] SELECTED[% END %]>[% cmd.name %]([% IF cmd.cost == 0 %]無料[% ELSIF cmd.cost < 0 %][% cmd.cost %][% unit_food %][% ELSE %][% cmd.cost %][% unit_money %][% END %])
 [% END %]
 </SELECT>
 <HR>
