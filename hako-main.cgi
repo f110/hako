@@ -1,23 +1,4 @@
 # vim: set ft=perl:
-package MainApp;
-use utf8;
-use strict;
-use Encode qw();
-use YAML ();
-use File::Spec;
-use File::Basename;
-use Plack::Response;
-use Plack::Request;
-use List::MoreUtils qw();
-use Text::Xslate qw(mark_raw);
-use Hako::Config;
-use Hako::Constants;
-use Hako::DB;
-use Hako::Model::Island;
-use Hako::Util;
-use Hako::Mode;
-use Hako::Template::Function;
-use Devel::Peek;
 
 #----------------------------------------------------------------------
 # 箱庭諸島 ver2.30

@@ -1,6 +1,7 @@
 package Hako::Util;
 use strict;
 use warnings;
+use utf8;
 use Hako::Config;
 
 # 0から(n - 1)の乱数

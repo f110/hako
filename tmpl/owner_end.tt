@@ -1,0 +1,22 @@
+</TD>
+<TD bgcolor="#ccffcc">
+[% FOREACH k IN command_list %]
+<A STYlE="text-decoration:none" HREF="JavaScript:void(0);" onClick="ns([% loop.index %])"><NOBR><FONT COLOR="#800000"><B>[% sprintf("%02d", loop.count) %]：</b></font><FONT COLOR="#000000">
+[% k %]
+</FONT></NOBR></A><BR>
+[% END %]
+
+</TD>
+</TR>
+</TABLE>
+</CENTER>
+<HR>
+<CENTER>
+<FONT SIZE=6>コメント更新</font><BR>
+<FORM method="POST">
+コメント<INPUT TYPE=text NAME=MESSAGE SIZE=80><BR>
+パスワード<INPUT TYPE=password NAME=PASSWORD VALUE="[% default_password %]">
+<INPUT TYPE=submit VALUE="コメント更新" NAME=MessageButton[% current_id %]>
+</FORM>
+</CENTER>
+

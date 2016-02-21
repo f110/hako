@@ -1,0 +1,33 @@
+<CENTER>
+<FORM method="POST">
+<TABLE BORDER>
+<TR>
+<TH>名前</TH>
+<TH COLSPAN=2>内容</TH>
+</TR>
+<TR>
+<TD><INPUT TYPE="text" SIZE=32 MAXLENGTH=32 NAME="LBBSNAME" VALUE="[% default_name %]"></TD>
+<TD COLSPAN=2><INPUT TYPE="text" SIZE=80 NAME="LBBSMESSAGE"></TD>
+</TR>
+<TR>
+<TH>パスワード</TH>
+<TH COLSPAN=2>動作</TH>
+</TR>
+<TR>
+<TD><INPUT TYPE=password SIZE=32 MAXLENGTH=32 NAME=PASSWORD VALUE="[% default_password %]"></TD>
+<TD align=right>
+<INPUT TYPE="submit" VALUE="記帳する" NAME="LbbsButtonOW[% current_id %]">
+</TD>
+<TD align=right>
+番号
+<SELECT NAME=NUMBER>
+[% FOREACH i IN local_bbs_max_range %]
+    <OPTION VALUE=[% i %]>[% i + 1 %]
+[% END %]
+</SELECT>
+<INPUT TYPE="submit" VALUE="削除する" NAME="LbbsButtonDL[% current_id %]">
+</TD>
+</TR>
+</TABLE>
+</FORM>
+</CENTER>

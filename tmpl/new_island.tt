@@ -1,0 +1,6 @@
+<CENTER>
+<font size=6>島を発見しました！！</font><BR>
+<font size=6><FONT COLOR="#a06040"><B>「[% current_name %]島」</font>と命名します。</font><BR>
+[% temp_back %]<BR>
+</CENTER>
+

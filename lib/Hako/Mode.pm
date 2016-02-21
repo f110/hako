@@ -7,6 +7,7 @@ use Hako::DB;
 use Hako::Log;
 use Hako::Util;
 use Hako::Command;
+use Hako::Exception;
 use Data::Dumper;
 
 #周囲2ヘックスの座標
@@ -87,9 +88,6 @@ sub turnMain {
 
     # ファイルに書き出し
     $context->writeIslandsFile(-1);
-
-    # トップへ
-    $context->topPageMain();
 }
 
 # (0,0)から(size - 1, size - 1)までの数字が一回づつ出てくるように
@@ -1893,45 +1891,35 @@ sub islandSort {
 }
 
 sub newIslandMain {
-    my ($context) = @_;
+    my ($class, $context) = @_;
     # 島がいっぱいでないかチェック
     if ($context->{island_number} >= Hako::Config::MAX_ISLAND) {
-        $context->tempNewIslandFull;
-        return;
+        Hako::Exception::IslandFull->throw;
     }
 
     # 名前があるかチェック
     if ($context->{current_name} eq '') {
-        $context->tempNewIslandNoName;
-        return;
+        Hako::Exception::NoName->throw;
     }
 
     # 名前が正当かチェック
     if ($context->{current_name} =~ /[,\?\(\)\<\>\$]|^無人$/) {
-        # 使えない名前
-        $context->tempNewIslandBadName;
-        return;
+        Hako::Exception::BadName->throw;
     }
 
     # 名前の重複チェック
     if ($context->nameToNumber($context->{current_name}) != -1) {
-        # すでに発見ずみ
-        $context->tempNewIslandAlready;
-        return;
+        Hako::Exception::AlreadyExist->throw;
     }
 
     # passwordの存在判定
     if ($context->{input_password} eq '') {
-        # password無し
-        $context->tempNewIslandNoPassword;
-        return;
+        Hako::Exception::NoPassword->throw;
     }
 
     # 確認用パスワード
     if ($context->{input_password2} ne $context->{input_password}) {
-        # password間違い
-        $context->tempWrongPassword;
-        return;
+        Hako::Exception::WrongPassword->throw;
     }
 
     # 新しい島の番号を決める
@@ -1955,11 +1943,6 @@ sub newIslandMain {
     $context->writeIslandsFile($island->{'id'});
     Hako::Log->logDiscover($context->{island_turn}, $context->{current_name}); # ログ
     Hako::DB->init_command($island->{id});
-
-    # 発見画面
-    $context->tempNewIslandHead($context->{current_name}); # 発見しました!!
-    $context->islandInfo; # 島の情報
-    $context->islandMap(1); # 島の地図、ownerモード
 }
 
 # 新しい島を作成する
@@ -2118,27 +2101,11 @@ sub printIslandMain {
 
     # なぜかその島がない場合
     if ($context->{current_number} eq '') {
-        $context->tempProblem;
-        return;
+        Hako::Exception::SomethingWrong->throw;
     }
 
     # 名前の取得
     $context->{current_name} = $context->{islands}->[$context->{current_number}]->{'name'};
-
-    # 観光画面
-    $context->tempPrintIslandHead($context->{current_name}); # ようこそ!!
-    $context->islandInfo; # 島の情報
-    $context->islandMap(0); # 島の地図、観光モード
-
-    # ○○島ローカル掲示板
-    if (Hako::Config::USE_LOCAL_BBS) {
-        $context->tempLbbsHead($context->{current_name});     # ローカル掲示板
-        $context->tempLbbsInput;   # 書き込みフォーム
-        $context->tempLbbsContents; # 掲示板内容
-    }
-
-    # 近況
-    $context->tempRecent(0);
 }
 
 sub ownerMain {
@@ -2153,23 +2120,8 @@ sub ownerMain {
 
     # パスワード
     if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
-        # password間違い
-        $context->tempWrongPassword();
-        return;
+        Hako::Exception::WrongPassword->throw;
     }
-
-    # 開発画面
-    $context->tempOwner; # 「開発計画」
-
-    # ○○島ローカル掲示板
-    if (Hako::Config::USE_LOCAL_BBS) {
-        $context->tempLbbsHead($context->{current_name});     # ローカル掲示板
-        $context->tempLbbsInputOW;   # 書き込みフォーム
-        $context->tempLbbsContents; # 掲示板内容
-    }
-
-    # 近況
-    $context->tempRecent(1);
 }
 
 sub commandMain {
@@ -2181,9 +2133,7 @@ sub commandMain {
 
     # パスワード
     if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
-        # password間違い
-        $context->tempWrongPassword;
-        return;
+        Hako::Exception::WrongPassword->throw;
     }
 
     # モードで分岐
@@ -2264,9 +2214,7 @@ sub commentMain {
 
     # パスワード
     if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
-        # password間違い
-        $context->tempWrongPassword;
-        return;
+        Hako::Exception::WrongPassword->throw;
     }
 
     # メッセージを更新
@@ -2290,24 +2238,20 @@ sub localBbsMain {
 
     # なぜかその島がない場合
     if ($context->{current_number} eq '') {
-        $context->tempProblem();
-        return;
+        Hako::Exception::SomethingWrong->throw;
     }
 
     # 削除モードじゃなくて名前かメッセージがない場合
     if ($context->{local_bbs_mode} != 2) {
         if (($context->{local_bbs_name} eq '') || ($context->{local_bbs_name} eq '')) {
-            $context->tempLbbsNoMessage;
-            return;
+            Hako::Exception::LocalBBSNoMessage->throw;
         }
     }
 
     # 観光者モードじゃない時はパスワードチェック
     if ($context->{local_bbs_mode} != 0) {
         if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
-            # password間違い
-            $context->tempWrongPassword;
-            return;
+            Hako::Exception::WrongPassword->throw;
         }
     }
 
@@ -2343,13 +2287,6 @@ sub localBbsMain {
 
     # データ書き出し
     $context->writeIslandsFile($context->{current_id});
-
-    # もとのモードへ
-    if ($context->{local_bbs_mode} == 0) {
-        $class->printIslandMain($context);
-    } else {
-        $class->ownerMain($context);
-    }
 }
 
 sub changeMain {
@@ -2365,38 +2302,28 @@ sub changeMain {
         $island->{'money'} = 9999;
         $island->{'food'} = 9999;
     } elsif (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
-        # password間違い
-        $context->tempWrongPassword;
-        return;
+        Hako::Exception::WrongPassword->throw;
     }
 
     # 確認用パスワード
     if ($context->{input_password2} ne $context->{input_password}) {
-        # password間違い
-        $context->tempWrongPassword;
-        return;
+        Hako::Exception::WrongPassword->throw;
     }
 
     if ($context->{current_name} ne '') {
         # 名前変更の場合	
         # 名前が正当かチェック
         if ($context->{current_name} =~ /[,\?\(\)\<\>]|^無人$/) {
-            # 使えない名前
-            $context->tempNewIslandBadName;
-            return;
+            Hako::Exception::BadName->throw;
         }
 
         # 名前の重複チェック
         if ($context->nameToNumber($context->{current_name}) != -1) {
-            # すでに発見ずみ
-            $context->tempNewIslandAlready;
-            return;
+            Hako::Exception::AlreadyExist->throw;
         }
 
         if ($island->{'money'} < Hako::Config::CHANGE_NAME_COST) {
-            # 金が足りない
-            $context->tempChangeNoMoney;
-            return;
+            Hako::Exception::NoMoney->throw;
         }
 
         # 代金
@@ -2418,9 +2345,7 @@ sub changeMain {
     }
 
     if (($flag == 0) && ($context->{input_password} ne Hako::Config::SPECIAL_PASSWORD)) {
-        # どちらも変更されていない
-        $context->tempChangeNothing;
-        return;
+        Hako::Exception::ChangeNothing->throw;
     }
 
     # データ書き出し
@@ -2429,4 +2354,5 @@ sub changeMain {
     # 変更成功
     $context->tempChange;
 }
+
 1;

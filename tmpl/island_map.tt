@@ -1,0 +1,21 @@
+<CENTER><TABLE BORDER><TR><TD>
+<IMG SRC="xbar.gif" width=400 height=16><BR>
+[%- FOREACH y IN map_island_size_range -%]
+[%- IF y % 2 == 0 -%]
+<IMG SRC="space[% y %].gif" width=16 height=32>
+[%- END -%]
+[%- FOREACH x IN map_island_size_range -%]
+[%- IF mode == 1 -%]
+<A HREF="JavaScript:void(0);" onclick="ps([% x %],[% y %])">
+[%- END -%]
+<IMG SRC="[% land.$x.$y.image %]" ALT="[% land.$x.$y.alt %]" width=32 height=32 BORDER=0>
+[%- IF mode == 1 -%]
+</A>
+[%- END -%]
+[%- END -%]
+[%- IF y % 2 == 1 -%]
+<IMG SRC="space[% y %].gif" width=16 height=32>
+[%- END -%]
+<br>
+[%- END -%]
+</TD></TR></TABLE></CENTER>

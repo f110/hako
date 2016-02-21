@@ -6,3 +6,5 @@ requires 'DBD::mysql';
 requires 'Text::Xslate';
 requires 'Router::Simple';
 requires 'Plack::Session::Store::DBI';
+requires 'Hash::Merge';
+requires 'Exception::Tiny';

@@ -1,6 +1,7 @@
 package Hako::Log;
 use strict;
 use warnings;
+use utf8;
 use Hako::Template::Function;
 use Hako::DB;
 
