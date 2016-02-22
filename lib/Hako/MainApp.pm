@@ -49,7 +49,6 @@ sub initialize {
 
     $self->{vars} = {};
 
-    $self->{out_buffer} = "";
     $self->{cookie_buffer} = "";
     $self->{request} = undef;
     $self->{response} = undef;
@@ -586,12 +585,6 @@ sub readIsland {
     });
 }
 
-# 標準出力への出力
-sub out {
-    my ($self, $v) = @_;
-    $self->{out_buffer} .= sprintf("%s", Encode::encode("utf-8", $v));
-}
-
 # hakojima.datがない
 sub tempNoDataFile {
     my ($self) = @_;
@@ -785,26 +778,6 @@ sub topPageMain {
     );
 }
 
-# トップページ用ログ表示
-sub logPrintTop {
-    my ($self) = @_;
-    my $logs = Hako::DB->get_common_log($self->{island_turn});
-
-    for (@$logs) {
-        $self->out("<NOBR>".Hako::Template::Function->wrap_number("ターン".$_->{turn})."：@{[$_->{message}]}</NOBR><BR>\n");
-    }
-}
-
-# 記録ファイル表示
-sub historyPrint {
-    my ($self) = @_;
-    my $histories = Hako::DB->get_history();
-    for my $line (@$histories) {
-        my $msg = $line->{message};
-        $self->out("<NOBR>".Hako::Template::Function->wrap_number("ターン".$line->{turn})."：@{[$msg]}</NOBR><BR>\n");
-    }
-}
-
 # 島がいっぱいな場合
 sub tempNewIslandFull {
     my ($self) = @_;
@@ -846,14 +819,6 @@ sub tempWrongPassword {
 sub tempNewIslandHead {
     my ($self, $current_name) = @_;
     $self->vars_merge(current_name => $current_name);
-
-    $self->out(<<END);
-<CENTER>
-@{[Hako::Config::TAG_BIG_]}島を発見しました！！@{[Hako::Config::_TAG_BIG]}<BR>
-@{[Hako::Config::TAG_BIG_]}@{[Hako::Config::TAG_NAME_]}「${current_name}島」@{[Hako::Config::_TAG_NAME]}と命名します。@{[Hako::Config::_TAG_BIG]}<BR>
-@{[Hako::Config::TEMP_BACK]}<BR>
-</CENTER>
-END
 }
 
 sub tempProblem {
