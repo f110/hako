@@ -1,0 +1,19 @@
+<CENTER>
+<FONT SIZE=6><FONT COLOR="#a06040"><B>[% current_name %]島</B></FONT>開発計画</font><BR>
+[% temp_back %]<BR>
+</CENTER>
+<SCRIPT Language="JavaScript">
+<!--
+function ps(x, y) {
+    document.forms[0].elements[4].options[x].selected = true;
+    document.forms[0].elements[5].options[y].selected = true;
+    return true;
+}
+
+function ns(x) {
+    document.forms[0].elements[2].options[x].selected = true;
+    return true;
+}
+
+//-->
+</SCRIPT>

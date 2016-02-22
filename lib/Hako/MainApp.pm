@@ -36,10 +36,10 @@ sub new {
 }
 
 sub render {
-    my ($self, $templates, $opt) = @_;
+    my ($self, $template, $opt) = @_;
 
     $opt->{layout} ||= "base";
-    $self->{vars}->{body_files} = [map { "tmpl/".$_.".tt" } @$templates];
+    $self->{vars}->{body_file} = "tmpl/".$template.".tt";
 
     return $self->{xslate}->render("tmpl/layout/".$opt->{layout}.".tt", $self->{vars});
 }
@@ -116,7 +116,7 @@ sub psgi {
         # COOKIE出力
         $self->cookieOutput;
 
-        my @templates;
+        my $template;
         eval {
             # 島データの読みこみ
             if ($self->readIslandsFile($self->{current_id}) == 0) {
@@ -131,239 +131,189 @@ sub psgi {
                 Hako::Mode->turnMain($self);
 
                 $self->topPageMain;
-                push(@templates, "top");
+                $template = "top";
             } elsif ($self->{main_mode} eq 'new') {
                 # 島の新規作成
                 Hako::Mode->newIslandMain($self);
 
                 $self->tempNewIslandHead($self->{current_name}); # 発見しました!!
-                push(@templates, "new_island");
                 $self->islandInfo; # 島の情報
-                push(@templates, "island_info");
                 $self->islandMap(1); # 島の地図、ownerモード
-                push(@templates, "island_map");
+                $template = "new";
             } elsif ($self->{main_mode} eq 'print') {
                 # 観光モード
                 Hako::Mode->printIslandMain($self);
                 # 観光画面
                 $self->tempPrintIslandHead($self->{current_name}); # ようこそ!!
-                push(@templates, "island_head");
                 $self->islandInfo; # 島の情報
-                push(@templates, "island_info");
                 $self->islandMap(0); # 島の地図、観光モード
-                push(@templates, "island_map");
 
                 # ○○島ローカル掲示板
                 if (Hako::Config::USE_LOCAL_BBS) {
                     $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
-                    push(@templates, "local_bbs_head");
                     $self->tempLbbsInput;   # 書き込みフォーム
-                    push(@templates, "local_bbs_input");
                     $self->tempLbbsContents; # 掲示板内容
-                    push(@templates, "local_bbs_contents");
                 }
 
                 # 近況
                 $self->tempRecent(0);
-                push(@templates, "recent");
+                $template = "sight";
             } elsif ($self->{main_mode} eq 'owner') {
                 # 開発モード
                 Hako::Mode->ownerMain($self);
 
                 # 開発画面
                 $self->tempOwner; # 「開発計画」
-                push(@templates, "owner");
                 $self->islandInfo;
-                push(@templates, "island_info");
                 $self->tempCommandForm;
-                push(@templates, "command_form");
                 $self->islandMap(1);
-                push(@templates, "island_map");
                 $self->tempOwnerEnd;
-                push(@templates, "owner_end");
 
                 # ○○島ローカル掲示板
                 if (Hako::Config::USE_LOCAL_BBS) {
                     $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
-                    push(@templates, "local_bbs_head");
                     $self->tempLbbsInputOW;   # 書き込みフォーム
-                    push(@templates, "local_bbs_input_owner");
                     $self->tempLbbsContents; # 掲示板内容
-                    push(@templates, "local_bbs_contents");
                 }
 
                 # 近況
                 $self->tempRecent(1);
-                push(@templates, "recent");
+                $template = "owner";
             } elsif ($self->{main_mode} eq 'command') {
                 # コマンド入力モード
                 Hako::Mode->commandMain($self);
-                push(@templates, "command_message");
 
                 # 開発画面
                 $self->tempOwner; # 「開発計画」
-                push(@templates, "owner");
                 $self->islandInfo;
-                push(@templates, "island_info");
                 $self->tempCommandForm;
-                push(@templates, "command_form");
                 $self->islandMap(1);
-                push(@templates, "island_map");
                 $self->tempOwnerEnd;
-                push(@templates, "owner_end");
 
                 # ○○島ローカル掲示板
                 if (Hako::Config::USE_LOCAL_BBS) {
                     $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
-                    push(@templates, "local_bbs_head");
                     $self->tempLbbsInputOW;   # 書き込みフォーム
-                    push(@templates, "local_bbs_input_owner");
                     $self->tempLbbsContents; # 掲示板内容
-                    push(@templates, "local_bbs_contents");
                 }
 
                 # 近況
                 $self->tempRecent(1);
-                push(@templates, "recent");
+                $template = "command";
             } elsif ($self->{main_mode} eq 'comment') {
                 # コメント入力モード
                 Hako::Mode->commentMain($self);
-                push(@templates, "command_message");
 
                 # 開発画面
                 $self->tempOwner; # 「開発計画」
-                push(@templates, "owner");
                 $self->islandInfo;
-                push(@templates, "island_info");
                 $self->tempCommandForm;
-                push(@templates, "command_form");
                 $self->islandMap(1);
-                push(@templates, "island_map");
                 $self->tempOwnerEnd;
-                push(@templates, "owner_end");
 
                 # ○○島ローカル掲示板
                 if (Hako::Config::USE_LOCAL_BBS) {
                     $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
-                    push(@templates, "local_bbs_head");
                     $self->tempLbbsInputOW;   # 書き込みフォーム
-                    push(@templates, "local_bbs_input_owner");
                     $self->tempLbbsContents; # 掲示板内容
-                    push(@templates, "local_bbs_contents");
                 }
 
                 # 近況
                 $self->tempRecent(1);
-                push(@templates, "recent");
+                $template = "comment";
             } elsif ($self->{main_mode} eq 'lbbs') {
                 # ローカル掲示板モード
                 Hako::Mode->localBbsMain($self);
-                push(@templates, "local_bbs_message");
 
                 # もとのモードへ
                 if ($self->{local_bbs_mode} == 0) {
                     # 観光画面
                     $self->tempPrintIslandHead($self->{current_name}); # ようこそ!!
-                    push(@templates, "island_head");
                     $self->islandInfo; # 島の情報
-                    push(@templates, "island_info");
                     $self->islandMap(0); # 島の地図、観光モード
-                    push(@templates, "island_map");
 
                     # ○○島ローカル掲示板
                     if (Hako::Config::USE_LOCAL_BBS) {
                         $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
-                        push(@templates, "local_bbs_head");
                         $self->tempLbbsInput;   # 書き込みフォーム
-                        push(@templates, "local_bbs_input");
                         $self->tempLbbsContents; # 掲示板内容
-                        push(@templates, "local_bbs_contents");
                     }
 
                     # 近況
                     $self->tempRecent(0);
-                    push(@templates, "recent");
                 } else {
                     # 開発画面
                     $self->tempOwner; # 「開発計画」
-                    push(@templates, "owner");
                     $self->islandInfo;
-                    push(@templates, "island_info");
                     $self->tempCommandForm;
-                    push(@templates, "command_form");
                     $self->islandMap(1);
-                    push(@templates, "island_map");
                     $self->tempOwnerEnd;
-                    push(@templates, "owner_end");
 
                     # ○○島ローカル掲示板
                     if (Hako::Config::USE_LOCAL_BBS) {
                         $self->tempLbbsHead($self->{current_name});     # ローカル掲示板
-                        push(@templates, "local_bbs_head");
                         $self->tempLbbsInputOW;   # 書き込みフォーム
-                        push(@templates, "local_bbs_input_owner");
                         $self->tempLbbsContents; # 掲示板内容
-                        push(@templates, "local_bbs_contents");
                     }
 
                     # 近況
                     $self->tempRecent(1);
-                    push(@templates, "recent");
                 }
+                $template = "local_bbs";
             } elsif ($self->{main_mode} eq 'change') {
                 # 情報変更モード
                 Hako::Mode->changeMain($self);
-                push(@templates, "change_name");
+                $template = "change_name";
             } else {
                 # その他の場合はトップページモード
                 $self->topPageMain;
-                push(@templates, "top");
+                $template = "top";
             }
         };
         given ($@) {
             when (Hako::Exception::IslandFull->caught($_)) {
                 $self->tempNewIslandFull;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::NoName->caught($_)) {
                 $self->tempNewIslandNoName;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::BadName->caught($_)) {
                 $self->tempNewIslandBadName;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::AlreadyExist->caught($_)) {
                 $self->tempNewIslandAlready;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::NoPassword->caught($_)) {
                 $self->tempNewIslandNoPassword;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::WrongPassword->caught($_)) {
                 $self->tempWrongPassword;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::LocalBBSNoMessage->caught($_)) {
                 $self->tempLbbsNoMessage;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::SomethingWrong->caught($_)) {
                 $self->tempProblem;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::NoMoney->caught($_)) {
                 $self->tempChangeNoMoney;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::ChangeNothing->caught($_)) {
                 $self->tempChangeNothing;
-                push(@templates, "error");
+                $template = "error";
             }
             when (Hako::Exception::NoData->caught($_)) {
                 $self->tempNoDataFile;
-                push(@templates, "error");
+                $template = "error";
             }
             default {
                 warn $@ if $@;
@@ -371,7 +321,7 @@ sub psgi {
         }
 
         $self->common_assign;
-        $response->body(Encode::encode("utf-8", $self->render(\@templates)));
+        $response->body(Encode::encode("utf-8", $self->render($template)));
         $response->headers({"Set-Cookie" => $self->{cookie_buffer}});
         return $response->finalize;
     };
@@ -396,6 +346,7 @@ sub common_assign {
         toppage    => Hako::Config::TOPPAGE_URL,
         debug_mode => Hako::Config::DEBUG,
         temp_back  => mark_raw(Hako::Config::TEMP_BACK),
+        use_local_bbs => Hako::Config::USE_LOCAL_BBS,
     );
 }
 

@@ -7,9 +7,7 @@
 <body [% html_body %]>
 <a href="http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html">箱庭諸島スクリプト配布元</a><hr>
 
-[% FOREACH body_file IN body_files %]
-    [% INCLUDE body_file %]
-[% END %]
+[% INCLUDE body_file %]
 
 <hr>
 <p align=center>

@@ -1,3 +1,5 @@
+[% include "tmpl/command_message.tt" %]
+
 [% include "tmpl/owner_main.tt" %]
 [% include "tmpl/island_info.tt" %]
 [% include "tmpl/command_form.tt" %]
