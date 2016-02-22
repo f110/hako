@@ -1,0 +1,3 @@
+[% include "tmpl/new_island.tt" %]
+[% include "tmpl/island_info.tt" %]
+[% include "tmpl/island_map.tt" %]

@@ -1,0 +1,28 @@
+[% include "tmpl/local_bbs_message.tt" %]
+
+[% IF local_bbs_mode == 0 %]
+    [% include "tmpl/island_head.tt" %]
+    [% include "tmpl/island_info.tt" %]
+    [% include "tmpl/island_map.tt" %]
+
+    [% IF use_local_bbs %]
+        [% include "tmpl/local_bbs_head.tt" %]
+        [% include "tmpl/local_bbs_input.tt" %]
+        [% include "tmpl/local_bbs_contents.tt" %]
+    [% END %]
+[% ELSE %]
+    [% include "tmpl/owner_main.tt" %]
+    [% include "tmpl/island_info.tt" %]
+    [% include "tmpl/command_form.tt" %]
+    [% include "tmpl/island_map.tt" %]
+    [% include "tmpl/owner_end.tt" %]
+
+    [% IF use_local_bbs %]
+        [% include "tmpl/local_bbs_head.tt" %]
+        [% include "tmpl/local_bbs_input_owner.tt" %]
+        [% include "tmpl/local_bbs_contents.tt" %]
+    [% END %]
+
+[% END %]
+
+[% include "tmpl/recent.tt" %]
