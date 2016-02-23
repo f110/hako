@@ -21,7 +21,8 @@ my (@ay) = (0,-1, 0, 1, 1, 0,-1,-2,-1, 0, 1, 2, 2, 2, 1, 0,-1,-2,-2);
 sub turnMain {
     my ($class, $context) = @_;
     # 最終更新時間を更新
-    $context->{island_last_time} += Hako::Config::UNIT_TIME;
+    my $last_time = $context->{context}->last_time;
+    $context->{context}->set_last_time($last_time + Hako::Config::UNIT_TIME);
 
     # 座標配列を作る
     my ($Hrpx, $Hrpy) = makeRandomPointArray($context);
@@ -29,13 +30,13 @@ sub turnMain {
     $context->{rpy} = $Hrpy;
 
     # ターン番号
-    $context->{island_turn}++;
+    $context->{context}->forward_turn;
 
     # 順番決め
-    my (@order) = randomArray($context->{island_number});
+    my (@order) = randomArray($context->{context}->number);
 
     # 収入、消費フェイズ
-    for (my $i = 0; $i < $context->{island_number}; $i++) {
+    for (my $i = 0; $i < $context->{context}->number; $i++) {
         estimate($context, $order[$i]);
         income($context->{islands}->[$order[$i]]);
 
@@ -44,19 +45,19 @@ sub turnMain {
     }
 
     # コマンド処理
-    for (my $i = 0; $i < $context->{island_number}; $i++) {
+    for (my $i = 0; $i < $context->{context}->number; $i++) {
         # 戻り値1になるまで繰り返し
         while(doCommand($context, $context->{islands}->[$order[$i]]) == 0){};
     }
 
     # 成長および単ヘックス災害
-    for (my $i = 0; $i < $context->{island_number}; $i++) {
+    for (my $i = 0; $i < $context->{context}->number; $i++) {
         doEachHex($context, $context->{islands}->[$order[$i]]);
     }
 
     # 島全体処理
-    my $remainNumber = $context->{island_number};
-    for (my $i = 0; $i < $context->{island_number}; $i++) {
+    my $remainNumber = $context->{context}->number;
+    for (my $i = 0; $i < $context->{context}->number; $i++) {
         my $island = $context->{islands}->[$order[$i]];
         doIslandProcess($context, $order[$i], $island);
 
@@ -69,7 +70,7 @@ sub turnMain {
             $remainNumber--;
             # 死滅メッセージ
             my $tmpid = $island->{'id'};
-            Hako::Log->logDead($context->{island_turn}, $tmpid, $island->{'name'});
+            Hako::Log->logDead($context->{context}->turn, $tmpid, $island->{'name'});
         }
     }
 
@@ -77,14 +78,14 @@ sub turnMain {
     islandSort($context);
 
     # ターン杯対象ターンだったら、その処理
-    if (($context->{island_turn} % Hako::Config::TURN_PRIZE_UNIT) == 0) {
+    if (($context->{context}->turn % Hako::Config::TURN_PRIZE_UNIT) == 0) {
         my $island = $context->{islands}->[0];
-        Hako::Log->logPrize($context->{island_turn}, $island->{'id'}, $island->{'name'}, $context->{island_turn} . ${Hako::Config::PRIZE()}[0]);
-        $island->{'prize'} .= $context->{island_turn}.",";
+        Hako::Log->logPrize($context->{context}->turn, $island->{'id'}, $island->{'name'}, $context->{context}->turn . ${Hako::Config::PRIZE()}[0]);
+        $island->{'prize'} .= $context->{context}->turn.",";
     }
 
     # 島数カット
-    $context->{island_number} = $remainNumber;
+    $context->{context}->set_number($remainNumber);
 
     # ファイルに書き出し
     $context->writeIslandsFile(-1);
@@ -231,7 +232,7 @@ sub doCommand {
 
     if ($kind == Hako::Constants::COMMAND_DO_NOTHING) {
         # 資金繰り
-        Hako::Log->logDoNothing($context->{island_turn}, $id, $name, $comName);
+        Hako::Log->logDoNothing($context->{context}->turn, $id, $name, $comName);
         $island->{'money'} += 10;
         $island->{'absent'} ++;
 
@@ -254,13 +255,13 @@ sub doCommand {
     if ($cost > 0) {
         # 金の場合
         if ($island->{'money'} < $cost) {
-            Hako::Log->logNoMoney($context->{island_turn}, $id, $name, $comName);
+            Hako::Log->logNoMoney($context->{context}->turn, $id, $name, $comName);
             return 0;
         }
     } elsif ($cost < 0) {
         # 食料の場合
         if ($island->{'food'} < (-$cost)) {
-            Hako::Log->logNoFood($context->{island_turn}, $id, $name, $comName);
+            Hako::Log->logNoFood($context->{context}->turn, $id, $name, $comName);
             return 0;
         }
     }
@@ -274,14 +275,14 @@ sub doCommand {
             $landKind == Hako::Constants::LAND_MOUNTAIN ||
             $landKind == Hako::Constants::LAND_MONSTER) {
             # 海、海底基地、油田、山、怪獣は整地できない
-            Hako::Log->logLandFail($context->{island_turn}, $id, $name, $comName, $landName, $point);
+            Hako::Log->logLandFail($context->{context}->turn, $id, $name, $comName, $landName, $point);
             return 0;
         }
 
         # 目的の場所を平地にする
         $land->[$x][$y] = Hako::Constants::LAND_PLAINS;
         $landValue->[$x][$y] = 0;
-        Hako::Log->logLandSuc($context->{island_turn}, $id, $name, '整地', $point);
+        Hako::Log->logLandSuc($context->{context}->turn, $id, $name, '整地', $point);
 
         # 金を差し引く
         $island->{'money'} -= $cost;
@@ -297,7 +298,7 @@ sub doCommand {
             if (Hako::Util::random(1000) < Hako::Config::DISASTER_MAIZO) {
                 my ($v) = 100 + Hako::Util::random(901);
                 $island->{'money'} += $v;
-                Hako::Log->logMaizo($context->{island_turn}, $id, $name, $comName, $v);
+                Hako::Log->logMaizo($context->{context}->turn, $id, $name, $comName, $v);
             }
             return 1;
         }
@@ -307,7 +308,7 @@ sub doCommand {
             $landKind != Hako::Constants::LAND_OIL &&
             $landKind != Hako::Constants::LAND_SEA_BASE) {
             # 海、海底基地、油田しか埋め立てできない
-            Hako::Log->logLandFail($context->{island_turn}, $id, $name, $comName, $landName, $point);
+            Hako::Log->logLandFail($context->{context}->turn, $id, $name, $comName, $landName, $point);
             return 0;
         }
 
@@ -319,7 +320,7 @@ sub doCommand {
 
         if ($seaCount == 7) {
             # 全部海だから埋め立て不能
-            Hako::Log->logNoLandAround($context->{island_turn}, $id, $name, $comName, $point);
+            Hako::Log->logNoLandAround($context->{context}->turn, $id, $name, $comName, $point);
             return 0;
         }
 
@@ -328,7 +329,7 @@ sub doCommand {
             # 目的の場所を荒地にする
             $land->[$x][$y] = Hako::Constants::LAND_WASTE;
             $landValue->[$x][$y] = 0;
-            Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+            Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
             $island->{'area'}++;
 
             if ($seaCount <= 4) {
@@ -356,7 +357,7 @@ sub doCommand {
             # 海なら、目的の場所を浅瀬にする
             $land->[$x][$y] = Hako::Constants::LAND_SEA;
             $landValue->[$x][$y] = 1;
-            Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+            Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
         }
 
         # 金を差し引く
@@ -368,7 +369,7 @@ sub doCommand {
             ($landKind == Hako::Constants::LAND_OIL) ||
             ($landKind == Hako::Constants::LAND_MONSTER)) {
             # 海底基地、油田、怪獣は掘削できない
-            Hako::Log->logLandFail($context->{island_turn}, $id, $name, $comName, $landName, $point);
+            Hako::Log->logLandFail($context->{context}->turn, $id, $name, $comName, $landName, $point);
             return 0;
         }
 
@@ -385,12 +386,12 @@ sub doCommand {
             # 見つかるか判定
             if ($p > Hako::Util::random(100)) {
                 # 油田見つかる
-                Hako::Log->logOilFound($context->{island_turn}, $id, $name, $point, $comName, $str);
+                Hako::Log->logOilFound($context->{context}->turn, $id, $name, $point, $comName, $str);
                 $land->[$x][$y] = Hako::Constants::LAND_OIL;
                 $landValue->[$x][$y] = 0;
             } else {
                 # 無駄撃ちに終わる
-                Hako::Log->logOilFail($context->{island_turn}, $id, $name, $point, $comName, $str);
+                Hako::Log->logOilFail($context->{context}->turn, $id, $name, $point, $comName, $str);
             }
             return 1;
         }
@@ -406,7 +407,7 @@ sub doCommand {
             $landValue->[$x][$y] = 1;
             $island->{'area'}--;
         }
-        Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+        Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
 
         # 金を差し引く
         $island->{'money'} -= $cost;
@@ -415,14 +416,14 @@ sub doCommand {
         # 伐採
         if ($landKind != Hako::Constants::LAND_FOREST) {
             # 森以外は伐採できない
-            Hako::Log->logLandFail($context->{island_turn}, $id, $name, $comName, $landName, $point);
+            Hako::Log->logLandFail($context->{context}->turn, $id, $name, $comName, $landName, $point);
             return 0;
         }
 
         # 目的の場所を平地にする
         $land->[$x][$y] = Hako::Constants::LAND_PLAINS;
         $landValue->[$x][$y] = 0;
-        Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+        Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
 
         # 売却金を得る
         $island->{'money'} += Hako::Config::TREE_VALUE * $lv;
@@ -444,7 +445,7 @@ sub doCommand {
                 (($landKind == Hako::Constants::LAND_FACTORY) && ($kind == Hako::Constants::COMMAND_FACTORY)) ||
                 (($landKind == Hako::Constants::LAND_DEFENCE) && ($kind == Hako::Constants::COMMAND_DEFENCE_BASE)))) {
             # 不適当な地形
-            Hako::Log->logLandFail($context->{island_turn}, $id, $name, $comName, $landName, $point);
+            Hako::Log->logLandFail($context->{context}->turn, $id, $name, $comName, $landName, $point);
             return 0;
         }
 
@@ -453,17 +454,17 @@ sub doCommand {
             # 目的の場所を森にする。
             $land->[$x][$y] = Hako::Constants::LAND_FOREST;
             $landValue->[$x][$y] = 1; # 木は最低単位
-            Hako::Log->logPBSuc($context->{island_turn}, $id, $name, $comName, $point);
+            Hako::Log->logPBSuc($context->{context}->turn, $id, $name, $comName, $point);
         } elsif($kind == Hako::Constants::COMMAND_BASE) {
             # 目的の場所をミサイル基地にする。
             $land->[$x][$y] = Hako::Constants::LAND_BASE;
             $landValue->[$x][$y] = 0; # 経験値0
-            Hako::Log->logPBSuc($context->{island_turn}, $id, $name, $comName, $point);
+            Hako::Log->logPBSuc($context->{context}->turn, $id, $name, $comName, $point);
         } elsif ($kind == Hako::Constants::COMMAND_HARIBOTE) {
             # 目的の場所をハリボテにする
             $land->[$x][$y] = Hako::Constants::LAND_HARIBOTE;
             $landValue->[$x][$y] = 0;
-            Hako::Log->logHariSuc($context->{island_turn}, $id, $name, $comName, Hako::Command->id_to_name(Hako::Constants::COMMAND_DEFENCE_BASE), $point);
+            Hako::Log->logHariSuc($context->{context}->turn, $id, $name, $comName, Hako::Command->id_to_name(Hako::Constants::COMMAND_DEFENCE_BASE), $point);
         } elsif($kind == Hako::Constants::COMMAND_FARM) {
             # 農場
             if ($landKind == Hako::Constants::LAND_FARM) {
@@ -477,7 +478,7 @@ sub doCommand {
                 $land->[$x][$y] = Hako::Constants::LAND_FARM;
                 $landValue->[$x][$y] = 10; # 規模 = 10000人
             }
-            Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+            Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
         } elsif ($kind == Hako::Constants::COMMAND_FACTORY) {
             # 工場
             if ($landKind == Hako::Constants::LAND_FACTORY) {
@@ -491,18 +492,18 @@ sub doCommand {
                 $land->[$x][$y] = Hako::Constants::LAND_FACTORY;
                 $landValue->[$x][$y] = 30; # 規模 = 10000人
             }
-            Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+            Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
         } elsif ($kind == Hako::Constants::COMMAND_DEFENCE_BASE) {
             # 防衛施設
             if ($landKind == Hako::Constants::LAND_DEFENCE) {
                 # すでに防衛施設の場合
                 $landValue->[$x][$y] = 1; # 自爆装置セット
-                Hako::Log->logBombSet($context->{island_turn}, $id, $name, $landName, $point);
+                Hako::Log->logBombSet($context->{context}->turn, $id, $name, $landName, $point);
             } else {
                 # 目的の場所を防衛施設に
                 $land->[$x][$y] = Hako::Constants::LAND_DEFENCE;
                 $landValue->[$x][$y] = 0;
-                Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+                Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
             }
         } elsif ($kind == Hako::Constants::COMMAND_MONUMENT) {
             # 記念碑
@@ -521,7 +522,7 @@ sub doCommand {
                 # その場所は荒地に
                 $land->[$x][$y] = Hako::Constants::LAND_WASTE;
                 $landValue->[$x][$y] = 0;
-                Hako::Log->logMonFly($context->{island_turn}, $id, $name, $landName, $point);
+                Hako::Log->logMonFly($context->{context}->turn, $id, $name, $landName, $point);
             } else {
                 # 目的の場所を記念碑に
                 $land->[$x][$y] = Hako::Constants::LAND_MONUMENT;
@@ -529,7 +530,7 @@ sub doCommand {
                     $arg = 0;
                 }
                 $landValue->[$x][$y] = $arg;
-                Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+                Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
             }
         }
 
@@ -556,7 +557,7 @@ sub doCommand {
         # 採掘場
         if ($landKind != Hako::Constants::LAND_MOUNTAIN) {
             # 山以外には作れない
-            Hako::Log->logLandFail($context->{island_turn}, $id, $name, $comName, $landName, $point);
+            Hako::Log->logLandFail($context->{context}->turn, $id, $name, $comName, $landName, $point);
             return 0;
         }
 
@@ -564,7 +565,7 @@ sub doCommand {
         if ($landValue->[$x][$y] > 200) {
             $landValue->[$x][$y] = 200; # 最大 200000人
         }
-        Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, $point);
+        Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, $point);
 
         # 金を差し引く
         $island->{'money'} -= $cost;
@@ -584,13 +585,13 @@ sub doCommand {
         # 海底基地
         if ($landKind != Hako::Constants::LAND_SEA || $lv != 0){
             # 海以外には作れない
-            Hako::Log->logLandFail($context->{island_turn}, $id, $name, $comName, $landName, $point);
+            Hako::Log->logLandFail($context->{context}->turn, $id, $name, $comName, $landName, $point);
             return 0;
         }
 
         $land->[$x][$y] = Hako::Constants::LAND_SEA_BASE;
         $landValue->[$x][$y] = 0; # 経験値0
-        Hako::Log->logLandSuc($context->{island_turn}, $id, $name, $comName, '(?, ?)');
+        Hako::Log->logLandSuc($context->{context}->turn, $id, $name, $comName, '(?, ?)');
 
         # 金を差し引く
         $island->{'money'} -= $cost;
@@ -604,7 +605,7 @@ sub doCommand {
         my $tn = $context->{id_to_number}->{$target};
         if ($tn eq '') {
             # ターゲットがすでにない
-            Hako::Log->logMsNoTarget($context->{island_turn}, $id, $name, $comName);
+            Hako::Log->logMsNoTarget($context->{context}->turn, $id, $name, $comName);
             return 0;
         }
 
@@ -677,10 +678,10 @@ sub doCommand {
                     # 範囲外
                     if ($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                         # ステルス
-                        Hako::Log->logMsOutS($context->{island_turn}, $id, $target, $name, $tName, $comName, $point);
+                        Hako::Log->logMsOutS($context->{context}->turn, $id, $target, $name, $tName, $comName, $point);
                     } else {
                         # 通常系
-                        Hako::Log->logMsOut($context->{island_turn}, $id, $target, $name, $tName, $comName, $point);
+                        Hako::Log->logMsOut($context->{context}->turn, $id, $target, $name, $tName, $comName, $point);
                     }
                     next;
                 }
@@ -733,10 +734,10 @@ sub doCommand {
                     # 空中爆破
                     if ($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                         # ステルス
-                        Hako::Log->logMsCaughtS($context->{island_turn}, $id, $target, $name, $tName, $comName, $point, $tPoint);
+                        Hako::Log->logMsCaughtS($context->{context}->turn, $id, $target, $name, $tName, $comName, $point, $tPoint);
                     } else {
                         # 通常系
-                        Hako::Log->logMsCaught($context->{island_turn}, $id, $target, $name, $tName, $comName, $point, $tPoint);
+                        Hako::Log->logMsCaught($context->{context}->turn, $id, $target, $name, $tName, $comName, $point, $tPoint);
                     }
                     next;
                 }
@@ -756,10 +757,10 @@ sub doCommand {
                     # 無効化
                     if($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                         # ステルス
-                        Hako::Log->logMsNoDamageS($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                        Hako::Log->logMsNoDamageS($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                     } else {
                         # 通常系
-                        Hako::Log->logMsNoDamage($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                        Hako::Log->logMsNoDamage($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                     }
                     next;
                 }
@@ -769,7 +770,7 @@ sub doCommand {
                     # 陸地破壊弾
                     if ($tL == Hako::Constants::LAND_MOUNTAIN) {
                         # 山(荒地になる)
-                        Hako::Log->logMsLDMountain($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                        Hako::Log->logMsLDMountain($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                         # 荒地になる
                         $tLand->[$tx][$ty] = Hako::Constants::LAND_WASTE;
                         $tLandValue->[$tx][$ty] = 0;
@@ -777,16 +778,16 @@ sub doCommand {
 
                     } elsif ($tL == Hako::Constants::LAND_SEA_BASE) {
                         # 海底基地
-                        Hako::Log->logMsLDSbase($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                        Hako::Log->logMsLDSbase($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                     } elsif ($tL == Hako::Constants::LAND_MONSTER) {
                         # 怪獣
-                        Hako::Log->logMsLDMonster($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                        Hako::Log->logMsLDMonster($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                     } elsif ($tL == Hako::Constants::LAND_SEA) {
                         # 浅瀬
-                        Hako::Log->logMsLDSea1($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                        Hako::Log->logMsLDSea1($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                     } else {
                         # その他
-                        Hako::Log->logMsLDLand($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                        Hako::Log->logMsLDLand($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                     }
 
                     # 経験値
@@ -818,10 +819,10 @@ sub doCommand {
                         # 荒地(被害なし)
                         if ($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                             # ステルス
-                            Hako::Log->logMsWasteS($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                            Hako::Log->logMsWasteS($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                         } else {
                             # 通常
-                            Hako::Log->logMsWaste($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                            Hako::Log->logMsWaste($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                         }
                     } elsif ($tL == Hako::Constants::LAND_MONSTER) {
                         # 怪獣
@@ -829,15 +830,15 @@ sub doCommand {
                         my $special = ${Hako::Config::MONSTER_SPECIAL()}[$mKind];
 
                         # 硬化中?
-                        if ((($special == 3) && (($context->{island_turn} % 2) == 1)) ||
-                            (($special == 4) && (($context->{island_turn} % 2) == 0))) {
+                        if ((($special == 3) && (($context->{context}->turn % 2) == 1)) ||
+                            (($special == 4) && (($context->{context}->turn % 2) == 0))) {
                             # 硬化中
                             if ($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                                 # ステルス
-                                Hako::Log->logMsMonNoDamageS($context->{island_turn}, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
+                                Hako::Log->logMsMonNoDamageS($context->{context}->turn, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
                             } else {
                                 # 通常弾
-                                Hako::Log->logMsMonNoDamage($context->{island_turn}, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
+                                Hako::Log->logMsMonNoDamage($context->{context}->turn, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
                             }
                             next;
                         } else {
@@ -855,17 +856,17 @@ sub doCommand {
 
                                 if ($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                                     # ステルス
-                                    Hako::Log->logMsMonKillS($context->{island_turn}, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
+                                    Hako::Log->logMsMonKillS($context->{context}->turn, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
                                 } else {
                                     # 通常
-                                    Hako::Log->logMsMonKill($context->{island_turn}, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
+                                    Hako::Log->logMsMonKill($context->{context}->turn, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
                                 }
 
                                 # 収入
                                 my $value = ${Hako::Config::MONSTER_VALUE()}[$mKind];
                                 if ($value > 0) {
                                     $tIsland->{'money'} += $value;
-                                    Hako::Log->logMsMonMoney($context->{island_turn}, $target, $mName, $value);
+                                    Hako::Log->logMsMonMoney($context->{context}->turn, $target, $mName, $value);
                                 }
 
                                 # 賞関係
@@ -881,10 +882,10 @@ sub doCommand {
                                 # 怪獣生きてる
                                 if ($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                                     # ステルス
-                                    Hako::Log->logMsMonsterS($context->{island_turn}, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
+                                    Hako::Log->logMsMonsterS($context->{context}->turn, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
                                 } else {
                                     # 通常
-                                    Hako::Log->logMsMonster($context->{island_turn}, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
+                                    Hako::Log->logMsMonster($context->{context}->turn, $id, $target, $name, $tName, $comName, $mName, $point, $tPoint);
                                 }
                                 # HPが1減る
                                 $tLandValue->[$tx][$ty]--;
@@ -895,10 +896,10 @@ sub doCommand {
                         # 通常地形
                         if ($kind == Hako::Constants::COMMAND_MISSILE_ST) {
                             # ステルス
-                            Hako::Log->logMsNormalS($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                            Hako::Log->logMsNormalS($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                         } else {
                             # 通常
-                            Hako::Log->logMsNormal($context->{island_turn}, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
+                            Hako::Log->logMsNormal($context->{context}->turn, $id, $target, $name, $tName, $comName, $tLname, $point, $tPoint);
                         }
                     }
                     # 経験値
@@ -931,7 +932,7 @@ sub doCommand {
 
         if ($flag == 0) {
             # 基地が一つも無かった場合
-            Hako::Log->logMsNoBase($context->{island_turn}, $id, $name, $comName);
+            Hako::Log->logMsNoBase($context->{context}->turn, $id, $name, $comName);
             return 0;
         }
 
@@ -980,7 +981,7 @@ sub doCommand {
             }
             if ($achive > 0) {
                 # 少しでも到着した場合、ログを吐く
-                Hako::Log->logMsBoatPeople($context->{island_turn}, $id, $name, $achive);
+                Hako::Log->logMsBoatPeople($context->{context}->turn, $id, $name, $achive);
 
                 # 難民の数が一定数以上なら、平和賞の可能性あり
                 if ($achive >= 200) {
@@ -992,13 +993,13 @@ sub doCommand {
 
                     if ((!($flags & 8)) &&  $achive >= 200){
                         $flags |= 8;
-                        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[4]);
+                        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[4]);
                     } elsif ((!($flags & 16)) &&  $achive > 500){
                         $flags |= 16;
-                        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[5]);
+                        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[5]);
                     } elsif ((!($flags & 32)) &&  $achive > 800){
                         $flags |= 32;
-                        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[6]);
+                        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[6]);
                     }
                     $island->{'prize'} = "$flags,$monsters,$turns";
                 }
@@ -1014,12 +1015,12 @@ sub doCommand {
 
         if ($tn eq '') {
             # ターゲットがすでにない
-            Hako::Log->logMsNoTarget($context->{island_turn}, $id, $name, $comName);
+            Hako::Log->logMsNoTarget($context->{context}->turn, $id, $name, $comName);
             return 0;
         }
 
         # メッセージ
-        Hako::Log->logMonsSend($context->{island_turn}, $id, $target, $name, $tName);
+        Hako::Log->logMonsSend($context->{context}->turn, $id, $target, $name, $tName);
         $tIsland->{'monstersend'}++;
 
         $island->{'money'} -= $cost;
@@ -1030,7 +1031,7 @@ sub doCommand {
         my $value = Hako::Util::min($arg * (-$cost), $island->{'food'});
 
         # 輸出ログ
-        Hako::Log->logSell($context->{island_turn}, $id, $name, $comName, $value);
+        Hako::Log->logSell($context->{context}->turn, $id, $name, $comName, $value);
         $island->{'food'} -=  $value;
         $island->{'money'} += ($value / 10);
         return 0;
@@ -1054,7 +1055,7 @@ sub doCommand {
         }
 
         # 援助ログ
-        Hako::Log->logAid($context->{island_turn}, $id, $target, $name, $tName, $comName, $str);
+        Hako::Log->logAid($context->{context}->turn, $id, $target, $name, $tName, $comName, $str);
 
         if ($cost < 0) {
             $island->{'food'} -= $value;
@@ -1066,13 +1067,13 @@ sub doCommand {
         return 0;
     } elsif ($kind == Hako::Constants::COMMAND_PROPAGANDA) {
         # 誘致活動
-        Hako::Log->logPropaganda($context->{island_turn}, $id, $name, $comName);
+        Hako::Log->logPropaganda($context->{context}->turn, $id, $name, $comName);
         $island->{'propaganda'} = 1;
         $island->{'money'} -= $cost;
         return 1;
     } elsif ($kind == Hako::Constants::COMMAND_GIVE_UP) {
         # 放棄
-        Hako::Log->logGiveup($context->{island_turn}, $id, $name);
+        Hako::Log->logGiveup($context->{context}->turn, $id, $name);
         $island->{'dead'} = 1;
         return 1;
     }
@@ -1158,7 +1159,7 @@ sub doEachHex {
             if ($lv == 1) {
                 # 防衛施設自爆
                 my $lName = landName($landKind, $lv);
-                Hako::Log->logBombFire($context->{island_turn}, $id, $name, $lName, "($x, $y)");
+                Hako::Log->logBombFire($context->{context}->turn, $id, $name, $lName, "($x, $y)");
 
                 # 広域被害ルーチン
                 wideDamage($context, $id, $name, $land, $landValue, $x, $y);
@@ -1171,12 +1172,12 @@ sub doEachHex {
             my $str = "$value" . Hako::Config::UNIT_MONEY;
 
             # 収入ログ
-            Hako::Log->logOilMoney($context->{island_turn}, $id, $name, $lName, "($x, $y)", $str);
+            Hako::Log->logOilMoney($context->{context}->turn, $id, $name, $lName, "($x, $y)", $str);
 
             # 枯渇判定
             if (Hako::Util::random(1000) < Hako::Config::OIL_RATIO) {
                 # 枯渇
-                Hako::Log->logOilEnd($context->{island_turn}, $id, $name, $lName, "($x, $y)");
+                Hako::Log->logOilEnd($context->{context}->turn, $id, $name, $lName, "($x, $y)");
                 $land->[$x][$y] = Hako::Constants::LAND_SEA;
                 $landValue->[$x][$y] = 0;
             }
@@ -1193,8 +1194,8 @@ sub doEachHex {
             my $special = ${Hako::Config::MONSTER_SPECIAL()}[$mKind];
 
             # 硬化中?
-            if ((($special == 3) && (($context->{island_turn} % 2) == 1)) ||
-                (($special == 4) && (($context->{island_turn} % 2) == 0))) {
+            if ((($special == 3) && (($context->{context}->turn % 2) == 1)) ||
+                (($special == 4) && (($context->{context}->turn % 2) == 0))) {
                 # 硬化中
                 next;
             }
@@ -1260,13 +1261,13 @@ sub doEachHex {
 
             if (($l == Hako::Constants::LAND_DEFENCE) && (Hako::Config::DEFENCE_BASE_AUTO == 1)) {
                 # 防衛施設を踏んだ
-                Hako::Log->logMonsMoveDefence($context->{island_turn}, $id, $name, $lName, $point, $mName);
+                Hako::Log->logMonsMoveDefence($context->{context}->turn, $id, $name, $lName, $point, $mName);
 
                 # 広域被害ルーチン
                 wideDamage($context, $id, $name, $land, $landValue, $sx, $sy);
             } else {
                 # 行き先が荒地になる
-                Hako::Log->logMonsMove($context->{island_turn}, $id, $name, $lName, $point, $mName);
+                Hako::Log->logMonsMove($context->{context}->turn, $id, $name, $lName, $point, $mName);
             }
         }
 
@@ -1283,7 +1284,7 @@ sub doEachHex {
                     my $lv = $landValue->[$x][$y];
                     my $point = "($x, $y)";
                     my $lName = landName($l, $lv);
-                    Hako::Log->logFire($context->{island_turn}, $id, $name, $lName, $point);
+                    Hako::Log->logFire($context->{context}->turn, $id, $name, $lName, $point);
                     $land->[$x][$y] = Hako::Constants::LAND_WASTE;
                     $landValue->[$x][$y] = 0;
                 }
@@ -1446,14 +1447,14 @@ sub wideDamage {
                 next;
             } elsif (($landKind == Hako::Constants::LAND_SEA_BASE) ||
                 ($landKind == Hako::Constants::LAND_OIL)) {
-                Hako::Log->logWideDamageSea2($context->{island_turn}, $id, $name, $landName, $point);
+                Hako::Log->logWideDamageSea2($context->{context}->turn, $id, $name, $landName, $point);
                 $land->[$sx][$sy] = Hako::Constants::LAND_SEA;
                 $landValue->[$sx][$sy] = 0;
             } else {
                 if ($landKind == Hako::Constants::LAND_MONSTER) {
-                    Hako::Log->logWideDamageMonsterSea($context->{island_turn}, $id, $name, $landName, $point);
+                    Hako::Log->logWideDamageMonsterSea($context->{context}->turn, $id, $name, $landName, $point);
                 } else {
-                    Hako::Log->logWideDamageSea($context->{island_turn}, $id, $name, $landName, $point);
+                    Hako::Log->logWideDamageSea($context->{context}->turn, $id, $name, $landName, $point);
                 }
                 $land->[$sx][$sy] = Hako::Constants::LAND_SEA;
                 if ($i == 0) {
@@ -1473,11 +1474,11 @@ sub wideDamage {
                 ($landKind == Hako::Constants::LAND_SEA_BASE)) {
                 next;
             } elsif($landKind == Hako::Constants::LAND_MONSTER) {
-                Hako::Log->logWideDamageMonster($context->{island_turn}, $id, $name, $landName, $point);
+                Hako::Log->logWideDamageMonster($context->{context}->turn, $id, $name, $landName, $point);
                 $land->[$sx][$sy] = Hako::Constants::LAND_WASTE;
                 $landValue->[$sx][$sy] = 0;
             } else {
-                Hako::Log->logWideDamageWaste($context->{island_turn}, $id, $name, $landName, $point);
+                Hako::Log->logWideDamageWaste($context->{context}->turn, $id, $name, $landName, $point);
                 $land->[$sx][$sy] = Hako::Constants::LAND_WASTE;
                 $landValue->[$sx][$sy] = 0;
             }
@@ -1498,7 +1499,7 @@ sub doIslandProcess {
     # 地震判定
     if (Hako::Util::random(1000) < (($island->{'prepare2'} + 1) * Hako::Config::DISASTER_EARTHQUAKE)) {
         # 地震発生
-        Hako::Log->logEarthquake($context->{island_turn}, $id, $name);
+        Hako::Log->logEarthquake($context->{context}->turn, $id, $name);
 
         for (my $i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
             my $x = $context->{rpx}->[$i];
@@ -1511,7 +1512,7 @@ sub doIslandProcess {
                 ($landKind == Hako::Constants::LAND_FACTORY)) {
                 # 1/4で壊滅
                 if (Hako::Uitl::random(4) == 0) {
-                    Hako::Log->logEQDamage($context->{island_turn}, $id, $name, landName($landKind, $lv), "($x, $y)");
+                    Hako::Log->logEQDamage($context->{context}->turn, $id, $name, landName($landKind, $lv), "($x, $y)");
                     $land->[$x][$y] = Hako::Constants::LAND_WASTE;
                     $landValue->[$x][$y] = 0;
                 }
@@ -1523,7 +1524,7 @@ sub doIslandProcess {
     # 食料不足
     if ($island->{'food'} <= 0) {
         # 不足メッセージ
-        Hako::Log->logStarve($context->{island_turn}, $id, $name);
+        Hako::Log->logStarve($context->{context}->turn, $id, $name);
         $island->{'food'} = 0;
 
         my($x, $y, $landKind, $lv, $i);
@@ -1539,7 +1540,7 @@ sub doIslandProcess {
                 ($landKind == Hako::Constants::LAND_DEFENCE)) {
                 # 1/4で壊滅
                 if (Hako::Util::random(4) == 0) {
-                    Hako::Log->logSvDamage($context->{island_turn}, $id, $name, landName($landKind, $lv), "($x, $y)");
+                    Hako::Log->logSvDamage($context->{context}->turn, $id, $name, landName($landKind, $lv), "($x, $y)");
                     $land->[$x][$y] = Hako::Constants::LAND_WASTE;
                     $landValue->[$x][$y] = 0;
                 }
@@ -1550,7 +1551,7 @@ sub doIslandProcess {
     # 津波判定
     if (Hako::Util::random(1000) < Hako::Config::DISASTER_TSUNAMI) {
         # 津波発生
-        Hako::Log->logTsunami($context->{island_turn}, $id, $name);
+        Hako::Log->logTsunami($context->{context}->turn, $id, $name);
 
         for (my $i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
             my $x = $context->{rpx}->[$i];
@@ -1569,7 +1570,7 @@ sub doIslandProcess {
                     (countAround($land, $x, $y, Hako::Constants::LAND_OIL, 7) +
                         countAround($land, $x, $y, Hako::Constants::LAND_SEA_BASE, 7) +
                         countAround($land, $x, $y, Hako::Constants::LAND_SEA, 7) - 1)) {
-                    Hako::Log->logTsunamiDamage($context->{island_turn}, $id, $name, landName($landKind, $lv), "($x, $y)");
+                    Hako::Log->logTsunamiDamage($context->{context}->turn, $id, $name, landName($landKind, $lv), "($x, $y)");
                     $land->[$x][$y] = Hako::Constants::LAND_WASTE;
                     $landValue->[$x][$y] = 0;
                 }
@@ -1621,7 +1622,7 @@ sub doIslandProcess {
                     my ($mKind, $mName, $mHp) = monsterSpec($lv);
 
                     # メッセージ
-                    Hako::Log->logMonsCome($context->{island_turn}, $id, $name, $mName, "($bx, $by)", $lName);
+                    Hako::Log->logMonsCome($context->{context}->turn, $id, $name, $mName, "($bx, $by)", $lName);
                     last;
                 }
             }
@@ -1632,7 +1633,7 @@ sub doIslandProcess {
     if (($island->{'area'} > Hako::Config::DISASTER_FALL_BORDER) &&
         (Hako::Util::random(1000) < Hako::Config::DISASTER_FALL_DOWN)) {
         # 地盤沈下発生
-        Hako::Log->logFalldown($context->{island_turn}, $id, $name);
+        Hako::Log->logFalldown($context->{context}->turn, $id, $name);
 
         for (my $i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
             my $x = $context->{rpx}->[$i];
@@ -1648,7 +1649,7 @@ sub doIslandProcess {
                 # 周囲に海があれば、値を-1に
                 if(countAround($land, $x, $y, Hako::Constants::LAND_SEA, 7) + 
                     countAround($land, $x, $y, Hako::Constants::LAND_SEA_BASE, 7)) {
-                    Hako::Log->logFalldownLand($context->{island_turn}, $id, $name, landName($landKind, $lv), "($x, $y)");
+                    Hako::Log->logFalldownLand($context->{context}->turn, $id, $name, landName($landKind, $lv), "($x, $y)");
                     $land->[$x][$y] = -1;
                     $landValue->[$x][$y] = 0;
                 }
@@ -1674,7 +1675,7 @@ sub doIslandProcess {
     # 台風判定
     if (Hako::Util::random(1000) < Hako::Config::DISASTER_TYPHOON) {
         # 台風発生
-        Hako::Log->logTyphoon($context->{island_turn}, $id, $name);
+        Hako::Log->logTyphoon($context->{context}->turn, $id, $name);
 
         for (my $i = 0; $i < Hako::Config::POINT_NUMBER; $i++) {
             my $x = $context->{rpx}->[$i];
@@ -1690,7 +1691,7 @@ sub doIslandProcess {
                     (6
                         - countAround($land, $x, $y, Hako::Constants::LAND_FOREST, 7)
                         - countAround($land, $x, $y, Hako::Constants::LAND_MONUMENT, 7))) {
-                    Hako::Log->logTyphoonDamage($context->{island_turn}, $id, $name, landName($landKind, $lv), "($x, $y)");
+                    Hako::Log->logTyphoonDamage($context->{context}->turn, $id, $name, landName($landKind, $lv), "($x, $y)");
                     $land->[$x][$y] = Hako::Constants::LAND_PLAINS;
                     $landValue->[$x][$y] = 0;
                 }
@@ -1708,7 +1709,7 @@ sub doIslandProcess {
         my $point = "($x, $y)";
 
         # メッセージ
-        Hako::Log->logHugeMeteo($context->{island_turn}, $id, $name, $point);
+        Hako::Log->logHugeMeteo($context->{context}->turn, $id, $name, $point);
 
         # 広域被害ルーチン
         wideDamage($context, $id, $name, $land, $landValue, $x, $y);
@@ -1726,7 +1727,7 @@ sub doIslandProcess {
         my $point = "($x, $y)";
 
         # メッセージ
-        Hako::Log->logMonDamage($context->{island_turn}, $id, $name, $point);
+        Hako::Log->logMonDamage($context->{context}->turn, $id, $name, $point);
 
         # 広域被害ルーチン
         wideDamage($context, $id, $name, $land, $landValue, $x, $y);
@@ -1747,22 +1748,22 @@ sub doIslandProcess {
 
             if (($landKind == Hako::Constants::LAND_SEA) && ($lv == 0)){
                 # 海ポチャ
-                Hako::Log->logMeteoSea($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                Hako::Log->logMeteoSea($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
             } elsif ($landKind == Hako::Constants::LAND_MOUNTAIN) {
                 # 山破壊
-                Hako::Log->logMeteoMountain($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                Hako::Log->logMeteoMountain($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
                 $land->[$x][$y] = Hako::Constants::LAND_WASTE;
                 $landValue->[$x][$y] = 0;
                 next;
             } elsif ($landKind == Hako::Constants::LAND_SEA_BASE) {
-                Hako::Log->logMeteoSbase($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                Hako::Log->logMeteoSbase($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
             } elsif ($landKind == Hako::Constants::LAND_MONSTER) {
-                Hako::Log->logMeteoMonster($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                Hako::Log->logMeteoMonster($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
             } elsif ($landKind == Hako::Constants::LAND_SEA) {
                 # 浅瀬
-                Hako::Log->logMeteoSea1($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                Hako::Log->logMeteoSea1($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
             } else {
-                Hako::Log->logMeteoNormal($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                Hako::Log->logMeteoNormal($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
             }
             $land->[$x][$y] = Hako::Constants::LAND_SEA;
             $landValue->[$x][$y] = 0;
@@ -1776,7 +1777,7 @@ sub doIslandProcess {
         my $landKind = $land->[$x][$y];
         my $lv = $landValue->[$x][$y];
         my $point = "($x, $y)";
-        Hako::Log->logEruption($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+        Hako::Log->logEruption($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
         $land->[$x][$y] = Hako::Constants::LAND_MOUNTAIN;
         $landValue->[$x][$y] = 0;
 
@@ -1806,9 +1807,9 @@ sub doIslandProcess {
                     # 海の場合
                     if ($lv == 1) {
                         # 浅瀬
-                        Hako::Log->logEruptionSea1($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                        Hako::Log->logEruptionSea1($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
                     } else {
-                        Hako::Log->logEruptionSea($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                        Hako::Log->logEruptionSea($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
                         $land->[$sx][$sy] = Hako::Constants::LAND_SEA;
                         $landValue->[$sx][$sy] = 1;
                         next;
@@ -1819,7 +1820,7 @@ sub doIslandProcess {
                     next;
                 } else {
                     # それ以外の場合
-                    Hako::Log->logEruptionNormal($context->{island_turn}, $id, $name, landName($landKind, $lv), $point);
+                    Hako::Log->logEruptionNormal($context->{context}->turn, $id, $name, landName($landKind, $lv), $point);
                 }
                 $land->[$sx][$sy] = Hako::Constants::LAND_WASTE;
                 $landValue->[$sx][$sy] = 0;
@@ -1853,25 +1854,25 @@ sub doIslandProcess {
     # 繁栄賞
     if ((!($flags & 1)) &&  $pop >= 3000){
         $flags |= 1;
-        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[1]);
+        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[1]);
     } elsif ((!($flags & 2)) &&  $pop >= 5000){
         $flags |= 2;
-        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[2]);
+        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[2]);
     } elsif ((!($flags & 4)) &&  $pop >= 10000){
         $flags |= 4;
-        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[3]);
+        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[3]);
     }
 
     # 災難賞
     if ((!($flags & 64)) &&  $damage >= 500){
         $flags |= 64;
-        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[7]);
+        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[7]);
     } elsif ((!($flags & 128)) &&  $damage >= 1000){
         $flags |= 128;
-        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[8]);
+        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[8]);
     } elsif ((!($flags & 256)) &&  $damage >= 2000){
         $flags |= 256;
-        Hako::Log->logPrize($context->{island_turn}, $id, $name, ${Hako::Config::PRIZE()}[9]);
+        Hako::Log->logPrize($context->{context}->turn, $id, $name, ${Hako::Config::PRIZE()}[9]);
     }
 
     $island->{'prize'} = "$flags,$monsters,$turns";
@@ -1893,7 +1894,7 @@ sub islandSort {
 sub newIslandMain {
     my ($class, $context) = @_;
     # 島がいっぱいでないかチェック
-    if ($context->{island_number} >= Hako::Config::MAX_ISLAND) {
+    if ($context->{context}->number >= Hako::Config::MAX_ISLAND) {
         Hako::Exception::IslandFull->throw;
     }
 
@@ -1923,15 +1924,15 @@ sub newIslandMain {
     }
 
     # 新しい島の番号を決める
-    $context->{current_number} = $context->{island_number};
-    $context->{island_number}++;
+    $context->{current_number} = $context->{context}->number;
+    $context->{context}->set_number($context->{current_number} + 1);
     $context->{islands}->[$context->{current_number}] = makeNewIsland();
     my $island = $context->{islands}->[$context->{current_number}];
 
     # 各種の値を設定
     $island->{'name'} = $context->{current_name};
-    $island->{'id'} = $context->{island_next_id};
-    $context->{island_next_id}++;
+    $island->{'id'} = $context->{context}->next_id;
+    $context->{context}->set_next_id($island->{id} + 1);
     $island->{'absent'} = Hako::Config::GIVEUP_TURN - 3;
     $island->{'comment'} = '(未登録)';
     $island->{'password'} = Hako::Util::encode($context->{input_password});
@@ -1941,7 +1942,7 @@ sub newIslandMain {
 
     # データ書き出し
     $context->writeIslandsFile($island->{'id'});
-    Hako::Log->logDiscover($context->{island_turn}, $context->{current_name}); # ログ
+    Hako::Log->logDiscover($context->{context}->turn, $context->{current_name}); # ログ
     Hako::DB->init_command($island->{id});
 }
 
@@ -2276,7 +2277,7 @@ sub localBbsMain {
         } else {
             $message = '1';
         }
-        $context->{local_bbs_name} = $context->{island_turn}."：" . Hako::Util::htmlEscape($context->{local_bbs_name});
+        $context->{local_bbs_name} = $context->{context}->turn."：" . Hako::Util::htmlEscape($context->{local_bbs_name});
         $context->{local_bbs_message} = Hako::Util::htmlEscape($context->{local_bbs_message});
         my $bbs_message = "$message>@{[$context->{local_bbs_name}]}>@{[$context->{local_bbs_message}]}";
         $lbbs->[0] = $bbs_message;
@@ -2332,7 +2333,7 @@ sub changeMain {
         }
 
         # 名前を変更
-        Hako::Log->logChangeName($context->{island_turn}, $island->{'name'}, $context->{current_name});
+        Hako::Log->logChangeName($context->{context}->turn, $island->{'name'}, $context->{current_name});
         $island->{'name'} = $context->{current_name};
         $flag = 1;
     }

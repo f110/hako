@@ -78,16 +78,14 @@ sub initialize {
     $self->{command_y} = "";
     $self->{command_mode} = "";
     $self->{default_kind} = "";
-    $self->{island_turn} = "";
-    $self->{island_last_time} = "";
-    $self->{island_number} = "";
-    $self->{island_next_id} = "";
     $self->{islands} = [];
     $self->{id_to_number} = {};
     $self->{id_to_name} = {};
     $self->{island_list} = "";
     $self->{target_list} = "";
     $self->{defence_hex} = []; # landをパースするときにちゃんと入れないと機能しなさそう
+
+    $self->{context} = Hako::Context::Game->new;
 }
 
 sub psgi {
@@ -322,6 +320,9 @@ sub psgi {
         $self->common_assign;
         $response->body(Encode::encode("utf-8", $self->render($template)));
         $response->headers({"Set-Cookie" => $self->{cookie_buffer}});
+
+        # 最後にゲームの状態を保存する
+        $self->{context}->save;
         return $response->finalize;
     };
 }
@@ -493,21 +494,16 @@ sub readIslandsFile {
                    # -1だと全地形を読む
                    # 番号だとその島の地形だけは読みこむ
 
-    $self->{island_turn} = Hako::DB->get_global_value("turn"); # ターン数
-    $self->{island_last_time} = Hako::DB->get_global_value("last_time"); # 最終更新時間
-    $self->{island_number} = Hako::DB->get_global_value("number"); # 島の総数
-    $self->{island_next_id} = Hako::DB->get_global_value("next_id"); # 次に割り当てるID
-
     # ターン処理判定
     my ($now) = time;
-    if (((Hako::Config::DEBUG == 1) && ($self->{main_mode} eq 'Hdebugturn')) || (($now - $self->{island_last_time}) >= Hako::Config::UNIT_TIME)) {
+    if (((Hako::Config::DEBUG == 1) && ($self->{main_mode} eq 'Hdebugturn')) || (($now - $self->{context}->last_time) >= Hako::Config::UNIT_TIME)) {
         $self->{main_mode} = 'turn';
         $num = -1; # 全島読みこむ
     }
 
     # 島の読みこみ
     my $islands_from_db = Hako::DB->get_islands;
-    for (my $i = 0; $i < $self->{island_number}; $i++) {
+    for (my $i = 0; $i < $self->{context}->number; $i++) {
         push(@{$self->{islands}}, $self->readIsland($num, $islands_from_db));
         $self->{id_to_number}->{$self->{islands}->[$i]->{'id'}} = $i;
     }
@@ -605,7 +601,7 @@ sub getIslandList {
 
     #島リストのメニュー
     my $list = "";
-    for (my $i = 0; $i < $self->{island_number}; $i++) {
+    for (my $i = 0; $i < $self->{context}->number; $i++) {
         my $name = $self->{islands}->[$i]->{'name'};
         my $id = $self->{islands}->[$i]->{'id'};
         my $s = $id eq $select ? "SELECTED" : "";
@@ -664,13 +660,8 @@ sub cookieOutput {
 sub writeIslandsFile {
     my ($self, $num) = @_;
 
-    Hako::DB->set_global_value("turn", $self->{island_turn});
-    Hako::DB->set_global_value("last_time", $self->{island_last_time});
-    Hako::DB->set_global_value("number", $self->{island_number});
-    Hako::DB->set_global_value("next_id", $self->{island_next_id});
-
     # 島の書きこみ
-    for (my $i = 0; $i < $self->{island_number}; $i++) {
+    for (my $i = 0; $i < $self->{context}->number; $i++) {
         $self->writeIsland($self->{islands}[$i], $num, $i);
     }
 
@@ -710,7 +701,7 @@ sub topPageMain {
     }
 
     my @islands;
-    for (my $ii = 0; $ii < $self->{island_number}; $ii++) {
+    for (my $ii = 0; $ii < $self->{context}->number; $ii++) {
         my $j = $ii + 1;
         my $island = $self->{islands}->[$ii];
 
@@ -762,7 +753,7 @@ sub topPageMain {
 
     $self->vars_merge(
         hide_money_mode  => Hako::Config::HIDE_MONEY_MODE,
-        turn             => $self->{island_turn},
+        turn             => $self->{context}->turn,
         default_id       => $self->{default_id},
         default_password => $self->{default_password},
         islands          => \@islands,
@@ -771,9 +762,9 @@ sub topPageMain {
         unit_food        => Hako::Config::UNIT_FOOD,
         unit_money       => Hako::Config::UNIT_MONEY,
         max_island       => Hako::Config::MAX_ISLAND,
-        island_number    => $self->{island_number},
+        island_number    => $self->{context}->number,
         change_name_cost => Hako::Config::CHANGE_NAME_COST,
-        logs             => [map {$_->{message} = mark_raw($_->{message}); $_} @{Hako::DB->get_common_log($self->{island_turn})}],
+        logs             => [map {$_->{message} = mark_raw($_->{message}); $_} @{Hako::DB->get_common_log($self->{context}->turn)}],
         histories        => [map {$_->{message} = mark_raw($_->{message}); $_} @{Hako::DB->get_history()}],
     );
 }
@@ -831,7 +822,7 @@ sub nameToNumber {
     my ($self, $name) = @_;
 
     # 全島から探す
-    for (my $i = 0; $i < $self->{island_number}; $i++) {
+    for (my $i = 0; $i < $self->{context}->number; $i++) {
         if($self->{islands}->[$i]->{'name'} eq $name) {
             return $i;
         }
@@ -1037,8 +1028,8 @@ sub landString {
         $image = ${Hako::Config::MONSTER_IMAGE()}[$kind];
 
         # 硬化中?
-        if ((($special == 3) && (($self->{island_turn} % 2) == 1)) ||
-            (($special == 4) && (($self->{island_turn} % 2) == 0))) {
+        if ((($special == 3) && (($self->{context}->turn % 2) == 1)) ||
+            (($special == 4) && (($self->{context}->turn % 2) == 0))) {
             # 硬化中
             $image = ${Hako::Config::MONSTER_IMAGE2()}[$kind];
         }
@@ -1079,8 +1070,6 @@ sub tempLbbsContents {
     for (my $i = 0; $i < Hako::Config::LOCAL_BBS_MAX; $i++) {
         my $line = $lbbs->[$i];
         if ($line =~ /([0-9]*)\>(.*)\>(.*)$/) {
-            my $j = $i + 1;
-            my $number = "<TR><TD align=center>@{[Hako::Template::Function->wrap_number($j)]}</TD>";
             my $content;
             if ($1 == 0) {
                 # 観光者
@@ -1108,7 +1097,7 @@ sub tempRecent {
 sub logPrintLocal {
     my ($self, $mode) = @_;
 
-    my $logs = Hako::DB->get_log($self->{current_id}, $self->{island_turn});
+    my $logs = Hako::DB->get_log($self->{current_id}, $self->{context}->turn);
     my (@secrets, @lates, @normals);
     for my $log (@$logs) {
         $log->{message} = mark_raw($log->{message});
@@ -1315,8 +1304,4 @@ sub tempChangeNothing {
     $self->vars_merge(message => "名前、パスワードともに空欄です");
 }
 
-# 名前変更成功
-sub tempChange {
-    my ($self) = @_;
-}
 1;
