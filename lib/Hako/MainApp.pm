@@ -20,6 +20,7 @@ use Hako::Util;
 use Hako::Mode;
 use Hako::Template::Function;
 use Hako::Exception;
+use Hako::Context::Game;
 use Devel::Peek;
 
 sub new {
@@ -28,8 +29,7 @@ sub new {
     return bless {
         xslate => Text::Xslate->new(
             syntax => 'TTerse',
-            function => {
-            },
+            function => {},
             module => ['Text::Xslate::Bridge::Star'],
         )
     }, $class;

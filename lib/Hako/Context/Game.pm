@@ -2,6 +2,7 @@ package Hako::Context::Game;
 use strict;
 use warnings;
 use Hako::DB;
+use Data::Dumper;
 
 sub new { bless {}, shift; }
 
@@ -31,8 +32,8 @@ sub save {
 
     my @target_keys;
     for my $k (keys %$self) {
-        next if ($k =~ /^flag_/);
-        push(@target_keys, $self->{$k});
+        next unless ($k =~ /^flag_/);
+        push(@target_keys, $k);
     }
 
     for my $k (@target_keys) {
@@ -49,6 +50,7 @@ sub _get_global_value {
 sub _set_global_value {
     my ($self, $key, $value) = @_;
 
+    return $value if $self->{$key} eq $value;
     $self->{$key} = $value;
     $self->{"flag_".$key} = $key;
 
