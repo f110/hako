@@ -1074,7 +1074,8 @@ sub doCommand {
     } elsif ($kind == Hako::Constants::COMMAND_GIVE_UP) {
         # 放棄
         Hako::Log->logGiveup($context->{context}->turn, $id, $name);
-        $island->{'dead'} = 1;
+        $island->{dead} = 1;
+        $island->delete;
         return 1;
     }
 
@@ -1909,7 +1910,7 @@ sub newIslandMain {
     }
 
     # 名前の重複チェック
-    if ($context->nameToNumber($context->{current_name}) != -1) {
+    unless ($context->{accessor}->is_exist($context->{current_name})) {
         Hako::Exception::AlreadyExist->throw;
     }
 
@@ -2106,7 +2107,7 @@ sub printIslandMain {
     }
 
     # 名前の取得
-    $context->{current_name} = $context->{islands}->[$context->{current_number}]->{'name'};
+    $context->{current_name} = $context->{accessor}->get($context->{current_id})->name;
 }
 
 sub ownerMain {
@@ -2116,8 +2117,8 @@ sub ownerMain {
 
     # idから島を取得
     $context->{current_number} = $context->{id_to_number}->{$context->{current_id}};
-    my $island = $context->{islands}->[$context->{current_number}];
-    $context->{current_name} = $island->{'name'};
+    my $island = $context->{accessor}->get($context->{current_id});
+    $context->{current_name} = $island->name;
 
     # パスワード
     if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
@@ -2129,8 +2130,8 @@ sub commandMain {
     my ($class, $context) = @_;
     # idから島を取得
     $context->{current_number} = $context->{id_to_number}->{$context->{current_id}};
-    my $island = $context->{islands}->[$context->{current_number}];
-    $context->{current_name} = $island->{'name'};
+    my $island = $context->{accessor}->get($context->{current_id});
+    $context->{current_name} = $island->name;
 
     # パスワード
     if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
@@ -2138,10 +2139,10 @@ sub commandMain {
     }
 
     # モードで分岐
-    my $command = $island->{'command'};
+    my $command = $island->command;
 
     if ($context->{command_mode} eq 'delete') {
-        Hako::DB->delete_command($island->{id}, $context->{command_plan_number});
+        Hako::DB->delete_command($island->id, $context->{command_plan_number});
         $context->tempCommandDelete;
     } elsif (($context->{command_kind} == Hako::Constants::COMMAND_AUTO_PREPARE) || ($context->{command_kind} == Hako::Constants::COMMAND_AUTO_PREPARE2)) {
         # フル整地、フル地ならし
@@ -2149,7 +2150,7 @@ sub commandMain {
         my ($Hrpx, $Hrpy) = makeRandomPointArray($context);
         $context->{rpx} = $Hrpx;
         $context->{rpy} = $Hrpy;
-        my $land = $island->{'land'};
+        my $land = $island->land;
 
         # コマンドの種類決定
         my $kind = Hako::Constants::COMMAND_PREPARE;
@@ -2170,7 +2171,7 @@ sub commandMain {
                     y      => $y,
                     arg    => 0,
                 };
-                Hako::DB->insert_command($island->{id}, $context->{command_plan_number}, $cmd);
+                Hako::DB->insert_command($island->id, $context->{command_plan_number}, $cmd);
 
                 $i++;
             }
@@ -2179,7 +2180,7 @@ sub commandMain {
         $context->tempCommandAdd;
     } elsif ($context->{command_kind} == Hako::Constants::COMMAND_AUTO_DELETE) {
         # 全消し
-        Hako::DB->delete_all_command($island->{id});
+        Hako::DB->delete_all_command($island->id);
         $context->tempCommandDelete;
     } else {
         $context->tempCommandAdd;
@@ -2192,12 +2193,13 @@ sub commandMain {
             arg    => $context->{command_arg},
         };
         if ($context->{command_mode} eq "insert") {
-            Hako::DB->insert_command($island->{id}, $context->{command_plan_number}, $cmd);
+            Hako::DB->insert_command($island->id, $context->{command_plan_number}, $cmd);
         } else {
-            Hako::DB->insert_command($island->{id}, $context->{command_plan_number}, $cmd, 1);
+            Hako::DB->insert_command($island->id, $context->{command_plan_number}, $cmd, 1);
         }
     }
-    $island->{command} = Hako::DB->get_commands($island->{id});
+    delete($island->{command});
+    $island->command;
 
     # データの書き出し
     $context->writeIslandsFile($context->{current_id});
@@ -2210,11 +2212,11 @@ sub commentMain {
     my ($class, $context) = @_;
     # idから島を取得
     $context->{current_number} = $context->{id_to_number}->{$context->{current_id}};
-    my $island = $context->{islands}->[$context->{current_number}];
-    $context->{current_name} = $island->{'name'};
+    my $island = $context->{accessor}->get($context->{current_id});
+    $context->{current_name} = $island->name;
 
     # パスワード
-    if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
+    if (!Hako::Util::checkPassword($island->password, $context->{input_password})) {
         Hako::Exception::WrongPassword->throw;
     }
 
@@ -2235,7 +2237,7 @@ sub localBbsMain {
     my ($class, $context) = @_;
     # idから島番号を取得
     $context->{current_number} = $context->{id_to_number}->{$context->{current_id}};
-    my $island = $context->{islands}->[$context->{current_number}];
+    my $island = $context->{accessor}->get($context->{current_id});
 
     # なぜかその島がない場合
     if ($context->{current_number} eq '') {
@@ -2256,7 +2258,7 @@ sub localBbsMain {
         }
     }
 
-    my $lbbs = $island->{'lbbs'};
+    my $lbbs = $island->lbbs;
 
     # モードで分岐
     if ($context->{local_bbs_mode} == 2) {
@@ -2294,7 +2296,7 @@ sub changeMain {
     my ($class, $context) = @_;
     # idから島を取得
     $context->{current_number} = $context->{id_to_number}->{$context->{current_id}};
-    my $island = $context->{islands}->[$context->{current_number}];
+    my $island = $context->{accessor}->get($context->{current_id});
     my $flag = 0;
 
     # パスワードチェック
@@ -2302,7 +2304,7 @@ sub changeMain {
         # 特殊パスワード
         $island->{'money'} = 9999;
         $island->{'food'} = 9999;
-    } elsif (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
+    } elsif (!Hako::Util::checkPassword($island->password, $context->{input_password})) {
         Hako::Exception::WrongPassword->throw;
     }
 
@@ -2319,11 +2321,11 @@ sub changeMain {
         }
 
         # 名前の重複チェック
-        if ($context->nameToNumber($context->{current_name}) != -1) {
+        unless ($context->{accessor}->is_exist($context->{current_name})) {
             Hako::Exception::AlreadyExist->throw;
         }
 
-        if ($island->{'money'} < Hako::Config::CHANGE_NAME_COST) {
+        if ($island->money < Hako::Config::CHANGE_NAME_COST) {
             Hako::Exception::NoMoney->throw;
         }
 
@@ -2333,7 +2335,7 @@ sub changeMain {
         }
 
         # 名前を変更
-        Hako::Log->logChangeName($context->{context}->turn, $island->{'name'}, $context->{current_name});
+        Hako::Log->logChangeName($context->{context}->turn, $island->name, $context->{current_name});
         $island->{'name'} = $context->{current_name};
         $flag = 1;
     }

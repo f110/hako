@@ -97,13 +97,21 @@ sub get_islands {
 
 sub get_island {
     my ($class, $island_id) = @_;
-    my $island = $class->connect->selectrow_arrayref("SELECT * FROM islands WHERE id = ?", {}, $island_id);
+    my $island = $class->connect->selectrow_hashref("SELECT * FROM islands WHERE id = ?", {}, $island_id);
 
     if ($island) {
-        return $island->[0];
+        return $island;
     }
 
     return undef;
+}
+
+sub is_exist_island {
+    my ($class, $island_name) = @_;
+
+    my $island = $class->connect->selectrow_hashref("SELECT 1 FROM islands WHERE name = ?", {}, $name);
+
+    return !!$island;
 }
 
 sub delete_island {

@@ -33,7 +33,7 @@ sub save {
     my @target_keys;
     for my $k (keys %$self) {
         next unless ($k =~ /^flag_/);
-        push(@target_keys, $k);
+        push(@target_keys, $self->{$k});
     }
 
     for my $k (@target_keys) {

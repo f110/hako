@@ -22,6 +22,7 @@ use Hako::Template::Function;
 use Hako::Exception;
 use Hako::Context::Game;
 use Devel::Peek;
+use Hako::Accessor::Islands;
 
 sub new {
     my ($class) = @_;
@@ -86,6 +87,7 @@ sub initialize {
     $self->{defence_hex} = []; # landをパースするときにちゃんと入れないと機能しなさそう
 
     $self->{context} = Hako::Context::Game->new;
+    $self->{accessor} = Hako::Accessor::Islands->new;
 }
 
 sub psgi {
@@ -337,15 +339,15 @@ sub common_assign {
     my ($self) = @_;
 
     $self->vars_merge(
-        title      => Hako::Config::TITLE,
-        image_dir  => mark_raw(Hako::Config::IMAGE_DIR),
-        html_body  => mark_raw(Hako::Config::HTML_BODY),
-        admin_name => Hako::Config::ADMIN_NAME,
-        email      => Hako::Config::ADMIN_EMAIL,
-        bbs        => Hako::Config::BBS_URL,
-        toppage    => Hako::Config::TOPPAGE_URL,
-        debug_mode => Hako::Config::DEBUG,
-        temp_back  => mark_raw(Hako::Config::TEMP_BACK),
+        title         => Hako::Config::TITLE,
+        image_dir     => mark_raw(Hako::Config::IMAGE_DIR),
+        html_body     => mark_raw(Hako::Config::HTML_BODY),
+        admin_name    => Hako::Config::ADMIN_NAME,
+        email         => Hako::Config::ADMIN_EMAIL,
+        bbs           => Hako::Config::BBS_URL,
+        toppage       => Hako::Config::TOPPAGE_URL,
+        debug_mode    => Hako::Config::DEBUG,
+        temp_back     => mark_raw(Hako::Config::TEMP_BACK),
         use_local_bbs => Hako::Config::USE_LOCAL_BBS,
     );
 }
@@ -664,12 +666,6 @@ sub writeIslandsFile {
     for (my $i = 0; $i < $self->{context}->number; $i++) {
         $self->writeIsland($self->{islands}[$i], $num, $i);
     }
-
-    # DB用に放棄された島を消す
-    my @dead_islands = grep {$_->{dead} == 1} @{$self->{islands}};
-    for my $dead_island (@dead_islands) {
-        Hako::DB->delete_island($dead_island->{id});
-    }
 }
 
 # 島ひとつ書き込み
@@ -701,11 +697,8 @@ sub topPageMain {
     }
 
     my @islands;
-    for (my $ii = 0; $ii < $self->{context}->number; $ii++) {
-        my $j = $ii + 1;
-        my $island = $self->{islands}->[$ii];
-
-        my $id = $island->{'id'};
+    for my $id (@{$self->{accessor}->ranking}) {
+        my $island = $self->{accessor}->get($id);
 
         my $prize = $island->{'prize'};
         $prize =~ /([0-9]*),([0-9]*),(.*)/;
@@ -745,7 +738,6 @@ sub topPageMain {
 
         push(@islands, {
                 %$island,
-                j => $j,
                 prize => mark_raw($prize),
                 about_money => Hako::Util::aboutMoney($island->{money}),
             });
@@ -817,25 +809,11 @@ sub tempProblem {
     $self->vars_merge(message => "問題発生、とりあえず戻ってください。");
 }
 
-# 島の名前から番号を得る(IDじゃなくて番号)
-sub nameToNumber {
-    my ($self, $name) = @_;
-
-    # 全島から探す
-    for (my $i = 0; $i < $self->{context}->number; $i++) {
-        if($self->{islands}->[$i]->{'name'} eq $name) {
-            return $i;
-        }
-    }
-
-    # 見つからなかった場合
-    return -1;
-}
-
 # 情報の表示
 sub islandInfo {
     my ($self) = @_;
-    my $island = $self->{islands}->[$self->{current_number}];
+    #my $island = $self->{islands}->[$self->{current_number}];
+    my $island = $self->{accessor}->get($self->{current_id});
     # 情報表示
     my $rank = $self->{current_number} + 1;
 
@@ -849,7 +827,7 @@ sub islandInfo {
     $self->vars_merge(
         rank            => $rank,
         island          => {%$island},
-        about_money     => Hako::Util::aboutMoney($island->{money}),
+        about_money     => Hako::Util::aboutMoney($island->money),
         money_mode      => $money_mode,
         unit_population => Hako::Config::UNIT_POPULATION,
         unit_area       => Hako::Config::UNIT_AREA,
@@ -862,15 +840,15 @@ sub islandInfo {
 # 引数が1なら、ミサイル基地等をそのまま表示
 sub islandMap {
     my ($self, $mode) = @_;
-    my $island = $self->{islands}->[$self->{current_number}];
+    my $island = $self->{accessor}->get($self->{current_id});
 
     # 地形、地形値を取得
-    my $land = $island->{'land'};
-    my $landValue = $island->{'landValue'};
+    my $land = $island->land;
+    my $landValue = $island->land_value;
     my ($l, $lv);
 
     # コマンド取得
-    my $command = $island->{'command'};
+    my $command = $island->command;
     my @comStr;
     if ($self->{main_mode} eq 'owner') {
         for (my $i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
@@ -898,10 +876,10 @@ sub islandMap {
 
     my $island_size = Hako::Config::ISLAND_SIZE - 1;
     $self->vars_merge(
-        island_size => Hako::Config::ISLAND_SIZE,
+        island_size           => Hako::Config::ISLAND_SIZE,
         map_island_size_range => [map {$_} 0..$island_size],
-        mode        => $mode,
-        land        => \@island_land,
+        mode                  => $mode,
+        land                  => \@island_land,
     );
 }
 
