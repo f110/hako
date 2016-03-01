@@ -121,9 +121,6 @@ sub psgi {
             $self->tempInitialize;
 
             if ($self->{main_mode} eq 'turn') {
-                # ターン進行
-                Hako::Mode->turnMain($self);
-
                 $self->topPageMain;
                 $template = "top";
             } elsif ($self->{main_mode} eq 'new') {
@@ -490,13 +487,6 @@ sub readIslandsFile {
     my ($self, $num) = @_; # 0だと地形読みこまず
                    # -1だと全地形を読む
                    # 番号だとその島の地形だけは読みこむ
-
-    # ターン処理判定
-    my ($now) = time;
-    if (((Hako::Config::DEBUG == 1) && ($self->{main_mode} eq 'Hdebugturn')) || (($now - $self->{context}->last_time) >= Hako::Config::UNIT_TIME)) {
-        $self->{main_mode} = 'turn';
-        $num = -1; # 全島読みこむ
-    }
 
     # 島の読みこみ
     my $islands_from_db = Hako::DB->get_islands;
