@@ -117,11 +117,6 @@ sub psgi {
 
         my $template;
         eval {
-            # 島データの読みこみ
-            if ($self->readIslandsFile($self->{current_id}) == 0) {
-                Hako::Exception::NoData->throw;
-            }
-
             # テンプレートを初期化
             $self->tempInitialize;
 
@@ -603,9 +598,9 @@ sub getIslandList {
 
     #島リストのメニュー
     my $list = "";
-    for (my $i = 0; $i < $self->{context}->number; $i++) {
-        my $name = $self->{islands}->[$i]->{'name'};
-        my $id = $self->{islands}->[$i]->{'id'};
+    for my $id (@{$self->{accessor}->ranking}) {
+        my $island = $self->{accessor}->get($id);
+        my $name = $island->name;
         my $s = $id eq $select ? "SELECTED" : "";
         $list .= "<OPTION VALUE=\"$id\" $s>${name}島\n";
     }
@@ -1043,7 +1038,8 @@ sub tempLbbsInput {
 # ローカル掲示板内容
 sub tempLbbsContents {
     my ($self) = @_;
-    my $lbbs = $self->{islands}[$self->{current_number}]->{'lbbs'};
+    my $island = $self->{accessor}->get($self->{current_id});
+    my $lbbs = $island->lbbs;
     my @local_bbs;
     for (my $i = 0; $i < Hako::Config::LOCAL_BBS_MAX; $i++) {
         my $line = $lbbs->[$i];
@@ -1105,8 +1101,9 @@ sub tempOwner {
 sub tempOwnerEnd {
     my ($self) = @_;
     my @command_list;
+    my $island = $self->{accessor}->get($self->{current_id});
     for (my $i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
-        push(@command_list, mark_raw($self->tempCommand($i, $self->{islands}->[$self->{current_number}]->{'command'}->[$i])));
+        push(@command_list, mark_raw($self->tempCommand($i, $island->command->[$i])));
     }
 
     my $command_max = Hako::Config::COMMAND_MAX - 1;
@@ -1120,7 +1117,7 @@ sub tempOwnerEnd {
 sub tempCommandForm {
     my ($self) = @_;
 
-    my $current_id = $self->{islands}->[$self->{current_number}]->{id};
+    my $current_id  = $self->{current_id};
     my $command_max = Hako::Config::COMMAND_MAX - 1;
     my $island_size = Hako::Config::ISLAND_SIZE - 1;
 

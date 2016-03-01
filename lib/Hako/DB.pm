@@ -109,7 +109,7 @@ sub get_island {
 sub is_exist_island {
     my ($class, $island_name) = @_;
 
-    my $island = $class->connect->selectrow_hashref("SELECT 1 FROM islands WHERE name = ?", {}, $name);
+    my $island = $class->connect->selectrow_hashref("SELECT 1 FROM islands WHERE name = ?", {}, $island_name);
 
     return !!$island;
 }
