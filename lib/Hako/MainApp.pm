@@ -120,10 +120,7 @@ sub psgi {
             # テンプレートを初期化
             $self->tempInitialize;
 
-            if ($self->{main_mode} eq 'turn') {
-                $self->topPageMain;
-                $template = "top";
-            } elsif ($self->{main_mode} eq 'new') {
+            if ($self->{main_mode} eq 'new') {
                 # 島の新規作成
                 Hako::Mode->newIslandMain($self);
 
@@ -655,21 +652,19 @@ sub writeIslandsFile {
 
 # 島ひとつ書き込み
 sub writeIsland {
-    my ($self, $island, $num, $sort) = @_;
-    # 地形
-    if (($num <= -1) || ($num == $island->{'id'})) {
-        my $land = $island->{land};
-        my $landValue = $island->{'landValue'};
-        my $land_str = "";
-        for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
-            for (my $x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
-                $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
-            }
-            $land_str .= "\n";
+    my ($self, $island, $sort) = @_;
+
+    my $land = $island->{land};
+    my $landValue = $island->{'landValue'};
+    my $land_str = "";
+    for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
+        for (my $x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
+            $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
         }
-        $island->{map} = $land_str;
-        Hako::DB->save_island($island, $sort);
+        $land_str .= "\n";
     }
+    $island->{map} = $land_str;
+    Hako::DB->save_island($island, $sort);
 }
 
 # トップページ

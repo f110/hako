@@ -111,7 +111,7 @@ sub is_exist_island {
 
     my $island = $class->connect->selectrow_hashref("SELECT 1 FROM islands WHERE name = ?", {}, $island_name);
 
-    return !!$island;
+    return $island ? 1 : 0;
 }
 
 sub delete_island {

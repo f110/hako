@@ -8,6 +8,7 @@ use Hako::Log;
 use Hako::Util;
 use Hako::Command;
 use Hako::Exception;
+use Hako::Model::Turn;
 use Data::Dumper;
 
 #周囲2ヘックスの座標
@@ -178,19 +179,6 @@ sub wideDamage {
 }
 
 
-# 人口順にソート
-sub islandSort {
-    my ($context) = @_;
-    my($flag, $i, $tmp);
-
-    my @islands = @{$context->{islands}};
-    # 人口が同じときは直前のターンの順番のまま
-    my @idx = (0..$#islands);
-    @idx = sort { $context->{islands}->[$b]->{'pop'} <=> $context->{islands}->[$a]->{'pop'} || $a <=> $b } @idx;
-    my @new_islands = @islands[@idx];
-    $context->{islands} = \@new_islands;
-}
-
 sub newIslandMain {
     my ($class, $context) = @_;
     # 島がいっぱいでないかチェック
@@ -209,7 +197,7 @@ sub newIslandMain {
     }
 
     # 名前の重複チェック
-    unless ($context->{accessor}->is_exist($context->{current_name})) {
+    if ($context->{accessor}->is_exist($context->{current_name})) {
         Hako::Exception::AlreadyExist->throw;
     }
 
@@ -238,10 +226,11 @@ sub newIslandMain {
     $island->{'password'} = Hako::Util::encode($context->{input_password});
 
     # 人口その他算出
-    estimate($context, $context->{current_number});
+    Hako::Model::Turn::estimate($context, $context->{current_number});
 
     # データ書き出し
-    $context->writeIslandsFile($island->{'id'});
+    $context->writeIsland($island, 1000);
+    $context->{current_id} = $island->id;
     Hako::Log->logDiscover($context->{context}->turn, $context->{current_name}); # ログ
     Hako::DB->init_command($island->{id});
 }
@@ -308,8 +297,8 @@ sub makeNewLand {
         my $x = Hako::Util::random(8) + $center - 3;
         my $y = Hako::Util::random(8) + $center - 3;
 
-        my $tmp = countAround(\@land, $x, $y, Hako::Constants::LAND_SEA, 7);
-        if (countAround(\@land, $x, $y, Hako::Constants::LAND_SEA, 7) != 7){
+        my $tmp = Hako::Model::Turn::countAround(\@land, $x, $y, Hako::Constants::LAND_SEA, 7);
+        if (Hako::Model::Turn::countAround(\@land, $x, $y, Hako::Constants::LAND_SEA, 7) != 7){
             # 周りに陸地がある場合、浅瀬にする
             # 浅瀬は荒地にする
             # 荒地は平地にする
@@ -397,13 +386,6 @@ sub makeNewLand {
 # メイン
 sub printIslandMain {
     my ($class, $context) = @_;
-    # idから島番号を取得
-    $context->{current_number} = $context->{id_to_number}->{$context->{current_id}};
-
-    # なぜかその島がない場合
-    if ($context->{current_number} eq '') {
-        Hako::Exception::SomethingWrong->throw;
-    }
 
     # 名前の取得
     $context->{current_name} = $context->{accessor}->get($context->{current_id})->name;
