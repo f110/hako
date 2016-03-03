@@ -214,8 +214,7 @@ sub newIslandMain {
     # 新しい島の番号を決める
     $context->{current_number} = $context->{context}->number;
     $context->{context}->set_number($context->{current_number} + 1);
-    $context->{islands}->[$context->{current_number}] = makeNewIsland();
-    my $island = $context->{islands}->[$context->{current_number}];
+    my $island = makeNewIsland();
 
     # 各種の値を設定
     $island->{'name'} = $context->{current_name};
@@ -226,10 +225,10 @@ sub newIslandMain {
     $island->{'password'} = Hako::Util::encode($context->{input_password});
 
     # 人口その他算出
-    Hako::Model::Turn::estimate($context, $context->{current_number});
+    $island->update_stat;
 
     # データ書き出し
-    $context->writeIsland($island, 1000);
+    Hako::DB->save_island($island, 1000);
     $context->{current_id} = $island->id;
     Hako::Log->logDiscover($context->{context}->turn, $context->{current_name}); # ログ
     Hako::DB->init_command($island->{id});
@@ -261,7 +260,7 @@ sub makeNewIsland {
     # 島にして返す
     return Hako::Model::Island->new({
             land      => $land,
-            landValue => $landValue,
+            land_value => $landValue,
             command   => \@command,
             lbbs      => \@lbbs,
             money     => Hako::Config::INITIAL_MONEY,
@@ -479,11 +478,9 @@ sub commandMain {
             Hako::DB->insert_command($island->id, $context->{command_plan_number}, $cmd, 1);
         }
     }
+    # reload
     delete($island->{command});
     $island->command;
-
-    # データの書き出し
-    $context->writeIslandsFile($context->{current_id});
 
     # owner modeへ
     $class->ownerMain($context);
@@ -502,10 +499,10 @@ sub commentMain {
     }
 
     # メッセージを更新
-    $island->{'comment'} = Hako::Util::htmlEscape($context->{message});
+    $island->{comment} = Hako::Util::htmlEscape($context->{message});
 
     # データの書き出し
-    $context->writeIslandsFile($context->{current_id});
+    Hako::DB->save_island($island);
 
     # コメント更新メッセージ
     $context->tempComment;
@@ -568,9 +565,6 @@ sub localBbsMain {
 
         $context->tempLbbsAdd();
     }
-
-    # データ書き出し
-    $context->writeIslandsFile($context->{current_id});
 }
 
 sub changeMain {
@@ -633,7 +627,7 @@ sub changeMain {
     }
 
     # データ書き出し
-    $context->writeIslandsFile($context->{current_id});
+    Hako::DB->save_island(($island);
 
     # 変更成功
     $context->tempChange;

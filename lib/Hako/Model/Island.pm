@@ -2,6 +2,9 @@ package Hako::Model::Island;
 use strict;
 use warnings;
 use Data::Dumper;
+use Hako::Config;
+use Hako::Constants;
+
 use Hako::Model (
     ro          => [qw/id/],
     rw          => [qw/name password score money food population area farm factory mountain land land_value/],
@@ -37,6 +40,57 @@ sub inflate {
     $argv->{pop} = $argv->{population};
 
     return $class->new($argv);
+}
+
+sub map {
+    my $self = shift;
+
+    my $land = $self->land;
+    my $land_value = $self->land_value;
+    my $land_str = "";
+    for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
+        for (my $x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
+            $land_str .= sprintf("%x%02x", $land->[$x][$y], $land_value->[$x][$y]);
+        }
+        $land_str .= "\n";
+    }
+
+    return $land_str;
+}
+
+sub update_stat {
+    my $self = shift;
+
+    my ($pop, $area, $farm, $factory, $mountain);
+
+    for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
+        for (my $x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
+            my $kind = $self->land->[$x][$y];
+            my $value = $self->land_value->[$x][$y];
+            if (($kind != Hako::Constants::LAND_SEA) && ($kind != Hako::Constants::LAND_SEA_BASE) && ($kind != Hako::Constants::LAND_OIL)) {
+                $area++;
+                if ($kind == Hako::Constants::LAND_TOWN) {
+                    # 町
+                    $pop += $value;
+                } elsif ($kind == Hako::Constants::LAND_FARM) {
+                    # 農場
+                    $farm += $value;
+                } elsif ($kind == Hako::Constants::LAND_FACTORY) {
+                    # 工場
+                    $factory += $value;
+                } elsif ($kind == Hako::Constants::LAND_MOUNTAIN) {
+                    # 山
+                    $mountain += $value;
+                }
+            }
+        }
+    }
+
+    $self->{pop}      = $pop;
+    $self->{area}     = $area;
+    $self->{farm}     = $farm ? $farm : 0;
+    $self->{factory}  = $factory ? $factory : 0;
+    $self->{mountain} = $mountain ? $mountain : 0;
 }
 
 sub delete {

@@ -479,92 +479,6 @@ sub cgiInput {
     }
 }
 
-# 全島データ読みこみ
-sub readIslandsFile {
-    my ($self, $num) = @_; # 0だと地形読みこまず
-                   # -1だと全地形を読む
-                   # 番号だとその島の地形だけは読みこむ
-
-    # 島の読みこみ
-    my $islands_from_db = Hako::DB->get_islands;
-    for (my $i = 0; $i < $self->{context}->number; $i++) {
-        push(@{$self->{islands}}, $self->readIsland($num, $islands_from_db));
-        $self->{id_to_number}->{$self->{islands}->[$i]->{'id'}} = $i;
-    }
-
-    return 1;
-}
-
-# 島ひとつ読みこみ
-sub readIsland {
-    my ($self, $num, $islands_from_db) = @_;
-    my $island_from_db = Hako::Model::Island->inflate(shift @$islands_from_db);
-
-    my ($name, $id, $prize, $absent, $comment, $password, $money, $food, $pop, $area, $farm, $factory, $mountain, $score);
-    $name = $island_from_db->{name}; # 島の名前
-    $score = $island_from_db->{score};
-    $id = $island_from_db->{id}; # ID番号
-    $prize = $island_from_db->{prize}; # 受賞
-    $absent = $island_from_db->{absent}; # 連続資金繰り数
-    $comment = $island_from_db->{comment};
-    $password = $island_from_db->{password};
-    $money = $island_from_db->{money};  # 資金
-    $food = $island_from_db->{food};  # 食料
-    $pop = $island_from_db->{pop};  # 人口
-    $area = $island_from_db->{area};  # 広さ
-    $farm = $island_from_db->{farm};  # 農場
-    $factory = $island_from_db->{factory};  # 工場
-    $mountain = $island_from_db->{mountain}; # 採掘場
-
-    # HidToNameテーブルへ保存
-    $self->{id_to_name}->{$id} = $name;
-
-    # 地形
-    my (@land, @landValue, $line, @command, @lbbs);
-
-    if (($num == -1) || ($num == $id)) {
-        my @land_str = split(/\n/, $island_from_db->{map});
-        for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
-            $line = $land_str[$y];
-            for (my $x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
-                $line =~ s/^(.)(..)//;
-                $land[$x][$y] = hex($1);
-                $landValue[$x][$y] = hex($2);
-            }
-        }
-
-        # コマンド
-        my $commands_from_db = Hako::DB->get_commands($island_from_db->{id});
-        @command = @$commands_from_db;
-
-        # ローカル掲示板
-        my $bbs_from_db = Hako::DB->get_bbs($island_from_db->{id});
-        @lbbs = @$bbs_from_db;
-    }
-
-    # 島型にして返す
-    return Hako::Model::Island->new({
-        name      => $name,
-        id        => $id,
-        score     => $score,
-        prize     => $prize,
-        absent    => $absent,
-        comment   => $comment,
-        password  => $password,
-        money     => $money,
-        food      => $food,
-        pop       => $pop,
-        area      => $area,
-        farm      => $farm,
-        factory   => $factory,
-        mountain  => $mountain,
-        land      => \@land,
-        landValue => \@landValue,
-        command   => \@command,
-        lbbs      => \@lbbs,
-    });
-}
-
 # hakojima.datがない
 sub tempNoDataFile {
     my ($self) = @_;
@@ -638,33 +552,6 @@ sub cookieOutput {
         # 自動系以外
         $self->{cookie_buffer} .= "@{[Hako::Config::THIS_FILE]}KIND=($self->{command_kind}) $info";
     }
-}
-
-# 全島データ書き込み
-sub writeIslandsFile {
-    my ($self, $num) = @_;
-
-    # 島の書きこみ
-    for (my $i = 0; $i < $self->{context}->number; $i++) {
-        $self->writeIsland($self->{islands}[$i], $num, $i);
-    }
-}
-
-# 島ひとつ書き込み
-sub writeIsland {
-    my ($self, $island, $sort) = @_;
-
-    my $land = $island->{land};
-    my $landValue = $island->{'landValue'};
-    my $land_str = "";
-    for (my $y = 0; $y < Hako::Config::ISLAND_SIZE; $y++) {
-        for (my $x = 0; $x < Hako::Config::ISLAND_SIZE; $x++) {
-            $land_str .= sprintf("%x%02x", $land->[$x][$y], $landValue->[$x][$y]);
-        }
-        $land_str .= "\n";
-    }
-    $island->{map} = $land_str;
-    Hako::DB->save_island($island, $sort);
 }
 
 # トップページ
