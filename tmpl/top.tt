@@ -43,7 +43,7 @@
 </TR>
 [% FOREACH island IN islands %]
     <TR>
-    <TD BGCOLOR="#ccffcc" ROWSPAN=2 align=center nowrap=nowrap><NOBR>[% island.j %]</NOBR></TD>
+    <TD BGCOLOR="#ccffcc" ROWSPAN=2 align=center nowrap=nowrap><NOBR>[% loop.count %]</NOBR></TD>
     <TD BGCOLOR="#ccffff" ROWSPAN=2 align=left nowrap=nowrap><NOBR>
         <A STYlE=\"text-decoration:none\" HREF="/?Sight=[% island.id %]">
             [% IF island.absent == 0 %]
