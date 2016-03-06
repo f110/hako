@@ -6,8 +6,8 @@ use Hako::Config;
 use Hako::Constants;
 
 use Hako::Model (
-    ro          => [qw/id/],
-    rw          => [qw/name password score money food population area farm factory mountain land land_value/],
+    ro          => [qw//],
+    rw          => [qw/id name password score money food population area farm factory mountain land land_value absent comment/],
     rw_lazy     => [qw/command lbbs/],
     disable_new => 1,
 );
@@ -31,6 +31,12 @@ sub new {
     }
 
     return bless $argv, $class;
+}
+
+sub spend_money {
+    my ($self, $amount) = @_;
+
+    $self->money($self->money - $amount);
 }
 
 sub inflate {
@@ -91,6 +97,24 @@ sub update_stat {
     $self->{farm}     = $farm ? $farm : 0;
     $self->{factory}  = $factory ? $factory : 0;
     $self->{mountain} = $mountain ? $mountain : 0;
+}
+
+sub to_hash {
+    my $self = shift;
+
+    return {%$self};
+}
+
+sub prizes {
+    my $self = shift;
+
+    return Hako::DB->get_prize($self->id);
+}
+
+sub save {
+    my $self = shift;
+
+    Hako::DB->save_island($self);
 }
 
 sub delete {

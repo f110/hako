@@ -16,6 +16,7 @@ use Hako::Config;
 use Hako::Constants;
 use Hako::DB;
 use Hako::Model::Island;
+use Hako::Model::Command;
 use Hako::Util;
 use Hako::Mode;
 use Hako::Template::Function;
@@ -30,7 +31,9 @@ sub new {
     return bless {
         xslate => Text::Xslate->new(
             syntax => 'TTerse',
-            function => {},
+            function => {
+                to_human => \&Hako::Template::Function::to_human,
+            },
             module => ['Text::Xslate::Bridge::Star'],
         )
     }, $class;
@@ -574,39 +577,32 @@ sub topPageMain {
         my $turns = $3;
         $prize = '';
 
-        # ターン杯の表示
-        while ($turns =~ s/([0-9]*),//) {
+        my $prizes = $island->prizes;
+        for my $p (@$prizes) {
+            next unless $p->{turn};
             $prize .= "<IMG SRC=\"prize0.gif\" ALT=\"$1" . ${Hako::Config::PRIZE()}[0] . "\" WIDTH=16 HEIGHT=16> ";
         }
 
-        # 名前に賞の文字を追加
-        my $f = 1;
-        for (my $i = 1; $i < 10; $i++) {
-            if ($flags & $f) {
-                $prize .= "<IMG SRC=\"prize${i}.gif\" ALT=\"" . ${Hako::Config::PRIZE()}[$i] . "\" WIDTH=16 HEIGHT=16> ";
-            }
-            $f *= 2;
+        for my $p (@$prizes) {
+            next unless $p->{flag};
+            $prize .= "<IMG SRC=\"prize@{[$p->{flag}-1]}.gif\" ALT=\"" . ${Hako::Config::PRIZE()}[$p->{flag}-1] . "\" WIDTH=16 HEIGHT=16> ";
         }
 
-        # 倒した怪獣リスト
-        $f = 1;
-        my $max = -1;
-        my $mNameList = '';
-        for (my $i = 0; $i < Hako::Config::MONSTER_NUMBER; $i++) {
-            if ($monsters & $f) {
-                $mNameList .= "[" . ${Hako::Config::MONSTER_NAME()}[$i] . "] ";
-                $max = $i;
-            }
-            $f *= 2;
+        my $max = 0;
+        my $mNameList = "";
+        for my $p (@$prizes) {
+            next unless $p->{monster};
+            $mNameList .= "[" . ${Hako::Config::MONSTER_NAME()}[$p->{monster}-1] . "] ";
+            $max = $p->{monster};
         }
-        if ($max != -1) {
-            $prize .= "<IMG SRC=\"" . ${Hako::Config::MONSTER_IMAGE()}[$max] . "\" ALT=\"$mNameList\" WIDTH=16 HEIGHT=16> ";
+        if ($max != 0) {
+            $prize .= "<IMG SRC=\"" . ${Hako::Config::MONSTER_IMAGE()}[$max-1] . "\" ALT=\"$mNameList\" WIDTH=16 HEIGHT=16> ";
         }
 
         push(@islands, {
                 %$island,
                 prize => mark_raw($prize),
-                about_money => Hako::Util::aboutMoney($island->{money}),
+                about_money => Hako::Util::aboutMoney($island->money),
             });
     }
 
@@ -679,7 +675,6 @@ sub tempProblem {
 # 情報の表示
 sub islandInfo {
     my ($self) = @_;
-    #my $island = $self->{islands}->[$self->{current_number}];
     my $island = $self->{accessor}->get($self->{current_id});
     # 情報表示
     my $rank = $self->{current_number} + 1;
@@ -693,7 +688,7 @@ sub islandInfo {
 
     $self->vars_merge(
         rank            => $rank,
-        island          => {%$island},
+        island          => $island->to_hash,
         about_money     => Hako::Util::aboutMoney($island->money),
         money_mode      => $money_mode,
         unit_population => Hako::Config::UNIT_POPULATION,
@@ -903,7 +898,7 @@ sub tempLbbsInput {
     my ($self) = @_;
     $self->vars_merge(
         default_name => $self->{default_name},
-        current_id => $self->{current_id},
+        current_id   => $self->{current_id},
     );
 }
 
@@ -974,14 +969,11 @@ sub tempOwnerEnd {
     my ($self) = @_;
     my @command_list;
     my $island = $self->{accessor}->get($self->{current_id});
-    for (my $i = 0; $i < Hako::Config::COMMAND_MAX; $i++) {
-        push(@command_list, mark_raw($self->tempCommand($i, $island->command->[$i])));
-    }
 
     my $command_max = Hako::Config::COMMAND_MAX - 1;
     $self->vars_merge(
-        command_range => [(0..$command_max)],
-        command_list => \@command_list,
+        command_range    => [(0..$command_max)],
+        command_list     => [map {Hako::Model::Command->new(%$_)} @{$island->command}],
         default_password => $self->{default_password},
     );
 }
@@ -1020,85 +1012,15 @@ sub tempCommandForm {
     );
 }
 
-# 入力済みコマンド表示
-sub tempCommand {
-    my ($self, $number, $command) = @_;
-    my $buf;
-    my($kind, $target, $x, $y, $arg) = (
-        $command->{'kind'},
-        $command->{'target'},
-        $command->{'x'},
-        $command->{'y'},
-        $command->{'arg'}
-    );
-    my $name = Hako::Config::TAG_COM_NAME_ . Hako::Command->id_to_name($kind) . Hako::Config::_TAG_COM_NAME;
-    my $point = Hako::Config::TAG_NAME_ . "($x,$y)" . Hako::Config::_TAG_NAME;
-    $target = $self->{id_to_name}->{$target} || "";
-    if ($target eq '') {
-        $target = "無人";
-    }
-    $target = Hako::Config::TAG_NAME_ . "${target}島" . Hako::Config::_TAG_NAME;
-    my $value = $arg * Hako::Command->id_to_cost($kind);
-    if ($value == 0) {
-        $value = Hako::Command->id_to_cost($kind);
-    }
-    if ($value < 0) {
-        $value = -$value;
-        $value = "$value" . Hako::Config::UNIT_FOOD;
-    } else {
-        $value = "$value" . Hako::Config::UNIT_MONEY;
-    }
-    $value = Hako::Template::Function->wrap_name($value);
-
-    if (($kind == Hako::Constants::COMMAND_DO_NOTHING) || ($kind == Hako::Constants::COMMAND_GIVE_UP)) {
-        $buf .= "@{[$name]}";
-    } elsif (($kind == Hako::Constants::COMMAND_MISSILE_NM) || ($kind == Hako::Constants::COMMAND_MISSILE_PP) || ($kind == Hako::Constants::COMMAND_MISSILE_ST) || ($kind == Hako::Constants::COMMAND_MISSILE_LD)) {
-        # ミサイル系
-        my $n = ($arg == 0 ? '無制限' : "${arg}発");
-        $buf .= "@{[$target]}@{[$point]}へ@{[$name]}(@{[Hako::Config::TAG_NAME_]}@{[$n]}@{[Hako::Config::_TAG_NAME]})";
-    } elsif ($kind == Hako::Constants::COMMAND_SEND_MONSTER) {
-        # 怪獣派遣
-        $buf .= "@{[$target]}へ@{[$name]}";
-    } elsif ($kind == Hako::Constants::COMMAND_SELL) {
-        # 食料輸出
-        $buf .= "@{[$name]}@{[$value]}";
-    } elsif ($kind == Hako::Constants::COMMAND_PROPAGANDA) {
-        # 誘致活動
-        $buf .= "@{[$name]}";
-    } elsif (($kind == Hako::Constants::COMMAND_MONEY) || ($kind == Hako::Constants::COMMAND_MONEY)) {
-        # 援助
-        $buf .= "@{[$target]}へ@{[$name]}@{[$value]}";
-    } elsif ($kind == Hako::Constants::COMMAND_DESTROY) {
-        # 掘削
-        if ($arg != 0) {
-            $buf .= "@{[$point]}で@{[$name]}(予算@{[$value]})";
-        } else {
-            $buf .= "@{[$point]}で@{[$name]}";
-        }
-    } elsif (($kind == Hako::Constants::COMMAND_FARM) || ($kind == Hako::Constants::COMMAND_FACTORY) || ($kind == Hako::Constants::COMMAND_MOUNTAIN)) {
-        # 回数付き
-        if ($arg == 0) {
-            $buf .= "@{[$point]}で@{[$name]}";
-        } else {
-            $buf .= "@{[$point]}で@{[$name]}(@{[$arg]}回)";
-        }
-    } else {
-        # 座標付き
-        $buf .= "@{[$point]}で@{[$name]}";
-    }
-
-    return $buf;
-}
-
 # ローカル掲示板入力フォーム owner mode用
 sub tempLbbsInputOW {
     my ($self) = @_;
 
     my $local_bbs_max = Hako::Config::LOCAL_BBS_MAX - 1;
     $self->vars_merge(
-        default_name => $self->{default_name},
-        default_password => $self->{default_password},
-        current_id => $self->{current_id},
+        default_name        => $self->{default_name},
+        default_password    => $self->{default_password},
+        current_id          => $self->{current_id},
         local_bbs_max_range => [(0..$local_bbs_max)],
     );
 }
