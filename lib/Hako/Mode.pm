@@ -217,12 +217,12 @@ sub newIslandMain {
     my $island = makeNewIsland();
 
     # 各種の値を設定
-    $island->{'name'} = $context->{current_name};
-    $island->{'id'} = $context->{context}->next_id;
+    $island->name($context->{current_name});
+    $island->id($context->{context}->next_id);
     $context->{context}->set_next_id($island->{id} + 1);
-    $island->{'absent'} = Hako::Config::GIVEUP_TURN - 3;
-    $island->{'comment'} = '(未登録)';
-    $island->{'password'} = Hako::Util::encode($context->{input_password});
+    $island->absent(Hako::Config::GIVEUP_TURN - 3);
+    $island->comment("(未登録)");
+    $island->password(Hako::Util::encode($context->{input_password}));
 
     # 人口その他算出
     $island->update_stat;
@@ -231,7 +231,7 @@ sub newIslandMain {
     Hako::DB->save_island($island, 1000);
     $context->{current_id} = $island->id;
     Hako::Log->logDiscover($context->{context}->turn, $context->{current_name}); # ログ
-    Hako::DB->init_command($island->{id});
+    Hako::DB->init_command($island->id);
 }
 
 # 新しい島を作成する
@@ -401,7 +401,7 @@ sub ownerMain {
     $context->{current_name} = $island->name;
 
     # パスワード
-    if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
+    if (!Hako::Util::checkPassword($island->password, $context->{input_password})) {
         Hako::Exception::WrongPassword->throw;
     }
 }
@@ -414,7 +414,7 @@ sub commandMain {
     $context->{current_name} = $island->name;
 
     # パスワード
-    if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
+    if (!Hako::Util::checkPassword($island->password, $context->{input_password})) {
         Hako::Exception::WrongPassword->throw;
     }
 
@@ -499,10 +499,10 @@ sub commentMain {
     }
 
     # メッセージを更新
-    $island->{comment} = Hako::Util::htmlEscape($context->{message});
+    $island->comment(Hako::Util::htmlEscape($context->{message}));
 
     # データの書き出し
-    Hako::DB->save_island($island);
+    $island->save;
 
     # コメント更新メッセージ
     $context->tempComment;
@@ -531,7 +531,7 @@ sub localBbsMain {
 
     # 観光者モードじゃない時はパスワードチェック
     if ($context->{local_bbs_mode} != 0) {
-        if (!Hako::Util::checkPassword($island->{'password'}, $context->{input_password})) {
+        if (!Hako::Util::checkPassword($island->password, $context->{input_password})) {
             Hako::Exception::WrongPassword->throw;
         }
     }
@@ -561,7 +561,7 @@ sub localBbsMain {
         $context->{local_bbs_message} = Hako::Util::htmlEscape($context->{local_bbs_message});
         my $bbs_message = "$message>@{[$context->{local_bbs_name}]}>@{[$context->{local_bbs_message}]}";
         $lbbs->[0] = $bbs_message;
-        Hako::DB->insert_bbs($island->{id}, $bbs_message);
+        Hako::DB->insert_bbs($island->id, $bbs_message);
 
         $context->tempLbbsAdd();
     }
@@ -577,8 +577,8 @@ sub changeMain {
     # パスワードチェック
     if ($context->{input_password} eq Hako::Config::SPECIAL_PASSWORD) {
         # 特殊パスワード
-        $island->{'money'} = 9999;
-        $island->{'food'} = 9999;
+        $island->money(9999);
+        $island->food(9999);
     } elsif (!Hako::Util::checkPassword($island->password, $context->{input_password})) {
         Hako::Exception::WrongPassword->throw;
     }
@@ -589,7 +589,7 @@ sub changeMain {
     }
 
     if ($context->{current_name} ne '') {
-        # 名前変更の場合	
+        # 名前変更の場合
         # 名前が正当かチェック
         if ($context->{current_name} =~ /[,\?\(\)\<\>]|^無人$/) {
             Hako::Exception::BadName->throw;
@@ -606,19 +606,19 @@ sub changeMain {
 
         # 代金
         if ($context->{input_password} ne Hako::Config::SPECIAL_PASSWORD) {
-            $island->{'money'} -= Hako::Config::CHANGE_NAME_COST;
+            $island->money($island->money - Hako::Config::CHANGE_NAME_COST);
         }
 
         # 名前を変更
         Hako::Log->logChangeName($context->{context}->turn, $island->name, $context->{current_name});
-        $island->{'name'} = $context->{current_name};
+        $island->name($context->{current_name});
         $flag = 1;
     }
 
     # password変更の場合
     if ($context->{input_password} ne '') {
         # パスワードを変更
-        $island->{'password'} = Hako::Util::encode($context->{input_password});
+        $island->password(Hako::Util::encode($context->{input_password}));
         $flag = 1;
     }
 
@@ -627,7 +627,7 @@ sub changeMain {
     }
 
     # データ書き出し
-    Hako::DB->save_island(($island);
+    $island->save;
 
     # 変更成功
     $context->tempChange;

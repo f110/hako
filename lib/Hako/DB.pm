@@ -207,6 +207,18 @@ sub get_bbs {
     return $class->connect->selectcol_arrayref("SELECT value FROM island_bbs WHERE island_id = ? ORDER BY id DESC", {}, $island_id);
 }
 
+sub insert_prize {
+    my ($class, $island_id, $flag, $monster, $turn) = @_;
+
+    return $class->connect->do("INSERT INTO island_prizes (island_id, flag, monster, turn) values (?, ?, ?, ?)", {}, $island_id, $flag, $monster, $turn);
+}
+
+sub get_prize {
+    my ($class, $island_id) = @_;
+
+    return $class->connect->selectall_arrayref("SELECT * FROM island_prizes WHERE island_id = ? ORDER BY id DESC", {Slice => +{}}, $island_id);
+}
+
 sub _insert_log_common {
     my ($class, $type, $turn, $island_id, $target_id, $message) = @_;
 

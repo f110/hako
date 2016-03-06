@@ -2,7 +2,7 @@
 <TD bgcolor="#ccffcc">
 [% FOREACH k IN command_list %]
 <A STYlE="text-decoration:none" HREF="JavaScript:void(0);" onClick="ns([% loop.index %])"><NOBR><FONT COLOR="#800000"><B>[% sprintf("%02d", loop.count) %]：</b></font><FONT COLOR="#000000">
-[% k %]
+[% to_human(k) %]
 </FONT></NOBR></A><BR>
 [% END %]
 
@@ -19,4 +19,3 @@
 <INPUT TYPE=submit VALUE="コメント更新" NAME=MessageButton[% current_id %]>
 </FORM>
 </CENTER>
-

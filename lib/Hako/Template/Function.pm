@@ -2,6 +2,15 @@ package Hako::Template::Function;
 use strict;
 use warnings;
 use Hako::Config;
+use Data::Dumper;
+
+sub to_human {
+    my ($obj) = @_;
+
+    if ($obj->can("to_human")) {
+        return $obj->to_human;
+    }
+}
 
 sub wrap_name {
     my ($class, $value) = @_;

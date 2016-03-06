@@ -49,6 +49,18 @@ CREATE TABLE island_commands (
     primary key(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+DROP TABLE IF EXISTS island_prizes;
+CREATE TABLE island_prizes (
+    id int NOT NULL auto_increment,
+    island_id int NOT NULL,
+    flag int,
+    monster int,
+    turn int,
+    created_at datetime NOT NULL,
+    updated_at datetime NOT NULL,
+    primary key(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 DROP TABLE IF EXISTS island_bbs;
 CREATE TABLE island_bbs (
     id int NOT NULL auto_increment,
